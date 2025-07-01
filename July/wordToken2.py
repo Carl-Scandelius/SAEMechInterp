@@ -1,18 +1,10 @@
 """
-Word manifold exploration.
+Word manifold exploration based on specific concept words.
 
-Pass concept-labelled prompts (in QA format) into decoder-only model (Llama 3.3, GPT-2, or something more modern). Extract corresponding token representation in residual stream of layer \ell.
-
-We now have some sample of the representation space. Ideally this is in the form of concept manifolds. Centre this representation to remove correlation between centroids
-
-Find 'effective' eigenvectors of the manifolds. Project work token (from new labelled prompt) representation onto respective 'effective' concept manifold.
-
-Check decoded sentence for:
-1) original prompt
-2) original with final token embedding perturbed in PC1 by \pm 1.5x eigenvalue, \pm 2x eigenvalue, \pm 5x eigenvalue
-
-Find prompts in initial dataset that are furthest in the direction of PC1: how are they correlated? Is this a global feature or just for that manifold's PC1?
-
+This script adapts the approach from lastToken.py. Instead of using the final
+token's embedding, it identifies the token/s corresponding to a specific concept
+word within each prompt. It then uses the embedding of the last
+token of that word (cf. causal attention) for manifold analysis.
 """
 
 import torch
@@ -37,28 +29,84 @@ def get_model_and_tokenizer(model_name):
     tokenizer.pad_token = tokenizer.eos_token
     return model, tokenizer
 
-def get_final_token_activations(model, tokenizer, prompts, layer_idx):
+def find_word_token_index(prompt, concept, tokenizer, add_generation_prompt):
+    """Finds the index of the last token of the last occurrence of a concept word in a prompt."""
+    variations = {
+        "dog": ["dog", "dogs", "dog's"],
+        "lion": ["lion", "lions", "lion's"],
+        "human": ["human", "humans", "human's", "man", "woman", "person"],
+        "house": ["house", "houses", "house's"]
+    }.get(concept, [concept])
+
+    lower_prompt = prompt.lower()
+    last_occurrence_pos = -1
+    word_found_len = -1
+    for var in variations:
+        pos = lower_prompt.rfind(var)
+        if pos > last_occurrence_pos:
+            last_occurrence_pos = pos
+            word_found_len = len(var)
+
+    if last_occurrence_pos == -1:
+        return -1, None
+
+    char_start = last_occurrence_pos
+    char_end = char_start + word_found_len
+
+    messages = [{"role": "user", "content": prompt}]
+    text_for_model = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=add_generation_prompt)
+
+    prompt_start_in_text = text_for_model.lower().find(lower_prompt)
+    if prompt_start_in_text == -1:
+        return -1, None
+
+    final_char_start = prompt_start_in_text + char_start
+    final_char_end = prompt_start_in_text + char_end
+
+    inputs = tokenizer(text_for_model, return_tensors="pt", return_offsets_mapping=True)
+    offset_mapping = inputs.pop('offset_mapping').squeeze(0)
+
+    token_indices_for_word = []
+    for i, (start, end) in enumerate(offset_mapping):
+        if max(start, final_char_start) < min(end, final_char_end):
+            token_indices_for_word.append(i)
+
+    if not token_indices_for_word:
+        return -1, None
+
+    target_token_idx = max(token_indices_for_word)
+    inputs.to(DEVICE)
+    return target_token_idx, inputs
+
+def get_word_token_activations(model, tokenizer, prompts, layer_idx, concept):
     activations = []
+    print(f"Extracting activations from layer {layer_idx} for concept '{concept}'...")
 
-    def hook_fn(module, input, output):
-        last_token_activation = output[0][:, -1, :].detach().cpu()
-        activations.append(last_token_activation)
+    for prompt in tqdm(prompts, desc=f"Processing prompts for '{concept}'"):
+        target_token_idx, inputs = find_word_token_index(prompt, concept, tokenizer, add_generation_prompt=False)
 
-    hook_handle = model.model.layers[layer_idx].register_forward_hook(hook_fn)
+        if target_token_idx == -1:
+            print(f"Warning: Could not find token for concept '{concept}' in prompt: '{prompt}'. Skipping.")
+            continue
 
-    print(f"Extracting activations from layer {layer_idx}...")
-    for prompt in tqdm(prompts, desc="Processing prompts"):
-        messages = [{"role": "user", "content": prompt}]
-        
-        inputs = tokenizer.apply_chat_template(
-            messages,
-            return_tensors="pt",
-            add_generation_prompt=False
-        ).to(DEVICE)
+        activation_storage = []
+        def hook_fn(module, input, output):
+            token_activation = output[0][:, target_token_idx, :].detach().cpu()
+            activation_storage.append(token_activation)
+
+        hook_handle = model.model.layers[layer_idx].register_forward_hook(hook_fn)
+
         with torch.no_grad():
-            model(input_ids=inputs)
+            model(input_ids=inputs['input_ids'], attention_mask=inputs['attention_mask'])
 
-    hook_handle.remove()
+        hook_handle.remove()
+
+        if activation_storage:
+            activations.append(activation_storage[0])
+
+    if not activations:
+        return torch.empty(0, model.config.hidden_size)
+
     return torch.cat(activations, dim=0)
 
 def analyze_manifolds(all_activations_by_concept):
@@ -79,6 +127,9 @@ def analyze_manifolds(all_activations_by_concept):
     
     print("Finding effective eigenvectors via PCA...")
     for concept, acts in centered_activations.items():
+        if acts.shape[0] < 2: # PCA needs at least 2 samples
+            print(f"Concept '{concept}': Not enough samples ({acts.shape[0]}) for PCA. Skipping.")
+            continue
         pca = PCA()
         pca.fit(acts.numpy())
         
@@ -86,8 +137,7 @@ def analyze_manifolds(all_activations_by_concept):
         eigenvalues = pca.explained_variance_
 
         mean_eigval = eigenvalues.mean()
-        std_eigval = eigenvalues.std()
-        threshold = mean_eigval #- 1.0 * std_eigval
+        threshold = mean_eigval
         
         effective_mask = eigenvalues > threshold
         
@@ -103,31 +153,24 @@ def analyze_manifolds(all_activations_by_concept):
         
     return concept_analysis
 
-def generate_with_perturbation(model, tokenizer, messages, layer_idx, direction, magnitude, eigenvalue, perturb_once=False):
+def generate_with_perturbation(model, tokenizer, layer_idx, direction, magnitude, eigenvalue, target_token_idx, inputs):
     perturbation = direction * magnitude * torch.sqrt(eigenvalue)
     
     def hook_fn_modify(module, input, output):
         hidden_states = output[0]
-        if perturb_once:
-            # Only apply perturbation during the initial prompt processing pass
-            if hidden_states.shape[1] > 1:
-                hidden_states[:, -1, :] += perturbation.to(hidden_states.device, dtype=hidden_states.dtype)
-        else:
-            # Original behavior: apply perturbation on every forward pass
-            hidden_states[:, -1, :] += perturbation.to(hidden_states.device, dtype=hidden_states.dtype)
+        # Only apply perturbation during the initial prompt processing pass,
+        # not during the single-token generation steps.
+        # We can detect this by checking the sequence length.
+        if hidden_states.shape[1] > 1:
+            hidden_states[:, target_token_idx, :] += perturbation.to(hidden_states.device, dtype=hidden_states.dtype)
         return (hidden_states,) + output[1:]
-
-    inputs = tokenizer.apply_chat_template(
-        messages,
-        return_tensors="pt",
-        add_generation_prompt=True
-    ).to(DEVICE)
 
     hook_handle = model.model.layers[layer_idx].register_forward_hook(hook_fn_modify)
     
     with torch.no_grad():
         output_ids = model.generate(
-            input_ids=inputs,
+            input_ids=inputs['input_ids'],
+            attention_mask=inputs['attention_mask'],
             max_new_tokens=70,
             do_sample=False,
             pad_token_id=tokenizer.eos_token_id
@@ -135,7 +178,7 @@ def generate_with_perturbation(model, tokenizer, messages, layer_idx, direction,
         
     hook_handle.remove()
 
-    prompt_length = inputs.shape[1]
+    prompt_length = inputs['input_ids'].shape[1]
     decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
     
     return decoded_text
@@ -154,14 +197,27 @@ def find_top_prompts(prompts, centered_acts, direction, n=10):
     }
 
 def main():
-    PERTURB_ONCE = True # true entails perturbing only the final token in the user prompt; false entails perturbing the final token in every subsequent pass through the model
-    print(f"\nConfiguration: PERTURB_ONCE is set to {PERTURB_ONCE}\n")
-
     model, tokenizer = get_model_and_tokenizer(MODEL_NAME)
 
     with open('prompts.json', 'r', encoding='utf-8') as f:
         concept_prompts = json.load(f)
-    
+
+    # Filter prompts to only include those with the concept word
+    filtered_prompts = {}
+    variations = {
+        "dog": ["dog", "dogs", "dog's"],
+        "lion": ["lion", "lions", "lion's"],
+        "human": ["human", "humans", "human's", "man", "woman", "person"],
+        "house": ["house", "houses", "house's"]
+    }
+    for concept, prompts in concept_prompts.items():
+        concept_vars = variations.get(concept, [concept])
+        filtered_prompts[concept] = [
+            p for p in prompts 
+            if any(var in p.lower() for var in concept_vars)
+        ]
+        print(f"Concept '{concept}': Filtered from {len(prompts)} to {len(filtered_prompts[concept])} prompts.")
+
     TARGET_LAYERS = [0, 15, 21]
     AXES_TO_ANALYZE = range(5)
 
@@ -171,8 +227,11 @@ def main():
         print("#"*80 + "\n")
 
         all_activations = {}
-        for concept, prompts in concept_prompts.items():
-            all_activations[concept] = get_final_token_activations(model, tokenizer, prompts, target_layer)
+        for concept, prompts in filtered_prompts.items():
+            if not prompts:
+                print(f"No prompts for concept '{concept}' after filtering. Skipping.")
+                continue
+            all_activations[concept] = get_word_token_activations(model, tokenizer, prompts, target_layer, concept)
             gc.collect()
             torch.cuda.empty_cache()
 
@@ -186,10 +245,11 @@ def main():
             print(f"Analysis for concept '{test_concept}' not available for layer {target_layer}. Skipping to next layer.")
             continue
 
-        messages_to_test = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ]
+        target_token_idx, inputs_for_gen = find_word_token_index(user_prompt, test_concept, tokenizer, add_generation_prompt=True)
+
+        if target_token_idx == -1:
+            print(f"Could not find token for '{test_concept}' in test prompt. Skipping perturbation for this layer.")
+            continue
 
         for axis in AXES_TO_ANALYZE:
             print("\n" + "="*80)
@@ -210,23 +270,22 @@ def main():
             print(f"\nSystem Prompt: '{system_prompt}'")
             print(f"User Prompt:   '{user_prompt}'")
 
-            original_output = generate_with_perturbation(model, tokenizer, messages_to_test, target_layer, pc_direction, 0, pc_eigenvalue, perturb_once=PERTURB_ONCE)
+            original_output = generate_with_perturbation(model, tokenizer, target_layer, pc_direction, 0, pc_eigenvalue, target_token_idx, inputs_for_gen)
             print(f"Original model completion: {original_output}")
             
             perturbation_scales = [-20.0, -10.0, -5.0, -2.5, -1.5, 0.0, 1.5, 2.5, 5.0, 10.0, 20.0]
             
-            print(f"\n--- Perturbing final token activation along PC{axis} ---")
+            print(f"\n--- Perturbing token activation for '{test_concept}' along PC{axis} ---")
             for scale in perturbation_scales:
                 perturbed_output = generate_with_perturbation(
-                    model, tokenizer, messages_to_test, target_layer, pc_direction, scale, pc_eigenvalue,
-                    perturb_once=PERTURB_ONCE
+                    model, tokenizer, target_layer, pc_direction, scale, pc_eigenvalue, target_token_idx, inputs_for_gen
                 )
                 print(f"Perturbation scale {scale:+.1f}x: {perturbed_output}")
 
             print("\n" + "="*80)
             print(f"--- Analyzing original dataset prompts along the PC{axis} '{test_concept}' direction (Layer {target_layer}) ---")
             top_prompts = find_top_prompts(
-                concept_prompts[test_concept],
+                filtered_prompts[test_concept],
                 concept_analysis["centered_acts"],
                 pc_direction,
                 n=10
