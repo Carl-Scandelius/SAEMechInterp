@@ -1,6 +1,6 @@
 Next order of business:
 -Repeat in Q&A format and classification task
--Repeat WoMan.py but for word manifolds (instead of final token), as well as for multi-word perturbations
+-Repeat wordToken for multi-word perturbations
 -Repeat last token work with interpolation between manifold centroids and same for word manifolds
 -Try perturbing in directions orthogonal to the manifold (see if this corresponds to robustness or some dense feature)
 -Try ablating PCs of the manifold (i.e. drop a dimension)

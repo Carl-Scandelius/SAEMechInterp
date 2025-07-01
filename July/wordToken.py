@@ -15,7 +15,8 @@ from tqdm import tqdm
 import gc
 import json
 
-MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+# MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 
@@ -218,7 +219,7 @@ def main():
         ]
         print(f"Concept '{concept}': Filtered from {len(prompts)} to {len(filtered_prompts[concept])} prompts.")
 
-    TARGET_LAYERS = [0, 15, 21]
+    TARGET_LAYERS = [0, 15, 31] # Llama-3.1-8B has 32 layers (0-31)
     AXES_TO_ANALYZE = range(5)
 
     for target_layer in TARGET_LAYERS:
@@ -239,7 +240,7 @@ def main():
         
         test_concept = "dog"
         user_prompt = "The dog was running around the park. It was a labrador."
-        system_prompt = "You are a language model assistant. Please translate the following precisely and directly from English into German:"
+        system_prompt = "You are a language model assistant. Please translate the following text accurately from English into German:"
 
         if test_concept not in analysis_results:
             print(f"Analysis for concept '{test_concept}' not available for layer {target_layer}. Skipping to next layer.")
