@@ -3,7 +3,7 @@ Word manifold exploration.
 
 Pass word-labelled prompts (in QA format) into decoder-only model (Llama 3.3, GPT-2, or something more modern). Extract corresponding token representation in residual stream of layer \ell.
 
-We now have some sample of the representation space. Ideally this is in the form of word manifolds. Centre this representation to remove correlation between centroids (I think Sompy was BSing here--what fucking correlation does he think he's talking about?). But he wants me to subtract the averaged vector (over all datapoints?).
+We now have some sample of the representation space. Ideally this is in the form of concept manifolds. Centre this representation to remove correlation between centroids
 
 Find 'effective' eigenvectors of the manifolds. Project work token (from new labelled prompt) representation onto respective 'effective' word manifold.
 
@@ -13,7 +13,6 @@ Check decoded sentence for:
 
 Find prompts in initial dataset that are furthest in the direction of PC1: how are they correlated? Is this a global feature or just for that manifold's PC1?
 
-Extensions: check for multiple word perturbations/cleanings (i.e. multiple core words)
 """
 
 import torch
