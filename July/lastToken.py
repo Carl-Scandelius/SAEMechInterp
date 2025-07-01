@@ -155,11 +155,9 @@ def main():
     with open('prompts.json', 'r', encoding='utf-8') as f:
         concept_prompts = json.load(f)
     
-    # --- MODIFICATION: Define the layers and axes to analyze ---
     TARGET_LAYERS = [0, 15, 21]
-    AXES_TO_ANALYZE = range(5)  # This will iterate from 0 to 4
+    AXES_TO_ANALYZE = range(5)
 
-    # --- MODIFICATION: Outer loop to iterate over each target layer ---
     for target_layer in TARGET_LAYERS:
         print("\n" + "#"*80)
         print(f"### STARTING ANALYSIS FOR LAYER {target_layer} ###")
@@ -186,7 +184,6 @@ def main():
             {"role": "user", "content": user_prompt}
         ]
 
-        # --- MODIFICATION: Inner loop to iterate over each axis for the current layer ---
         for axis in AXES_TO_ANALYZE:
             print("\n" + "="*80)
             print(f"--- INTERVENTION EXPERIMENT ON CONCEPT: '{test_concept}' ---")
@@ -195,11 +192,10 @@ def main():
 
             concept_analysis = analysis_results[test_concept]
 
-            # Add a check to ensure the axis is valid for the number of components found
             if axis >= len(concept_analysis["eigenvectors"]):
                 print(f"Axis {axis} is out of bounds for the number of principal components found ({len(concept_analysis['eigenvectors'])}).")
                 print("Skipping remaining axes for this layer.")
-                break # Break the inner axis loop and proceed to the next layer
+                break
 
             pc_direction = concept_analysis["eigenvectors"][axis]
             pc_eigenvalue = concept_analysis["eigenvalues"][axis]
