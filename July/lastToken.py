@@ -1,7 +1,7 @@
 """
 Word manifold exploration.
 
-Pass concept-labelled prompts (in QA format) into decoder-only model (Llama 3.3, GPT-2, or something more modern). Extract corresponding token representation in residual stream of layer \ell.
+Pass concept-labelled prompts (in QA format) into decoder-only model (Llama 3.3, GPT-2, or something more modern). Extract corresponding token representation in residual stream of layer l.
 
 We now have some sample of the representation space. Ideally this is in the form of concept manifolds. Centre this representation to remove correlation between centroids
 
@@ -9,7 +9,7 @@ Find 'effective' eigenvectors of the manifolds. Project work token (from new lab
 
 Check decoded sentence for:
 1) original prompt
-2) original with final token embedding perturbed in PC1 by \pm 1.5x eigenvalue, \pm 2x eigenvalue, \pm 5x eigenvalue
+2) original with final token embedding perturbed in PC1 by pm 1.5x eigenvalue, pm 2x eigenvalue, pm 5x eigenvalue
 
 Find prompts in initial dataset that are furthest in the direction of PC1: how are they correlated? Is this a global feature or just for that manifold's PC1?
 
@@ -22,6 +22,9 @@ from sklearn.decomposition import PCA
 from tqdm import tqdm
 import gc
 import json
+import matplotlib.pyplot as plt
+import seaborn as sns
+import torch.nn.functional as F
 
 # MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
@@ -96,12 +99,12 @@ def analyze_manifolds(all_activations_by_concept):
         
         concept_analysis[concept] = {
             "pca": pca,
-            "eigenvectors": torch.tensor(eigenvectors, dtype=torch.float32),
-            "eigenvalues": torch.tensor(eigenvalues, dtype=torch.float32),
+            "eigenvectors": torch.tensor(eigenvectors, dtype=acts.dtype),
+            "eigenvalues": torch.tensor(eigenvalues, dtype=acts.dtype),
             "effective_mask": torch.tensor(effective_mask, dtype=torch.bool),
             "centered_acts": acts
         }
-        
+    
     return concept_analysis
 
 def generate_with_perturbation(model, tokenizer, messages, layer_idx, direction, magnitude, eigenvalue, perturb_once=False):
@@ -154,9 +157,63 @@ def find_top_prompts(prompts, centered_acts, direction, n=10):
         "negative": top_negative_prompts
     }
 
+def plot_avg_eigenvalues(eigenvalue_data, model_name_str, filename_prefix):
+    """Plots the average eigenvalue for a concept across layers.""" 
+    if not eigenvalue_data:
+        print("No eigenvalue data to plot.")
+        return
+    
+    layers = sorted(eigenvalue_data.keys())
+    avg_eigenvalues = [eigenvalue_data[l] for l in layers]
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(layers, avg_eigenvalues, marker='o')
+    plt.title(f'Average "Dog" Manifold Eigenvalue vs. Layer\nModel: {model_name_str}')
+    plt.xlabel("Model Layer")
+    plt.ylabel("Average Eigenvalue")
+    plt.xticks(layers)
+    plt.grid(True, linestyle='--', alpha=0.6)
+    filename = f"{filename_prefix}_dog_avg_eigenvalue.png"
+    plt.savefig(filename)
+    print(f"Saved average eigenvalue plot to {filename}")
+    plt.close()
+
+def plot_similarity_matrix(eigenvector_data, model_name_str, filename_prefix):
+    """Plots the cosine similarity matrix of top eigenvectors across layers.""" 
+    if len(eigenvector_data) < 2:
+        print("Not enough eigenvector data to create a similarity matrix.")
+        return
+
+    layers = sorted(eigenvector_data.keys())
+    num_layers = len(layers)
+    similarity_matrix = torch.zeros((num_layers, num_layers))
+
+    eigenvectors = [eigenvector_data[l] for l in layers]
+
+    for i in range(num_layers):
+        for j in range(num_layers):
+            sim = F.cosine_similarity(eigenvectors[i].unsqueeze(0), eigenvectors[j].unsqueeze(0))
+            similarity_matrix[i, j] = sim.item()
+
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(similarity_matrix, annot=True, fmt=".2f", cmap="viridis",
+                xticklabels=layers, yticklabels=layers)
+    plt.title(f'Cosine Similarity of "Dog" Manifold PC0 Across Layers\nModel: {model_name_str}')
+    plt.xlabel("Model Layer")
+    plt.ylabel("Model Layer")
+    filename = f"{filename_prefix}_dog_pc0_similarity.png"
+    plt.savefig(filename)
+    print(f"Saved eigenvector similarity matrix to {filename}")
+    plt.close()
+
 def main():
-    PERTURB_ONCE = True # true entails perturbing only the final token in the user prompt; false entails perturbing the final token in every subsequent pass through the model
+    PERTURB_ONCE = False # true entails perturbing only the final token in the user prompt; false entails perturbing the final token in every subsequent pass through the model
     print(f"\nConfiguration: PERTURB_ONCE is set to {PERTURB_ONCE}\n")
+
+    # Data for plotting across layers
+    dog_avg_eigenvalues = {}
+    dog_top_eigenvectors = {}
+    model_name_str = MODEL_NAME.split('/')[-1]
 
     model, tokenizer = get_model_and_tokenizer(MODEL_NAME)
 
@@ -178,6 +235,12 @@ def main():
             torch.cuda.empty_cache()
 
         analysis_results = analyze_manifolds(all_activations)
+
+        if "dog" in analysis_results:
+            dog_analysis = analysis_results["dog"]
+            # Store data for plotting
+            dog_avg_eigenvalues[target_layer] = dog_analysis["eigenvalues"].mean().item()
+            dog_top_eigenvectors[target_layer] = dog_analysis["eigenvectors"][0]
         
         test_concept = "dog"
         user_prompt = "The dog was running around the park. It was a labrador."
@@ -241,6 +304,49 @@ def main():
             for i, prompt in enumerate(top_prompts['negative'], 1):
                 print(f"{i:2d}. '{prompt}'")
             print("="*80)
+
+        # --- ORTHOGONAL PERTURBATION ---
+        print("\n" + "="*80)
+        print(f"--- ORTHOGONAL PERTURBATION ON CONCEPT: '{test_concept}' ---")
+        print(f"--- LAYER: {target_layer} ---")
+        print("="*80)
+
+        concept_analysis = analysis_results[test_concept]
+        effective_mask = concept_analysis["effective_mask"]
+        
+        # Find the first principal component that is *not* effective
+        orthogonal_pc_index = -1
+        for i, is_effective in enumerate(effective_mask):
+            if not is_effective:
+                orthogonal_pc_index = i
+                break
+
+        if orthogonal_pc_index != -1:
+            ortho_direction = concept_analysis["eigenvectors"][orthogonal_pc_index]
+            ortho_eigenvalue = concept_analysis["eigenvalues"][orthogonal_pc_index]
+
+            print(f"Perturbing along first orthogonal direction (PC{orthogonal_pc_index})...")
+            print(f"\nSystem Prompt: '{system_prompt}'")
+            print(f"User Prompt:   '{user_prompt}'")
+
+            original_output = generate_with_perturbation(model, tokenizer, messages_to_test, target_layer, ortho_direction, 0, ortho_eigenvalue, perturb_once=PERTURB_ONCE)
+            print(f"Original model completion: {original_output}")
+
+            for scale in perturbation_scales:
+                perturbed_output = generate_with_perturbation(
+                    model, tokenizer, messages_to_test, target_layer, ortho_direction, scale, ortho_eigenvalue,
+                    perturb_once=PERTURB_ONCE
+                )
+                print(f"Perturbation scale {scale:+.1f}x: {perturbed_output}")
+        else:
+            print("Could not find an orthogonal (ineffective) direction to perturb.")
+
+    # --- FINAL PLOTTING ---
+    print("\n" + "#"*80)
+    print("### PLOTTING OVERALL RESULTS ###")
+    print("#"*80 + "\n")
+    plot_avg_eigenvalues(dog_avg_eigenvalues, model_name_str, "lastToken")
+    plot_similarity_matrix(dog_top_eigenvectors, model_name_str, "lastToken")
 
 if __name__ == "__main__":
     main()

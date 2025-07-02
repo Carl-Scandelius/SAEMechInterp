@@ -14,6 +14,9 @@ from sklearn.decomposition import PCA
 from tqdm import tqdm
 import gc
 import json
+import matplotlib.pyplot as plt
+import seaborn as sns
+import torch.nn.functional as F
 
 # MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
@@ -146,12 +149,12 @@ def analyze_manifolds(all_activations_by_concept):
         
         concept_analysis[concept] = {
             "pca": pca,
-            "eigenvectors": torch.tensor(eigenvectors, dtype=torch.float32),
-            "eigenvalues": torch.tensor(eigenvalues, dtype=torch.float32),
+            "eigenvectors": torch.tensor(eigenvectors, dtype=acts.dtype),
+            "eigenvalues": torch.tensor(eigenvalues, dtype=acts.dtype),
             "effective_mask": torch.tensor(effective_mask, dtype=torch.bool),
             "centered_acts": acts
         }
-        
+    
     return concept_analysis
 
 def generate_with_perturbation(model, tokenizer, layer_idx, direction, magnitude, eigenvalue, target_token_idx, inputs):
@@ -197,7 +200,61 @@ def find_top_prompts(prompts, centered_acts, direction, n=10):
         "negative": top_negative_prompts
     }
 
+def plot_avg_eigenvalues(eigenvalue_data, model_name_str, filename_prefix):
+    """Plots the average eigenvalue for a concept across layers.""" 
+    if not eigenvalue_data:
+        print("No eigenvalue data to plot.")
+        return
+    
+    layers = sorted(eigenvalue_data.keys())
+    avg_eigenvalues = [eigenvalue_data[l] for l in layers]
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(layers, avg_eigenvalues, marker='o')
+    plt.title(f'Average "Dog" Manifold Eigenvalue vs. Layer\nModel: {model_name_str}')
+    plt.xlabel("Model Layer")
+    plt.ylabel("Average Eigenvalue")
+    plt.xticks(layers)
+    plt.grid(True, linestyle='--', alpha=0.6)
+    filename = f"{filename_prefix}_dog_avg_eigenvalue.png"
+    plt.savefig(filename)
+    print(f"Saved average eigenvalue plot to {filename}")
+    plt.close()
+
+def plot_similarity_matrix(eigenvector_data, model_name_str, filename_prefix):
+    """Plots the cosine similarity matrix of top eigenvectors across layers.""" 
+    if len(eigenvector_data) < 2:
+        print("Not enough eigenvector data to create a similarity matrix.")
+        return
+
+    layers = sorted(eigenvector_data.keys())
+    num_layers = len(layers)
+    similarity_matrix = torch.zeros((num_layers, num_layers))
+
+    eigenvectors = [eigenvector_data[l] for l in layers]
+
+    for i in range(num_layers):
+        for j in range(num_layers):
+            sim = F.cosine_similarity(eigenvectors[i].unsqueeze(0), eigenvectors[j].unsqueeze(0))
+            similarity_matrix[i, j] = sim.item()
+
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(similarity_matrix, annot=True, fmt=".2f", cmap="viridis",
+                xticklabels=layers, yticklabels=layers)
+    plt.title(f'Cosine Similarity of "Dog" Manifold PC0 Across Layers\nModel: {model_name_str}')
+    plt.xlabel("Model Layer")
+    plt.ylabel("Model Layer")
+    filename = f"{filename_prefix}_dog_pc0_similarity.png"
+    plt.savefig(filename)
+    print(f"Saved eigenvector similarity matrix to {filename}")
+    plt.close()
+
 def main():
+    # Data for plotting across layers
+    dog_avg_eigenvalues = {}
+    dog_top_eigenvectors = {}
+    model_name_str = MODEL_NAME.split('/')[-1]
+
     model, tokenizer = get_model_and_tokenizer(MODEL_NAME)
 
     with open('prompts.json', 'r', encoding='utf-8') as f:
@@ -237,20 +294,47 @@ def main():
             torch.cuda.empty_cache()
 
         analysis_results = analyze_manifolds(all_activations)
+
+        if "dog" in analysis_results:
+            dog_analysis = analysis_results["dog"]
+            # Store data for plotting
+            dog_avg_eigenvalues[target_layer] = dog_analysis["eigenvalues"].mean().item()
+            dog_top_eigenvectors[target_layer] = dog_analysis["eigenvectors"][0]
         
         test_concept = "dog"
         user_prompt = "The dog was running around the park. It was a labrador."
         system_prompt = "You are a language model assistant. Please translate the following text accurately from English into German:"
 
-        if test_concept not in analysis_results:
-            print(f"Analysis for concept '{test_concept}' not available for layer {target_layer}. Skipping to next layer.")
-            continue
+        messages_to_test = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+        inputs_for_gen = tokenizer.apply_chat_template(
+            messages_to_test,
+            return_tensors="pt",
+            add_generation_prompt=True
+        ).to(model.device)
 
-        target_token_idx, inputs_for_gen = find_word_token_index(user_prompt, test_concept, tokenizer, add_generation_prompt=True)
-
+        # Find the token index for the test concept in the formatted prompt
+        input_ids = inputs_for_gen[0].tolist()
+        concept_ids = tokenizer.encode(test_concept, add_special_tokens=False)
+        target_token_idx = -1
+        # Find the last occurrence of the concept word
+        for i in range(len(input_ids) - len(concept_ids) + 1):
+            if input_ids[i:i+len(concept_ids)] == concept_ids:
+                target_token_idx = i + len(concept_ids) - 1
+        
         if target_token_idx == -1:
-            print(f"Could not find token for '{test_concept}' in test prompt. Skipping perturbation for this layer.")
+            print(f"Warning: Concept '{test_concept}' not found in the tokenized test prompt. Skipping perturbation tests for layer {target_layer}.")
             continue
+
+        perturbation_scales = [-20.0, -10.0, -5.0, -2.5, -1.5, 0.0, 1.5, 2.5, 5.0, 10.0, 20.0]
+
+        if test_concept not in analysis_results:
+            print(f"No analysis results for concept '{test_concept}', skipping layer {target_layer}.")
+            continue
+        
+        concept_analysis = analysis_results[test_concept]
 
         for axis in AXES_TO_ANALYZE:
             print("\n" + "="*80)
@@ -300,6 +384,52 @@ def main():
             for i, prompt in enumerate(top_prompts['negative'], 1):
                 print(f"{i:2d}. '{prompt}'")
             print("="*80)
+
+        # --- ORTHOGONAL PERTURBATION ---
+        print("\n" + "="*80)
+        print(f"--- ORTHOGONAL PERTURBATION ON CONCEPT: '{test_concept}' ---")
+        print(f"--- LAYER: {target_layer} ---")
+        print("="*80)
+
+        if test_concept in analysis_results:
+            concept_analysis = analysis_results[test_concept]
+            effective_mask = concept_analysis["effective_mask"]
+            
+            # Find the first principal component that is *not* effective
+            orthogonal_pc_index = -1
+            for i, is_effective in enumerate(effective_mask):
+                if not is_effective:
+                    orthogonal_pc_index = i
+                    break
+
+            if orthogonal_pc_index != -1:
+                ortho_direction = concept_analysis["eigenvectors"][orthogonal_pc_index]
+                ortho_eigenvalue = concept_analysis["eigenvalues"][orthogonal_pc_index]
+
+                print(f"Perturbing along first orthogonal direction (PC{orthogonal_pc_index})...")
+                print(f"\nSystem Prompt: '{system_prompt}'")
+                print(f"User Prompt:   '{user_prompt}'")
+
+                original_output = generate_with_perturbation(model, tokenizer, target_layer, ortho_direction, 0, ortho_eigenvalue, target_token_idx, inputs_for_gen)
+                print(f"Original model completion: {original_output}")
+
+                for scale in perturbation_scales:
+                    perturbed_output = generate_with_perturbation(
+                        model, tokenizer, target_layer, ortho_direction, scale, ortho_eigenvalue, target_token_idx, inputs_for_gen
+                    )
+                    print(f"Perturbation scale {scale:+.1f}x: {perturbed_output}")
+            else:
+                print("Could not find an orthogonal (ineffective) direction to perturb.")
+        else:
+            print(f"No analysis results for concept '{test_concept}', skipping orthogonal perturbation.")
+
+
+    # --- FINAL PLOTTING ---
+    print("\n" + "#"*80)
+    print("### PLOTTING OVERALL RESULTS ###")
+    print("#"*80 + "\n")
+    plot_avg_eigenvalues(dog_avg_eigenvalues, model_name_str, "wordToken")
+    plot_similarity_matrix(dog_top_eigenvectors, model_name_str, "wordToken")
 
 if __name__ == "__main__":
     main()
