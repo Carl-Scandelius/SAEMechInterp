@@ -1,17 +1,19 @@
 """
 Word manifold exploration.
 
-Pass concept-labelled prompts (in QA format) into decoder-only model (Llama 3.3, GPT-2, or something more modern). Extract corresponding token representation in residual stream of layer l.
+Pass concept-labelled prompts (in QA format) into Llama. Extract corresponding token representation
+in residual stream of layer l.
 
-We now have some sample of the representation space. Ideally this is in the form of concept manifolds. Centre this representation to remove correlation between centroids
-
-Find 'effective' eigenvectors of the manifolds. Project work token (from new labelled prompt) representation onto respective 'effective' concept manifold.
+We now have some sample of the representation space. Ideally this is in the form of concept manifolds. 
+Centre this representation to remove correlation between centroids Find 'effective' eigenvectors of the manifolds.
+ Project work token (from new labelled prompt) representation onto respective 'effective' concept manifold.
 
 Check decoded sentence for:
 1) original prompt
-2) original with final token embedding perturbed in PC1 by pm 1.5x eigenvalue, pm 2x eigenvalue, pm 5x eigenvalue
+2) original with final token embedding perturbed in eigenvec direction
 
-Find prompts in initial dataset that are furthest in the direction of PC1: how are they correlated? Is this a global feature or just for that manifold's PC1?
+Find prompts in initial dataset that are furthest in the direction of eigenvec: how are they correlated?
+Is this a global feature or just for that manifold's eigenvec?
 
 """
 
@@ -25,16 +27,15 @@ from helpers import (
     find_top_prompts,
     plot_avg_eigenvalues,
     plot_similarity_matrix,
+    run_perturbation_experiment,
+    MODEL_NAME,
+    DEVICE,
 )
 from transformers import logging
 logging.set_verbosity(logging.ERROR)
 
-# MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
-MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 USE_SYSTEM_PROMPT_FOR_MANIFOLD = True
-PERTURB_ONCE = False  # Can be configured by runner script
+PERTURB_ONCE = False
 
 def get_final_token_activations(model, tokenizer, prompts, layer_idx, system_prompt=""):
     activations = []
@@ -65,43 +66,6 @@ def get_final_token_activations(model, tokenizer, prompts, layer_idx, system_pro
 
     hook_handle.remove()
     return torch.cat(activations, dim=0)
-
-def generate_with_perturbation(model, tokenizer, messages, layer_idx, direction, magnitude, eigenvalue, perturb_once=False):
-    perturbation = direction * magnitude * torch.sqrt(eigenvalue)
-    
-    def hook_fn_modify(module, input, output):
-        hidden_states = output[0]
-        if perturb_once:
-            # Only apply perturbation during the initial prompt processing pass
-            if hidden_states.shape[1] > 1:
-                hidden_states[:, -1, :] += perturbation.to(hidden_states.device, dtype=hidden_states.dtype)
-        else:
-            # Original behavior: apply perturbation on every forward pass
-            hidden_states[:, -1, :] += perturbation.to(hidden_states.device, dtype=hidden_states.dtype)
-        return (hidden_states,) + output[1:]
-
-    inputs = tokenizer.apply_chat_template(
-        messages,
-        return_tensors="pt",
-        add_generation_prompt=True
-    ).to(DEVICE)
-
-    hook_handle = model.model.layers[layer_idx].register_forward_hook(hook_fn_modify)
-    
-    with torch.no_grad():
-        output_ids = model.generate(
-            input_ids=inputs,
-            max_new_tokens=70,
-            do_sample=False,
-            pad_token_id=tokenizer.eos_token_id
-        )
-        
-    hook_handle.remove()
-
-    prompt_length = inputs.shape[1]
-    decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
-    
-    return decoded_text
 
 def main():
     print(f"\nConfiguration: PERTURB_ONCE is set to {PERTURB_ONCE}\n")
@@ -153,43 +117,25 @@ def main():
             {"role": "user", "content": user_prompt}
         ]
 
+        run_perturbation_experiment(
+            model, tokenizer, messages_to_test, target_layer, 
+            analysis_results[test_concept], test_concept, AXES_TO_ANALYZE, 
+            target_token_idx=None, perturb_once=PERTURB_ONCE, 
+            orthogonal_mode=False
+        )
+        
+        # Display top prompts aligned with the PC direction
         for axis in AXES_TO_ANALYZE:
-            print("\n" + "="*80)
-            print(f"--- INTERVENTION EXPERIMENT ON CONCEPT: '{test_concept}' ---")
-            print(f"--- LAYER: {target_layer}, AXIS: {axis} ---")
-            print("="*80)
-
-            concept_analysis = analysis_results[test_concept]
-
-            if axis >= len(concept_analysis["eigenvectors"]):
-                print(f"Axis {axis} is out of bounds for the number of principal components found ({len(concept_analysis['eigenvectors'])}).")
-                print("Skipping remaining axes for this layer.")
+            if axis >= len(analysis_results[test_concept]["eigenvectors"]):
                 break
-
-            pc_direction = concept_analysis["eigenvectors"][axis]
-            pc_eigenvalue = concept_analysis["eigenvalues"][axis]
+                
+            pc_direction = analysis_results[test_concept]["eigenvectors"][axis]
             
-            print(f"\nSystem Prompt: '{system_prompt}'")
-            print(f"User Prompt:   '{user_prompt}'")
-
-            original_output = generate_with_perturbation(model, tokenizer, messages_to_test, target_layer, pc_direction, 0, pc_eigenvalue, perturb_once=PERTURB_ONCE)
-            print(f"Original model completion: {original_output}")
-            
-            perturbation_scales = [-20.0, -10.0, -5.0, -2.5, -1.5, 0.0, 1.5, 2.5, 5.0, 10.0, 20.0]
-            
-            print(f"\n--- Perturbing final token activation along PC{axis} ---")
-            for scale in perturbation_scales:
-                perturbed_output = generate_with_perturbation(
-                    model, tokenizer, messages_to_test, target_layer, pc_direction, scale, pc_eigenvalue,
-                    perturb_once=PERTURB_ONCE
-                )
-                print(f"Perturbation scale {scale:+.1f}x: {perturbed_output}")
-
             print("\n" + "="*80)
             print(f"--- Analyzing original dataset prompts along the PC{axis} '{test_concept}' direction (Layer {target_layer}) ---")
             top_prompts = find_top_prompts(
                 concept_prompts[test_concept],
-                concept_analysis["centered_acts"],
+                analysis_results[test_concept]["centered_acts"],
                 pc_direction,
                 n=10
             )
@@ -203,40 +149,12 @@ def main():
                 print(f"{i:2d}. '{prompt}'")
             print("="*80)
 
-        # --- ORTHOGONAL PERTURBATION ---
-        print("\n" + "="*80)
-        print(f"--- ORTHOGONAL PERTURBATION ON CONCEPT: '{test_concept}' ---")
-        print(f"--- LAYER: {target_layer} ---")
-        print("="*80)
-
-        concept_analysis = analysis_results[test_concept]
-        effective_mask = concept_analysis["effective_mask"]
-        
-        orthogonal_pc_index = -1
-        for i, is_effective in enumerate(effective_mask):
-            if not is_effective:
-                orthogonal_pc_index = i
-                break
-
-        if orthogonal_pc_index != -1:
-            ortho_direction = concept_analysis["eigenvectors"][orthogonal_pc_index]
-            ortho_eigenvalue = concept_analysis["eigenvalues"][orthogonal_pc_index]
-
-            print(f"Perturbing along first orthogonal direction (PC{orthogonal_pc_index})...")
-            print(f"\nSystem Prompt: '{system_prompt}'")
-            print(f"User Prompt:   '{user_prompt}'")
-
-            original_output = generate_with_perturbation(model, tokenizer, messages_to_test, target_layer, ortho_direction, 0, concept_analysis["eigenvalues"][0], perturb_once=PERTURB_ONCE)
-            print(f"Original model completion: {original_output}")
-
-            for scale in perturbation_scales:
-                perturbed_output = generate_with_perturbation(
-                    model, tokenizer, messages_to_test, target_layer, ortho_direction, scale, concept_analysis["eigenvalues"][0],   #ortho_eigenvalue, (ortho eigenvalue is too small; I use largest now)
-                    perturb_once=PERTURB_ONCE
-                )
-                print(f"Perturbation scale {scale:+.1f}x: {perturbed_output}")
-        else:
-            print("Could not find an orthogonal (ineffective) direction to perturb.")
+        run_perturbation_experiment(
+            model, tokenizer, messages_to_test, target_layer,
+            analysis_results[test_concept], test_concept,
+            target_token_idx=None, perturb_once=PERTURB_ONCE,
+            orthogonal_mode=True, use_largest_eigenvalue=True
+        )
 
     print("\n" + "#"*80)
     print("### PLOTTING OVERALL RESULTS ###")

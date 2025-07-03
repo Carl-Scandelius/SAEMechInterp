@@ -8,7 +8,6 @@ token of that word (cf. causal attention) for manifold analysis.
 """
 
 import torch
-from transformers import AutoTokenizer
 from tqdm import tqdm
 import gc
 import json
@@ -18,19 +17,14 @@ from helpers import (
     find_top_prompts,
     plot_avg_eigenvalues,
     plot_similarity_matrix,
+    run_perturbation_experiment,
+    MODEL_NAME,
+    DEVICE,
 )
 from transformers import logging
 logging.set_verbosity(logging.ERROR)
 
-# MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
-MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
-
-# --- CONFIGURATION ---
-USE_SYSTEM_PROMPT_FOR_MANIFOLD = False # If True, prepends the system prompt to prompts from the dataset when building concept manifolds.
-
-# Define concept variations for keywords matching
+USE_SYSTEM_PROMPT_FOR_MANIFOLD = False 
 concept_keywords = {
     "dog": ["dog", "dogs", "dog's", "puppy", "puppies"],
     "lion": ["lion", "lions", "lion's"],
@@ -129,50 +123,6 @@ def get_word_token_activations(model, tokenizer, prompt_keyword_pairs, layer_idx
 
     return torch.cat(activations, dim=0)
 
-def generate_with_perturbation(model, tokenizer, layer_idx, direction, magnitude, eigenvalue, target_token_idx, inputs):
-    perturbation = direction * magnitude * torch.sqrt(eigenvalue)
-    
-    def hook_fn_modify(module, input, output):
-        hidden_states = output[0]
-        # Only apply perturbation during the initial prompt processing pass,
-        # not during the single-token generation steps.
-        # We can detect this by checking the sequence length.
-        if hidden_states.shape[1] > 1:
-            hidden_states[:, target_token_idx, :] += perturbation.to(hidden_states.device, dtype=hidden_states.dtype)
-        return (hidden_states,) + output[1:]
-
-    hook_handle = model.model.layers[layer_idx].register_forward_hook(hook_fn_modify)
-    
-    # Handle both tensor and dictionary inputs
-    if isinstance(inputs, dict):
-        input_ids = inputs['input_ids']
-        attention_mask = inputs.get('attention_mask', None)
-        prompt_length = input_ids.shape[1]
-    else:
-        # inputs is a tensor of input_ids
-        input_ids = inputs
-        attention_mask = None
-        prompt_length = inputs.shape[1]
-    
-    with torch.no_grad():
-        # Pass attention_mask only if it exists
-        generate_kwargs = {
-            'input_ids': input_ids,
-            'max_new_tokens': 70,
-            'do_sample': False,
-            'pad_token_id': tokenizer.eos_token_id
-        }
-        if attention_mask is not None:
-            generate_kwargs['attention_mask'] = attention_mask
-            
-        output_ids = model.generate(**generate_kwargs)
-        
-    hook_handle.remove()
-
-    decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
-    
-    return decoded_text
-
 def main():
     dog_avg_eigenvalues = {}
     dog_top_eigenvectors = {}
@@ -183,7 +133,6 @@ def main():
     with open('prompts.json', 'r', encoding='utf-8') as f:
         concept_prompts = json.load(f)
 
-    # Filter prompts to only include those with the concept word
     filtered_prompts = {}
     print("Filtering prompts based on keywords...")
     for concept, prompts in concept_prompts.items():
@@ -245,15 +194,10 @@ def main():
             add_generation_prompt=True
         ).to(model.device)
 
-        # Find the token index for the test concept in the formatted prompt
-        # First, decode the input_ids to get the actual text
         decoded_input = tokenizer.decode(inputs_for_gen[0], skip_special_tokens=False)
         decoded_input_lower = decoded_input.lower()
-        
-        # Use concept_keywords dictionary for more robust matching
         variations = concept_keywords.get(test_concept, [test_concept])
         
-        # Find position of keyword in decoded text
         last_pos = -1
         matched_variation = None
         for var in variations:
@@ -266,23 +210,16 @@ def main():
             print(f"Debug: Concept '{test_concept}' variations {variations} not found in decoded text: {decoded_input[:100]}...")
             target_token_idx = -1
         else:
-            # Now find which token this position corresponds to
             input_ids = inputs_for_gen[0].tolist()
-            
-            # Find tokens that overlap with our keyword position
             keyword_end_pos = last_pos + len(matched_variation)
             token_indices = []
             
-            # Decode each token individually and find where our concept appears
             for i, token_id in enumerate(input_ids):
                 # Get the text for this token
-                token_text = tokenizer.decode([token_id]).lower()
-                # Check if any variation is in this token text
                 for var in variations:
                     if var.lower() in token_text:
                         token_indices.append(i)
             
-            # If we found matching tokens, use the last one
             if token_indices:
                 target_token_idx = max(token_indices)
             else:
@@ -296,51 +233,28 @@ def main():
             print(f"Warning: Concept '{test_concept}' not found in the tokenized test prompt. Skipping perturbation tests for layer {target_layer}.")
             continue
 
-        perturbation_scales = [-20.0, -10.0, -5.0, -2.5, -1.5, 0.0, 1.5, 2.5, 5.0, 10.0, 20.0]
-
         if test_concept not in analysis_results:
             print(f"No analysis results for concept '{test_concept}', skipping layer {target_layer}.")
             continue
         
-        concept_analysis = analysis_results[test_concept]
-
+        run_perturbation_experiment(
+            model, tokenizer, messages_to_test, target_layer,
+            analysis_results[test_concept], test_concept, AXES_TO_ANALYZE,
+            target_token_idx=target_token_idx, perturb_once=True  # Always perturb once for word tokens
+        )
+        
         for axis in AXES_TO_ANALYZE:
-            print("\n" + "="*80)
-            print(f"--- INTERVENTION EXPERIMENT ON CONCEPT: '{test_concept}' ---")
-            print(f"--- LAYER: {target_layer}, AXIS: {axis} ---")
-            print("="*80)
-
-            concept_analysis = analysis_results[test_concept]
-
-            if axis >= len(concept_analysis["eigenvectors"]):
-                print(f"Axis {axis} is out of bounds for the number of principal components found ({len(concept_analysis['eigenvectors'])}).")
-                print("Skipping remaining axes for this layer.")
+            if axis >= len(analysis_results[test_concept]["eigenvectors"]):
                 break
-
-            pc_direction = concept_analysis["eigenvectors"][axis]
-            pc_eigenvalue = concept_analysis["eigenvalues"][axis]
+                
+            pc_direction = analysis_results[test_concept]["eigenvectors"][axis]
             
-            print(f"\nSystem Prompt: '{system_prompt}'")
-            print(f"User Prompt:   '{user_prompt}'")
-
-            original_output = generate_with_perturbation(model, tokenizer, target_layer, pc_direction, 0, pc_eigenvalue, target_token_idx, inputs_for_gen)
-            print(f"Original model completion: {original_output}")
-            
-            perturbation_scales = [-20.0, -10.0, -5.0, -2.5, -1.5, 0.0, 1.5, 2.5, 5.0, 10.0, 20.0]
-            
-            print(f"\n--- Perturbing token activation for '{test_concept}' along PC{axis} ---")
-            for scale in perturbation_scales:
-                perturbed_output = generate_with_perturbation(
-                    model, tokenizer, target_layer, pc_direction, scale, pc_eigenvalue, target_token_idx, inputs_for_gen
-                )
-                print(f"Perturbation scale {scale:+.1f}x: {perturbed_output}")
-
             print("\n" + "="*80)
             print(f"--- Analyzing original dataset prompts along the PC{axis} '{test_concept}' direction (Layer {target_layer}) ---")
             prompts_for_concept = [p for p, k in filtered_prompts[test_concept]]
             top_prompts_dict = find_top_prompts(
                 prompts_for_concept,
-                concept_analysis["centered_acts"],
+                analysis_results[test_concept]["centered_acts"],
                 pc_direction,
                 n=10
             )
@@ -348,48 +262,26 @@ def main():
             print(f"\nTop 10 prompts most aligned with POSITIVE PC{axis} direction:")
             for i, prompt in enumerate(top_prompts_dict['positive'], 1):
                 print(f"{i:2d}. '{prompt}'")
-                
+            
             print(f"\nTop 10 prompts most aligned with NEGATIVE PC{axis} direction:")
             for i, prompt in enumerate(top_prompts_dict['negative'], 1):
                 print(f"{i:2d}. '{prompt}'")
             print("="*80)
 
         # --- ORTHOGONAL PERTURBATION ---
-        print("\n" + "="*80)
-        print(f"--- ORTHOGONAL PERTURBATION ON CONCEPT: '{test_concept}' ---")
-        print(f"--- LAYER: {target_layer} ---")
-        print("="*80)
-
+        # Run orthogonal perturbation experiment if we have results for this concept
         if test_concept in analysis_results:
-            concept_analysis = analysis_results[test_concept]
-            effective_mask = concept_analysis["effective_mask"]
-            
-            # Find the first principal component that is *not* effective
-            orthogonal_pc_index = -1
-            for i, is_effective in enumerate(effective_mask):
-                if not is_effective:
-                    orthogonal_pc_index = i
-                    break
-
-            if orthogonal_pc_index != -1:
-                ortho_direction = concept_analysis["eigenvectors"][orthogonal_pc_index]
-                ortho_eigenvalue = concept_analysis["eigenvalues"][orthogonal_pc_index]
-
-                print(f"Perturbing along first orthogonal direction (PC{orthogonal_pc_index})...")
-                print(f"\nSystem Prompt: '{system_prompt}'")
-                print(f"User Prompt:   '{user_prompt}'")
-
-                original_output = generate_with_perturbation(model, tokenizer, target_layer, ortho_direction, 0, ortho_eigenvalue, target_token_idx, inputs_for_gen)
-                print(f"Original model completion: {original_output}")
-
-                for scale in perturbation_scales:
-                    perturbed_output = generate_with_perturbation(
-                        model, tokenizer, target_layer, ortho_direction, scale, ortho_eigenvalue, target_token_idx, inputs_for_gen
-                    )
-                    print(f"Perturbation scale {scale:+.1f}x: {perturbed_output}")
-            else:
-                print("Could not find an orthogonal (ineffective) direction to perturb.")
+            run_perturbation_experiment(
+                model, tokenizer, inputs_for_gen, target_layer,
+                analysis_results[test_concept], test_concept,
+                target_token_idx=target_token_idx, perturb_once=True,  # Always perturb once for word tokens
+                orthogonal_mode=True, use_largest_eigenvalue=False  # Use actual orthogonal eigenvalue as in original
+            )
         else:
+            print("\n" + "="*80)
+            print(f"--- ORTHOGONAL PERTURBATION ON CONCEPT: '{test_concept}' ---")
+            print(f"--- LAYER: {target_layer} ---")
+            print("="*80)
             print(f"No analysis results for concept '{test_concept}', skipping orthogonal perturbation.")
 
     print("\n" + "#"*80)

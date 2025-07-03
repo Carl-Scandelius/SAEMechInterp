@@ -12,6 +12,16 @@ from sklearn.decomposition import PCA
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # -----------------------------------------------------------------------------
+# Common configuration
+# -----------------------------------------------------------------------------
+
+MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
+USE_SYSTEM_PROMPT_FOR_MANIFOLD = True
+PERTURB_ONCE = False
+
+# -----------------------------------------------------------------------------
 # Model utilities
 # -----------------------------------------------------------------------------
 
@@ -155,3 +165,215 @@ def plot_similarity_matrix(eigenvector_data: Dict[int, torch.Tensor], model_name
     plt.savefig(fname)
     print(f"Saved eigenvector similarity matrix to {fname}")
     plt.close()
+
+# -----------------------------------------------------------------------------
+# Perturbation utilities
+# -----------------------------------------------------------------------------
+
+def generate_with_perturbation(
+    model, tokenizer, inputs, layer_idx, direction, 
+    magnitude, eigenvalue, target_token_idx=None, 
+    perturb_once=False
+)-> str:
+    """
+    Generate text with a perturbation applied to a specific token's activation.
+    
+    Args:
+        model: The transformer model
+        tokenizer: The tokenizer
+        inputs: Either a tensor of input_ids, a dict with input_ids, or a list of message dicts
+        layer_idx: Layer to apply perturbation to
+        direction: Direction vector for perturbation
+        magnitude: Scale of perturbation
+        eigenvalue: Eigenvalue to scale perturbation by
+        target_token_idx: Index of token to perturb (-1 for last token if None)
+        perturb_once: If True, only apply perturbation on first forward pass
+    
+    Returns:
+        The generated text
+    """
+    perturbation = direction * magnitude * torch.sqrt(eigenvalue)
+    
+    # Process inputs to standard format
+    if isinstance(inputs, dict):
+        input_ids = inputs['input_ids']
+        attention_mask = inputs.get('attention_mask', None)
+        prompt_length = input_ids.shape[1]
+    elif isinstance(inputs, list):
+        # Handle case where inputs is a list of message dicts
+        input_ids = tokenizer.apply_chat_template(
+            inputs,
+            return_tensors="pt",
+            add_generation_prompt=True
+        ).to(model.device)
+        attention_mask = None
+        prompt_length = input_ids.shape[1]
+    else:
+        # inputs is a tensor of input_ids
+        input_ids = inputs
+        attention_mask = None
+        prompt_length = inputs.shape[1]
+    
+    # Default to last token if target_token_idx not specified
+    if target_token_idx is None:
+        target_token_idx = -1
+    
+    def hook_fn_modify(module, input, output)-> None:
+        hidden_states = output[0]
+        # Apply perturbation based on configuration
+        if perturb_once:
+            # Only apply during initial prompt processing (sequence length > 1)
+            if hidden_states.shape[1] > 1:
+                if target_token_idx == -1:
+                    # Perturb last token
+                    hidden_states[:, -1, :] += perturbation.to(hidden_states.device, dtype=hidden_states.dtype)
+                else:
+                    # Perturb specific token
+                    hidden_states[:, target_token_idx, :] += perturbation.to(hidden_states.device, dtype=hidden_states.dtype)
+        else:
+            # Apply on every forward pass
+            if target_token_idx == -1:
+                # Perturb last token
+                hidden_states[:, -1, :] += perturbation.to(hidden_states.device, dtype=hidden_states.dtype)
+            else:
+                # Perturb specific token
+                hidden_states[:, target_token_idx, :] += perturbation.to(hidden_states.device, dtype=hidden_states.dtype)
+        
+        return (hidden_states,) + output[1:]
+
+    hook_handle = model.model.layers[layer_idx].register_forward_hook(hook_fn_modify)
+    
+    # Prepare generation kwargs
+    generate_kwargs = {
+        'input_ids': input_ids,
+        'max_new_tokens': 70,
+        'do_sample': False,
+        'pad_token_id': tokenizer.eos_token_id
+    }
+    if attention_mask is not None:
+        generate_kwargs['attention_mask'] = attention_mask
+    
+    with torch.no_grad():
+        output_ids = model.generate(**generate_kwargs)
+    
+    hook_handle.remove()
+    
+    # Extract just the new tokens
+    decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
+    
+    return decoded_text
+
+def run_perturbation_experiment(
+    model, tokenizer, messages, layer_idx, concept_analysis, 
+    target_concept, test_axes=None, target_token_idx=None, 
+    perturb_once=False, orthogonal_mode=False, use_largest_eigenvalue=True
+)-> str:
+    """
+    Run perturbation experiments for a concept across multiple principal component axes
+    or along the first orthogonal (ineffective) direction.
+    
+    Args:
+        model: The transformer model
+        tokenizer: The tokenizer for the model
+        messages: List of message dictionaries or tensor of input_ids
+        layer_idx: Layer index to apply perturbation
+        concept_analysis: Analysis results for the concept
+        target_concept: The name of the concept being analyzed
+        test_axes: List of PC axes to test (ignored if orthogonal_mode=True)
+        target_token_idx: Index of token to perturb (None for last token)
+        perturb_once: If True, only apply perturbation on first forward pass
+        orthogonal_mode: If True, find and use first orthogonal (ineffective) direction
+        use_largest_eigenvalue: If True and in orthogonal_mode, use the largest eigenvalue 
+                               for scaling instead of the orthogonal eigenvalue (which may be very small)
+    """
+    perturbation_scales = [-100.0, -20.0, -10.0, -5.0, -2.5, -1.5, 0.0, 1.5, 2.5, 5.0, 10.0, 20.0, 100.0]
+    
+    # Format for display
+    system_prompt = messages[0]['content'] if messages[0]['role'] == 'system' else ""
+    user_prompt = next((msg['content'] for msg in messages if msg['role'] == 'user'), "")
+    
+    # Prepare inputs (if not already a tensor)
+    if not isinstance(messages, torch.Tensor):
+        inputs = tokenizer.apply_chat_template(
+            messages,
+            return_tensors="pt",
+            add_generation_prompt=True
+        ).to(model.device)
+    else:
+        inputs = messages
+    
+    # Handle orthogonal mode - find the first ineffective direction
+    if orthogonal_mode:
+        print("\n" + "="*80)
+        print(f"--- ORTHOGONAL PERTURBATION ON CONCEPT: '{target_concept}' ---")
+        print(f"--- LAYER: {layer_idx} ---")
+        print("="*80)
+        
+        effective_mask = concept_analysis["effective_mask"]
+        
+        # Find the first principal component that is *not* effective
+        orthogonal_pc_index = -1
+        for i, is_effective in enumerate(effective_mask):
+            if not is_effective:
+                orthogonal_pc_index = i
+                break
+        
+        if orthogonal_pc_index == -1:
+            print("Could not find an orthogonal (ineffective) direction to perturb.")
+            return ""
+            
+        # Set up the direction and eigenvalue for the orthogonal case
+        direction = concept_analysis["eigenvectors"][orthogonal_pc_index]
+        
+        # Choose which eigenvalue to use for scaling
+        if use_largest_eigenvalue:
+            # Use the largest eigenvalue for better scaling
+            eigenvalue = concept_analysis["eigenvalues"][0]
+        else:
+            # Use the orthogonal direction's eigenvalue (which might be very small)
+            eigenvalue = concept_analysis["eigenvalues"][orthogonal_pc_index]
+            
+        print(f"Perturbing along first orthogonal direction (PC{orthogonal_pc_index})...")
+        # We'll use a single "axis" for the orthogonal case
+        axes_to_test = [0]  # Just a dummy index since we already have the direction
+        
+    else:  # Regular PC perturbation mode
+        if not test_axes:
+            test_axes = range(5)  # Default to first 5 axes if not specified
+        axes_to_test = test_axes
+    
+    # Run perturbation for each axis (just once for orthogonal mode)
+    for i, axis in enumerate(axes_to_test):
+        if not orthogonal_mode:  # For regular mode, get the direction for each axis
+            print("\n" + "="*80)
+            print(f"--- INTERVENTION EXPERIMENT ON CONCEPT: '{target_concept}' ---")
+            print(f"--- LAYER: {layer_idx}, AXIS: {axis} ---")
+            print("="*80)
+            
+            direction = concept_analysis["eigenvectors"][axis]
+            eigenvalue = concept_analysis["eigenvalues"][axis]
+        
+        print(f"\nSystem Prompt: '{system_prompt}'")
+        print(f"User Prompt:   '{user_prompt}'")
+
+        original_output = generate_with_perturbation(
+            model, tokenizer, inputs, layer_idx, direction, 0, 
+            eigenvalue, target_token_idx, perturb_once
+        )
+        print(f"Original model completion: {original_output}")
+        
+        perturbation_type = 'orthogonal direction' if orthogonal_mode else f"PC{axis}"
+        token_type = 'final token' if target_token_idx is None else 'concept token'
+        print(f"\n--- Perturbing {token_type} activation along {perturbation_type} ---")
+        
+        for scale in perturbation_scales:
+            perturbed_output = generate_with_perturbation(
+                model, tokenizer, inputs, layer_idx, 
+                direction, scale, eigenvalue,
+                target_token_idx, perturb_once
+            )
+            print(f"Perturbation scale {scale:+.1f}x: {perturbed_output}")
+            
+        print("="*80)
+        
+    return original_output
