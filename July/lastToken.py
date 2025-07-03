@@ -121,7 +121,7 @@ def main():
             model, tokenizer, messages_to_test, target_layer, 
             analysis_results[test_concept], test_concept, AXES_TO_ANALYZE, 
             target_token_idx=None, perturb_once=PERTURB_ONCE, 
-            orthogonal_mode=False
+            orthogonal_mode=False, use_largest_eigenvalue=True  # actual orthogonal eigenval too small
         )
         
         # Display top prompts aligned with the PC direction
@@ -148,7 +148,22 @@ def main():
             for i, prompt in enumerate(top_prompts['negative'], 1):
                 print(f"{i:2d}. '{prompt}'")
             print("="*80)
+        
+        # --- PROJECTION-BASED PERTURBATION ---
+        # For each PC, run a projection-based perturbation that zeroes out all other PCs
+        from helpers import run_projection_based_perturbation
+        for axis in AXES_TO_ANALYZE:
+            if axis >= len(analysis_results[test_concept]["eigenvectors"]):
+                break
+                
+            # Run projection-based perturbation for this PC
+            run_projection_based_perturbation(
+                model, tokenizer, messages_to_test, target_layer,
+                analysis_results[test_concept], test_concept, axis,
+                target_token_idx=None, perturb_once=PERTURB_ONCE
+            )
 
+        # --- ORTHOGONAL PERTURBATION ---
         run_perturbation_experiment(
             model, tokenizer, messages_to_test, target_layer,
             analysis_results[test_concept], test_concept,

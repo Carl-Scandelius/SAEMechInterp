@@ -86,12 +86,17 @@ def analyse_manifolds(all_activations_by_concept: Dict[str, torch.Tensor]) -> Di
             f"out of {len(eigenvectors)} (threshold: {mean_eigval:.4f})"
         )
 
+        # Include both concept-specific centroid and the global_centroid
+        concept_centroid = centroids[concept]
+        
         concept_analysis[concept] = {
             "pca": pca,
             "eigenvectors": eigenvectors,
             "eigenvalues": eigenvalues,
             "effective_mask": effective_mask,
             "centered_acts": acts,
+            "centroid": concept_centroid,
+            "global_centroid": global_centroid
         }
 
     return concept_analysis
@@ -262,6 +267,128 @@ def generate_with_perturbation(
     decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
     
     return decoded_text
+
+def run_projection_based_perturbation(
+    model, tokenizer, messages, layer_idx, concept_analysis,
+    target_concept, projection_axis, target_token_idx=None, perturb_once=False
+):
+    """
+    Run perturbation experiments by projecting activations onto a single PC axis
+    and zeroing out all other components.
+    
+    Args:
+        model: The transformer model
+        tokenizer: The tokenizer for the model
+        messages: List of message dictionaries or tensor of input_ids
+        layer_idx: Layer index to apply perturbation
+        concept_analysis: Analysis results for the concept
+        target_concept: The name of the concept being analyzed
+        projection_axis: The PC axis to project onto
+        target_token_idx: Index of token to perturb (None for last token)
+        perturb_once: If True, only apply perturbation on first forward pass
+    """
+    perturbation_scales = [-100.0, -20.0, -10.0, -5.0, -2.5, -1.5, 0.0, 1.5, 2.5, 5.0, 10.0, 20.0, 100.0]
+    
+    # Format for display
+    system_prompt = messages[0]['content'] if isinstance(messages, list) and messages[0].get('role') == 'system' else ""
+    user_prompt = next((msg['content'] for msg in messages if isinstance(messages, list) and msg.get('role') == 'user'), "") if isinstance(messages, list) else ""
+    
+    # Prepare inputs (if not already a tensor)
+    if not isinstance(messages, torch.Tensor):
+        inputs = tokenizer.apply_chat_template(
+            messages,
+            return_tensors="pt",
+            add_generation_prompt=True
+        ).to(model.device)
+    else:
+        inputs = messages
+    
+    # Get all eigenvectors from the concept analysis
+    all_eigenvectors = concept_analysis["eigenvectors"]
+    target_eigenvector = concept_analysis["eigenvectors"][projection_axis]
+    eigenvalue = concept_analysis["eigenvalues"][projection_axis]
+    
+    print("\n" + "="*80)
+    print(f"--- PROJECTION-BASED PERTURBATION ON CONCEPT: '{target_concept}' ---")
+    print(f"--- LAYER: {layer_idx}, PROJECTION ONTO PC{projection_axis} ONLY ---")
+    print("="*80)
+    
+    print(f"\nSystem Prompt: '{system_prompt}'")
+    print(f"User Prompt:   '{user_prompt}'")
+    
+    # Define a hook that projects activations onto just one PC direction
+    def projection_hook(module, input_tensor, output):
+        # Get the activations we want to modify
+        hidden_states = output[0]
+        
+        if target_token_idx is not None:
+            # Perturb only the target token
+            token_idx = target_token_idx
+        else:
+            # Perturb the last token
+            token_idx = -1
+        
+        # Extract the activation vector for the target token
+        token_activation = hidden_states[0, token_idx].detach()
+        
+        # Project onto all eigenvectors to get coefficients
+        coefficients = [torch.dot(token_activation, evec) for evec in all_eigenvectors]
+        
+        # Create a new activation that's projected only onto the target PC
+        # (zero out all other components)
+        projected_activation = coefficients[projection_axis] * target_eigenvector
+        
+        # Apply perturbation to the target PC's projection
+        for scale in perturbation_scales:
+            # Calculate perturbation
+            perturbation = scale * torch.sqrt(eigenvalue) * target_eigenvector
+            
+            # Apply perturbation to create modified activation
+            modified_activation = projected_activation + perturbation
+            
+            # Create a copy of the hidden states and modify the target token
+            modified_hidden_states = hidden_states.clone()
+            modified_hidden_states[0, token_idx] = modified_activation
+            
+            # Generate text with the modified hidden states
+            with torch.no_grad():
+                if perturb_once:
+                    # Apply the perturbation only once at the specified layer
+                    def single_forward_hook(mod, inp, out):
+                        out_mod = out
+                        out_mod[0][0, token_idx] = modified_activation
+                        return out_mod
+                    
+                    hook_handle = module.register_forward_hook(single_forward_hook)
+                    output_ids = model.generate(
+                        inputs, max_new_tokens=50, temperature=0.7, top_p=0.9, 
+                        do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
+                    )
+                    hook_handle.remove()
+                else:
+                    # Apply the perturbation at every forward pass
+                    output[0] = modified_hidden_states
+                    output_ids = model.generate(
+                        inputs, max_new_tokens=50, temperature=0.7, top_p=0.9, 
+                        do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
+                    )
+                
+                # Extract just the new tokens
+                prompt_length = inputs.shape[1]
+                decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
+                print(f"Perturbation scale {scale:+.1f}x: {decoded_text}")
+    
+    # Register the hook and run inference
+    hook_handle = model.model.layers[layer_idx].register_forward_hook(projection_hook)
+    
+    # Run a dummy forward pass to trigger the hook
+    with torch.no_grad():
+        model(inputs)
+    
+    # Remove the hook
+    hook_handle.remove()
+    print("="*80)
+
 
 def run_perturbation_experiment(
     model, tokenizer, messages, layer_idx, concept_analysis, 

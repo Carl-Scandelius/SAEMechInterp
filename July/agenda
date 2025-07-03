@@ -1,14 +1,13 @@
 ####
 Next orders of business:
 -Repeat in Q&A format and classification task
--Try: "translate from English into Spanish" with 1000s sentences and same for "English into German", and then see if you have some isometry
 -Classification task: give features and model predicts animal; then ablate PCs to see if this leads to ignorance of feature (e.g. classifies horse features where "mane" is dropped as dog)
 -Repeat last token work with interpolation between manifold centroids and same for word manifolds
--Try ablating PCs of the manifold (i.e. drop a dimension)
+-Try ablating all but one PC of the manifold (find the feature of that PC with neutral other features)
 
 
 For translation:
-take same prompts, pass half into inference iwth english ot spanish system prompt and the other half english to german. make sure to mark teh concepts as dog into spanish and dog into german to get two manifolds. How are these manifolds similar? Just translated along a PC (would that!)?
+I want to implement the following alteration of lastWord.py (but as its own script, without changing lastWord.py). Take same .json dog prompts, pass half into inference with "translate from english to spanish" system prompt and the other half "translate from english to german" system prompt. Make sure to mark the concepts of these separate groups of prompts as "dog into spanish" and "dog into german" to get two manifolds. Then we want to ask: How are these manifolds similar? Is there some easy translation between the two?
 
 
 ####

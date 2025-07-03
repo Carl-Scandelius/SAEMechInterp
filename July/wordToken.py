@@ -238,10 +238,24 @@ def main():
             continue
         
         run_perturbation_experiment(
-            model, tokenizer, messages_to_test, target_layer,
+            model, tokenizer, inputs_for_gen, target_layer,
             analysis_results[test_concept], test_concept, AXES_TO_ANALYZE,
             target_token_idx=target_token_idx, perturb_once=True  # Always perturb once for word tokens
         )
+        
+        # --- PROJECTION-BASED PERTURBATION ---
+        # For each PC, run a projection-based perturbation that zeroes out all other PCs
+        for axis in AXES_TO_ANALYZE:
+            if axis >= len(analysis_results[test_concept]["eigenvectors"]):
+                break
+                
+            # Run projection-based perturbation for this PC
+            from helpers import run_projection_based_perturbation
+            run_projection_based_perturbation(
+                model, tokenizer, inputs_for_gen, target_layer,
+                analysis_results[test_concept], test_concept, axis,
+                target_token_idx=target_token_idx, perturb_once=True
+            )
         
         for axis in AXES_TO_ANALYZE:
             if axis >= len(analysis_results[test_concept]["eigenvectors"]):
@@ -269,13 +283,12 @@ def main():
             print("="*80)
 
         # --- ORTHOGONAL PERTURBATION ---
-        # Run orthogonal perturbation experiment if we have results for this concept
         if test_concept in analysis_results:
             run_perturbation_experiment(
                 model, tokenizer, inputs_for_gen, target_layer,
                 analysis_results[test_concept], test_concept,
                 target_token_idx=target_token_idx, perturb_once=True,  # Always perturb once for word tokens
-                orthogonal_mode=True, use_largest_eigenvalue=False  # Use actual orthogonal eigenvalue as in original
+                orthogonal_mode=True, use_largest_eigenvalue=True  # actual orthogonal eigenval too small
             )
         else:
             print("\n" + "="*80)
