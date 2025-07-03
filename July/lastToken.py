@@ -26,6 +26,8 @@ from helpers import (
     plot_avg_eigenvalues,
     plot_similarity_matrix,
 )
+from transformers import logging
+logging.set_verbosity(logging.ERROR)
 
 # MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
@@ -123,6 +125,7 @@ def main():
         print("#"*80 + "\n")
 
         all_activations = {}
+        system_prompt = "You are a language model assistant. Please translate the following text accurately from English into German:"
         system_prompt_for_manifold = system_prompt if USE_SYSTEM_PROMPT_FOR_MANIFOLD else ""
 
         for concept, prompts in concept_prompts.items():

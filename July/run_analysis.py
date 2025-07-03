@@ -11,7 +11,7 @@ Examples:
     # Run WordToken.py with system prompt for manifold
     python run_analysis.py --script word_token --use_system_prompt
     
-    # Run LastToken.py with system prompt and applying the perturbation only to final token of the user's prompt
+    # Run LastToken.py with system prompt and applying the perturbation only to final token of the user's prompt (note default is false)
     python run_analysis.py --script last_token --use_system_prompt --perturb_once
 """
 
@@ -53,19 +53,20 @@ def main():
     elif args.script == "last_token":
         print("Running LastToken analysis...")
         
-        import LastToken
-        LastToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD = args.use_system_prompt
-        print(f"USE_SYSTEM_PROMPT_FOR_MANIFOLD set to: {LastToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD}")
+        import lastToken
+        lastToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD = args.use_system_prompt
+        print(f"USE_SYSTEM_PROMPT_FOR_MANIFOLD set to: {lastToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD}")
         
-        original_main = LastToken.main
+        original_main = lastToken.main
         
         def modified_main():
-            LastToken.PERTURB_ONCE = args.perturb_once
-            print(f"PERTURB_ONCE set to: {LastToken.PERTURB_ONCE}")
+
+            lastToken.PERTURB_ONCE = args.perturb_once
+            print(f"PERTURB_ONCE set to: {lastToken.PERTURB_ONCE}")
             original_main()
             
-        LastToken.main = modified_main
-        LastToken.main()
+        lastToken.main = modified_main
+        lastToken.main()
         
     else:
         print(f"Error: Unknown script '{args.script}'")

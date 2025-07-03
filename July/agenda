@@ -1,8 +1,6 @@
 Next order of business:
-First: get full vanilla run for word-token on 1.7k
-
-Then:
 -Repeat in Q&A format and classification task
+-Classification task: give features and model predicts animal; then ablate PCs to see if this leads to ignorance of feature (e.g. classifies horse features where "mane" is dropped as dog)
 -Repeat wordToken for multi-word perturbations
 -Repeat last token work with interpolation between manifold centroids and same for word manifolds
 -Try perturbing in directions orthogonal to the manifold (see if this corresponds to robustness or some dense feature)

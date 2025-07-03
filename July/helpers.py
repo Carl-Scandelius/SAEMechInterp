@@ -47,13 +47,21 @@ def analyse_manifolds(all_activations_by_concept: Dict[str, torch.Tensor]) -> Di
     """
     concept_analysis: dict[str, dict] = {}
 
-    centroids = {c: acts.mean(dim=0) for c, acts in all_activations_by_concept.items()}
+    device = torch.device('cpu')
+    
+    # Move all tensors to the same device (CPU) and compute centroids
+    centroids = {c: acts.to(device).mean(dim=0) for c, acts in all_activations_by_concept.items()}
     global_centroid = torch.stack(list(centroids.values())).mean(dim=0)
     centered_acts = {
-        c: acts - global_centroid for c, acts in all_activations_by_concept.items()
+        c: acts.to(device) - global_centroid for c, acts in all_activations_by_concept.items()
     }
 
     for concept, acts in centered_acts.items():
+        # Skip concepts with no activations (empty tensors)
+        if acts.shape[0] == 0:
+            print(f"Warning: Concept '{concept}' has no activations. Skipping PCA analysis for this concept.")
+            continue
+            
         pca = PCA()
         pca.fit(acts.cpu().numpy())
 

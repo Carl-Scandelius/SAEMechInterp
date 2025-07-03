@@ -8,13 +8,10 @@ token of that word (cf. causal attention) for manifold analysis.
 """
 
 import torch
-import numpy as np
 from transformers import AutoTokenizer
 from tqdm import tqdm
 import gc
 import json
-import matplotlib.pyplot as plt
-import seaborn as sns
 from helpers import (
     get_model_and_tokenizer,
     analyse_manifolds,
@@ -22,6 +19,8 @@ from helpers import (
     plot_avg_eigenvalues,
     plot_similarity_matrix,
 )
+from transformers import logging
+logging.set_verbosity(logging.ERROR)
 
 # MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
@@ -31,14 +30,17 @@ TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 # --- CONFIGURATION ---
 USE_SYSTEM_PROMPT_FOR_MANIFOLD = False # If True, prepends the system prompt to prompts from the dataset when building concept manifolds.
 
+# Define concept variations for keywords matching
+concept_keywords = {
+    "dog": ["dog", "dogs", "dog's", "puppy", "puppies"],
+    "lion": ["lion", "lions", "lion's"],
+    "human": ["human", "humans", "human's", "man", "woman", "person", "people"],
+    "house": ["house", "houses", "house's", "home"]
+}
+
 def find_word_token_index(prompt, concept, tokenizer, add_generation_prompt):
     """Finds the index of the last token of the last occurrence of a concept word in a prompt."""
-    variations = {
-        "dog": ["dog", "dogs", "dog's"],
-        "lion": ["lion", "lions", "lion's"],
-        "human": ["human", "humans", "human's", "man", "woman", "person"],
-        "house": ["house", "houses", "house's"]
-    }.get(concept, [concept])
+    variations = concept_keywords.get(concept, [concept])
 
     lower_prompt = prompt.lower()
     last_occurrence_pos = -1
@@ -141,24 +143,37 @@ def generate_with_perturbation(model, tokenizer, layer_idx, direction, magnitude
 
     hook_handle = model.model.layers[layer_idx].register_forward_hook(hook_fn_modify)
     
+    # Handle both tensor and dictionary inputs
+    if isinstance(inputs, dict):
+        input_ids = inputs['input_ids']
+        attention_mask = inputs.get('attention_mask', None)
+        prompt_length = input_ids.shape[1]
+    else:
+        # inputs is a tensor of input_ids
+        input_ids = inputs
+        attention_mask = None
+        prompt_length = inputs.shape[1]
+    
     with torch.no_grad():
-        output_ids = model.generate(
-            input_ids=inputs['input_ids'],
-            attention_mask=inputs['attention_mask'],
-            max_new_tokens=70,
-            do_sample=False,
-            pad_token_id=tokenizer.eos_token_id
-        )
+        # Pass attention_mask only if it exists
+        generate_kwargs = {
+            'input_ids': input_ids,
+            'max_new_tokens': 70,
+            'do_sample': False,
+            'pad_token_id': tokenizer.eos_token_id
+        }
+        if attention_mask is not None:
+            generate_kwargs['attention_mask'] = attention_mask
+            
+        output_ids = model.generate(**generate_kwargs)
         
     hook_handle.remove()
 
-    prompt_length = inputs['input_ids'].shape[1]
     decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
     
     return decoded_text
 
 def main():
-    # Data for plotting across layers
     dog_avg_eigenvalues = {}
     dog_top_eigenvectors = {}
     model_name_str = MODEL_NAME.split('/')[-1]
@@ -174,13 +189,12 @@ def main():
     for concept, prompts in concept_prompts.items():
         if concept in concept_keywords:
             keywords = concept_keywords[concept]
-            # Store (prompt, keyword) pairs
             pairs = []
             for p in prompts:
                 for keyword in keywords:
                     if keyword in p.lower():
                         pairs.append((p, keyword))
-                        break # Move to the next prompt once a keyword is found
+                        break
             filtered_prompts[concept] = pairs
         else:
             print(f"Warning: No keywords defined for concept '{concept}'. Falling back to simple string match.")
@@ -232,13 +246,51 @@ def main():
         ).to(model.device)
 
         # Find the token index for the test concept in the formatted prompt
-        input_ids = inputs_for_gen[0].tolist()
-        concept_ids = tokenizer.encode(test_concept, add_special_tokens=False)
-        target_token_idx = -1
-        # Find the last occurrence of the concept word
-        for i in range(len(input_ids) - len(concept_ids) + 1):
-            if input_ids[i:i+len(concept_ids)] == concept_ids:
-                target_token_idx = i + len(concept_ids) - 1
+        # First, decode the input_ids to get the actual text
+        decoded_input = tokenizer.decode(inputs_for_gen[0], skip_special_tokens=False)
+        decoded_input_lower = decoded_input.lower()
+        
+        # Use concept_keywords dictionary for more robust matching
+        variations = concept_keywords.get(test_concept, [test_concept])
+        
+        # Find position of keyword in decoded text
+        last_pos = -1
+        matched_variation = None
+        for var in variations:
+            pos = decoded_input_lower.rfind(var.lower())
+            if pos > last_pos:
+                last_pos = pos
+                matched_variation = var
+        
+        if last_pos == -1:
+            print(f"Debug: Concept '{test_concept}' variations {variations} not found in decoded text: {decoded_input[:100]}...")
+            target_token_idx = -1
+        else:
+            # Now find which token this position corresponds to
+            input_ids = inputs_for_gen[0].tolist()
+            
+            # Find tokens that overlap with our keyword position
+            keyword_end_pos = last_pos + len(matched_variation)
+            token_indices = []
+            
+            # Decode each token individually and find where our concept appears
+            for i, token_id in enumerate(input_ids):
+                # Get the text for this token
+                token_text = tokenizer.decode([token_id]).lower()
+                # Check if any variation is in this token text
+                for var in variations:
+                    if var.lower() in token_text:
+                        token_indices.append(i)
+            
+            # If we found matching tokens, use the last one
+            if token_indices:
+                target_token_idx = max(token_indices)
+            else:
+                # Fallback: try the original exact token matching approach
+                concept_ids = tokenizer.encode(test_concept, add_special_tokens=False)
+                for i in range(len(input_ids) - len(concept_ids) + 1):
+                    if input_ids[i:i+len(concept_ids)] == concept_ids:
+                        target_token_idx = i + len(concept_ids) - 1
         
         if target_token_idx == -1:
             print(f"Warning: Concept '{test_concept}' not found in the tokenized test prompt. Skipping perturbation tests for layer {target_layer}.")

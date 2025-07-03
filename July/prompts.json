@@ -1,5 +1,4 @@
 {
-  "description": "Data generation prompt (to Gemini 2.5 Pro): Please generate a dataset, stored as a json file, according to the following specifications: write 4000 sentences about dogs, including sentences where the word 'dog' itself is present as well as sentences where the word 'dog' does not itself literally appear in the sentence. The sentences should be of varied length, sentence structure (not just subject-object-verb), and semantics, sentiment, and format. That is, please include both questions about dogs, as well as statements about dogs, and comments about dogs in various contexts. In all, these sentences should represent the full range of linguistic contexts in which we find the concept dog.",
   "dog": [
     "The dog barked loudly at the mail carrier.",
     "Have you ever seen a happier puppy?",
@@ -1286,7 +1285,7 @@
     "The dog’s wet fur had a very distinct smell after he jumped into the lake unexpectedly.",
     "The obedience class taught us how to communicate more effectively with our stubborn dog.",
     "That dog has a very expressive face; you can always tell exactly what he is feeling.",
-"The cartoon dog on television was a master of hilarious and impossible antics.",
+    "The cartoon dog on television was a master of hilarious and impossible antics.",
     "My dog loves the crunching sound of autumn leaves under his paws during our walks.",
     "The sheepdog, with its intense gaze, kept the flock tightly packed and moving in the right direction.",
     "The dog looked utterly betrayed when he realized the car ride was to the vet, not the park.",
@@ -1345,7 +1344,7 @@
     "That dog has an uncanny ability to know when it's exactly 5:00 PM, his designated dinner time.",
     "The dog walker takes a pack of five very different dogs to the park every single weekday.",
     "The dog’s ears perked up, and he let out a low growl, alerting us to someone approaching the door.",
-"The first-ever domesticated dog is believed to have descended from an ancient wolf population.",
+    "The first-ever domesticated dog is believed to have descended from an ancient wolf population.",
     "The dog’s joy was palpable as he ran freely on the sandy beach for the very first time.",
     "The dog was so filthy after our camping trip that his white fur appeared to be brown.",
     "The 'cone of shame' made the poor dog look utterly miserable after his surgery.",
@@ -1488,7 +1487,7 @@
     "The dog was trained to alert his deaf owner to important sounds like the doorbell or a fire alarm.",
     "A dog with a double coat will shed profusely during the spring and fall seasons.",
     "The stubborn dog planted his feet firmly on the pavement, refusing to walk any further.",
-"The evidence of the dog's guilt—a trail of muddy paws—led directly from the back door to the sofa.",
+    "The evidence of the dog's guilt—a trail of muddy paws—led directly from the back door to the sofa.",
     "The dog stared intently at the spot where the squirrel had vanished, refusing to believe it was gone.",
     "Having a dog has been scientifically shown to lower blood pressure and reduce stress.",
     "The dog tilted his head, a gesture of intellectual curiosity that always charmed his owners.",
