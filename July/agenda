@@ -1,11 +1,25 @@
 Next order of business:
+First: get full vanilla run for word-token on 1.7k
+
+Then:
 -Repeat in Q&A format and classification task
 -Repeat wordToken for multi-word perturbations
 -Repeat last token work with interpolation between manifold centroids and same for word manifolds
 -Try perturbing in directions orthogonal to the manifold (see if this corresponds to robustness or some dense feature)
 -Try ablating PCs of the manifold (i.e. drop a dimension)
 
+
+
 Papers: train meta-meta-SAE on same data as Nanda paper; see if you keep getting more atomic features
 
 Speculative: What happens when you prompt an LLM during inference to learn a new language of your syntactical design? How are the components of this synthetic simple language represented?
     Or, simpler, how differently are languages represented? Is it just some orthogonal vector indicating language or does syntax mess up more?
+    Try: "translate from English into Spanish" with 1000s sentences and same for "English into German", and then see if you have some isometry
+
+
+Concerns about current experiments:
+-artificial labelling of concepts pre-constrain shwo we interpret representations
+-the user prompt is two sentences but all prompts.json are one.
+-should we pass system prompt through when we define the manifolds as well?
+-since we filter prompts.json for wordToken.py, we end up with ~half the number of prompts for manifold generation as we have for lastToken.py
+-how do we deal with the system/padding tokens we we generate the manifold

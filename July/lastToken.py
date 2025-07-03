@@ -16,18 +16,12 @@ Find prompts in initial dataset that are furthest in the direction of PC1: how a
 """
 
 import torch
-import numpy as np
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from sklearn.decomposition import PCA
 from tqdm import tqdm
 import gc
 import json
-import matplotlib.pyplot as plt
-import seaborn as sns
-import torch.nn.functional as F
-from shared_functions import (
+from helpers import (
     get_model_and_tokenizer,
-    analyze_manifolds,
+    analyse_manifolds,
     find_top_prompts,
     plot_avg_eigenvalues,
     plot_similarity_matrix,
@@ -38,17 +32,7 @@ MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 USE_SYSTEM_PROMPT_FOR_MANIFOLD = True
-
-def _deprecated_get_model_and_tokenizer(*args, **kwargs):
-    """Deprecated duplicate; use shared_functions.get_model_and_tokenizer instead."""
-    pass
-
-def get_model_and_tokenizer_disabled():
-    raise RuntimeError("get_model_and_tokenizer was removed; import from shared_functions instead.")
-
-# -------------------- END DEPRECATED SECTION --------------------
-
-
+PERTURB_ONCE = False  # Can be configured by runner script
 
 def get_final_token_activations(model, tokenizer, prompts, layer_idx, system_prompt=""):
     activations = []
@@ -79,51 +63,6 @@ def get_final_token_activations(model, tokenizer, prompts, layer_idx, system_pro
 
     hook_handle.remove()
     return torch.cat(activations, dim=0)
-
-# Deprecated helper functions removed.
-# (analysis helpers now live in shared_functions)
-def _deprecated_analyze_manifolds(*args, **kwargs):
-    raise RuntimeError("Deprecated; use analyze_manifolds from shared_functions")
-    """
-    Centres the concept manifolds and finds their 'effective' eigenvectors using PCA.
-    """
-    concept_analysis = {}
-    
-    centroids = {
-        concept: acts.mean(dim=0)
-        for concept, acts in all_activations_by_concept.items()
-    }
-    global_centroid = torch.stack(list(centroids.values())).mean(dim=0)
-    centered_activations = {
-        concept: acts - global_centroid
-        for concept, acts in all_activations_by_concept.items()
-    }
-    
-    print("Finding effective eigenvectors via PCA...")
-    for concept, acts in centered_activations.items():
-        pca = PCA()
-        pca.fit(acts.numpy())
-        
-        eigenvectors = pca.components_
-        eigenvalues = pca.explained_variance_
-
-        mean_eigval = eigenvalues.mean()
-        std_eigval = eigenvalues.std()
-        threshold = mean_eigval #- 1.0 * std_eigval
-        
-        effective_mask = eigenvalues > threshold
-        
-        print(f"Concept '{concept}': Found {np.sum(effective_mask)} effective eigenvectors out of {len(eigenvectors)} (threshold: {threshold:.4f})")
-        
-        concept_analysis[concept] = {
-            "pca": pca,
-            "eigenvectors": torch.tensor(eigenvectors, dtype=acts.dtype),
-            "eigenvalues": torch.tensor(eigenvalues, dtype=acts.dtype),
-            "effective_mask": torch.tensor(effective_mask, dtype=torch.bool),
-            "centered_acts": acts
-        }
-    
-    return concept_analysis
 
 def generate_with_perturbation(model, tokenizer, messages, layer_idx, direction, magnitude, eigenvalue, perturb_once=False):
     perturbation = direction * magnitude * torch.sqrt(eigenvalue)
@@ -162,80 +101,10 @@ def generate_with_perturbation(model, tokenizer, messages, layer_idx, direction,
     
     return decoded_text
 
-# Deprecated helper functions removed.
-def _deprecated_find_top_prompts(*args, **kwargs):
-    raise RuntimeError("Deprecated; use find_top_prompts from shared_functions")
-    projections = centered_acts @ direction
-    sorted_values, sorted_indices = torch.sort(projections, descending=False)
-    neg_indices = sorted_indices[:n]
-    pos_indices = sorted_indices[-n:].flip(dims=[0])
-    top_positive_prompts = [prompts[i] for i in pos_indices]
-    top_negative_prompts = [prompts[i] for i in neg_indices]
-
-    return {
-        "positive": top_positive_prompts,
-        "negative": top_negative_prompts
-    }
-
-# Deprecated helper functions removed.
-def _deprecated_plot_avg_eigenvalues(*args, **kwargs):
-    raise RuntimeError("Deprecated; use plot_avg_eigenvalues from shared_functions")
-    """Plots the average eigenvalue for a concept across layers.""" 
-    if not eigenvalue_data:
-        print("No eigenvalue data to plot.")
-        return
-    
-    layers = sorted(eigenvalue_data.keys())
-    avg_eigenvalues = [eigenvalue_data[l] for l in layers]
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(layers, avg_eigenvalues, marker='o')
-    plt.title(f'Average "Dog" Manifold Eigenvalue vs. Layer\nModel: {model_name_str}')
-    plt.xlabel("Model Layer")
-    plt.ylabel("Average Eigenvalue")
-    plt.xticks(layers)
-    plt.grid(True, linestyle='--', alpha=0.6)
-    filename = f"{filename_prefix}_dog_avg_eigenvalue.png"
-    plt.savefig(filename)
-    print(f"Saved average eigenvalue plot to {filename}")
-    plt.close()
-
-# Deprecated helper functions removed.
-def _deprecated_plot_similarity_matrix(*args, **kwargs):
-    raise RuntimeError("Deprecated; use plot_similarity_matrix from shared_functions")
-    """Plots the cosine similarity matrix of top eigenvectors across layers.""" 
-    if len(eigenvector_data) < 2:
-        print("Not enough eigenvector data to create a similarity matrix.")
-        return
-
-    layers = sorted(eigenvector_data.keys())
-    num_layers = len(layers)
-    similarity_matrix = torch.zeros((num_layers, num_layers))
-
-    eigenvectors = [eigenvector_data[l] for l in layers]
-
-    for i in range(num_layers):
-        for j in range(num_layers):
-            sim = F.cosine_similarity(eigenvectors[i].unsqueeze(0), eigenvectors[j].unsqueeze(0))
-            similarity_matrix[i, j] = sim.item()
-
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(similarity_matrix, annot=True, fmt=".2f", cmap="viridis",
-                xticklabels=layers, yticklabels=layers)
-    plt.title(f'Cosine Similarity of "Dog" Manifold PC0 Across Layers\nModel: {model_name_str}')
-    plt.xlabel("Model Layer")
-    plt.ylabel("Model Layer")
-    filename = f"{filename_prefix}_dog_pc0_similarity.png"
-    plt.savefig(filename)
-    print(f"Saved eigenvector similarity matrix to {filename}")
-    plt.close()
-
 def main():
-    PERTURB_ONCE = False # true entails perturbing only the final token in the user prompt; false entails perturbing the final token in every subsequent pass through the model
     print(f"\nConfiguration: PERTURB_ONCE is set to {PERTURB_ONCE}\n")
     print(f"Configuration: USE_SYSTEM_PROMPT_FOR_MANIFOLD is set to {USE_SYSTEM_PROMPT_FOR_MANIFOLD}\n")
 
-    # Data for plotting across layers
     dog_avg_eigenvalues = {}
     dog_top_eigenvectors = {}
     model_name_str = MODEL_NAME.split('/')[-1]
@@ -261,11 +130,10 @@ def main():
             gc.collect()
             torch.cuda.empty_cache()
 
-        analysis_results = analyze_manifolds(all_activations)
+        analysis_results = analyse_manifolds(all_activations)
 
         if "dog" in analysis_results:
             dog_analysis = analysis_results["dog"]
-            # Store data for plotting
             dog_avg_eigenvalues[target_layer] = dog_analysis["eigenvalues"].mean().item()
             dog_top_eigenvectors[target_layer] = dog_analysis["eigenvectors"][0]
         
@@ -341,7 +209,6 @@ def main():
         concept_analysis = analysis_results[test_concept]
         effective_mask = concept_analysis["effective_mask"]
         
-        # Find the first principal component that is *not* effective
         orthogonal_pc_index = -1
         for i, is_effective in enumerate(effective_mask):
             if not is_effective:
@@ -368,7 +235,6 @@ def main():
         else:
             print("Could not find an orthogonal (ineffective) direction to perturb.")
 
-    # --- FINAL PLOTTING ---
     print("\n" + "#"*80)
     print("### PLOTTING OVERALL RESULTS ###")
     print("#"*80 + "\n")

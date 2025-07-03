@@ -9,14 +9,19 @@ token of that word (cf. causal attention) for manifold analysis.
 
 import torch
 import numpy as np
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from sklearn.decomposition import PCA
+from transformers import AutoTokenizer
 from tqdm import tqdm
 import gc
 import json
 import matplotlib.pyplot as plt
 import seaborn as sns
-import torch.nn.functional as F
+from helpers import (
+    get_model_and_tokenizer,
+    analyse_manifolds,
+    find_top_prompts,
+    plot_avg_eigenvalues,
+    plot_similarity_matrix,
+)
 
 # MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
@@ -25,16 +30,6 @@ TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 
 # --- CONFIGURATION ---
 USE_SYSTEM_PROMPT_FOR_MANIFOLD = False # If True, prepends the system prompt to prompts from the dataset when building concept manifolds.
-
-def get_model_and_tokenizer(model_name):
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        torch_dtype=TORCH_DTYPE,
-        device_map=DEVICE
-    )
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    tokenizer.pad_token = tokenizer.eos_token
-    return model, tokenizer
 
 def find_word_token_index(prompt, concept, tokenizer, add_generation_prompt):
     """Finds the index of the last token of the last occurrence of a concept word in a prompt."""
@@ -132,50 +127,6 @@ def get_word_token_activations(model, tokenizer, prompt_keyword_pairs, layer_idx
 
     return torch.cat(activations, dim=0)
 
-def analyze_manifolds(all_activations_by_concept):
-    """
-    Centres the concept manifolds and finds their 'effective' eigenvectors using PCA.
-    """
-    concept_analysis = {}
-    
-    centroids = {
-        concept: acts.mean(dim=0)
-        for concept, acts in all_activations_by_concept.items()
-    }
-    global_centroid = torch.stack(list(centroids.values())).mean(dim=0)
-    centered_activations = {
-        concept: acts - global_centroid
-        for concept, acts in all_activations_by_concept.items()
-    }
-    
-    print("Finding effective eigenvectors via PCA...")
-    for concept, acts in centered_activations.items():
-        if acts.shape[0] < 2: # PCA needs at least 2 samples
-            print(f"Concept '{concept}': Not enough samples ({acts.shape[0]}) for PCA. Skipping.")
-            continue
-        pca = PCA()
-        pca.fit(acts.numpy())
-        
-        eigenvectors = pca.components_
-        eigenvalues = pca.explained_variance_
-
-        mean_eigval = eigenvalues.mean()
-        threshold = mean_eigval
-        
-        effective_mask = eigenvalues > threshold
-        
-        print(f"Concept '{concept}': Found {np.sum(effective_mask)} effective eigenvectors out of {len(eigenvectors)} (threshold: {threshold:.4f})")
-        
-        concept_analysis[concept] = {
-            "pca": pca,
-            "eigenvectors": torch.tensor(eigenvectors, dtype=acts.dtype),
-            "eigenvalues": torch.tensor(eigenvalues, dtype=acts.dtype),
-            "effective_mask": torch.tensor(effective_mask, dtype=torch.bool),
-            "centered_acts": acts
-        }
-    
-    return concept_analysis
-
 def generate_with_perturbation(model, tokenizer, layer_idx, direction, magnitude, eigenvalue, target_token_idx, inputs):
     perturbation = direction * magnitude * torch.sqrt(eigenvalue)
     
@@ -205,68 +156,6 @@ def generate_with_perturbation(model, tokenizer, layer_idx, direction, magnitude
     decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
     
     return decoded_text
-
-def find_top_prompts(prompts, centered_acts, direction, n=10):
-    projections = centered_acts @ direction
-    sorted_values, sorted_indices = torch.sort(projections, descending=False)
-    neg_indices = sorted_indices[:n]
-    pos_indices = sorted_indices[-n:].flip(dims=[0])
-    top_positive_prompts = [prompts[i] for i in pos_indices]
-    top_negative_prompts = [prompts[i] for i in neg_indices]
-
-    return {
-        "positive": top_positive_prompts,
-        "negative": top_negative_prompts
-    }
-
-def plot_avg_eigenvalues(eigenvalue_data, model_name_str, filename_prefix):
-    """Plots the average eigenvalue for a concept across layers.""" 
-    if not eigenvalue_data:
-        print("No eigenvalue data to plot.")
-        return
-    
-    layers = sorted(eigenvalue_data.keys())
-    avg_eigenvalues = [eigenvalue_data[l] for l in layers]
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(layers, avg_eigenvalues, marker='o')
-    plt.title(f'Average "Dog" Manifold Eigenvalue vs. Layer\nModel: {model_name_str}')
-    plt.xlabel("Model Layer")
-    plt.ylabel("Average Eigenvalue")
-    plt.xticks(layers)
-    plt.grid(True, linestyle='--', alpha=0.6)
-    filename = f"{filename_prefix}_dog_avg_eigenvalue.png"
-    plt.savefig(filename)
-    print(f"Saved average eigenvalue plot to {filename}")
-    plt.close()
-
-def plot_similarity_matrix(eigenvector_data, model_name_str, filename_prefix):
-    """Plots the cosine similarity matrix of top eigenvectors across layers.""" 
-    if len(eigenvector_data) < 2:
-        print("Not enough eigenvector data to create a similarity matrix.")
-        return
-
-    layers = sorted(eigenvector_data.keys())
-    num_layers = len(layers)
-    similarity_matrix = torch.zeros((num_layers, num_layers))
-
-    eigenvectors = [eigenvector_data[l] for l in layers]
-
-    for i in range(num_layers):
-        for j in range(num_layers):
-            sim = F.cosine_similarity(eigenvectors[i].unsqueeze(0), eigenvectors[j].unsqueeze(0))
-            similarity_matrix[i, j] = sim.item()
-
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(similarity_matrix, annot=True, fmt=".2f", cmap="viridis",
-                xticklabels=layers, yticklabels=layers)
-    plt.title(f'Cosine Similarity of "Dog" Manifold PC0 Across Layers\nModel: {model_name_str}')
-    plt.xlabel("Model Layer")
-    plt.ylabel("Model Layer")
-    filename = f"{filename_prefix}_dog_pc0_similarity.png"
-    plt.savefig(filename)
-    print(f"Saved eigenvector similarity matrix to {filename}")
-    plt.close()
 
 def main():
     # Data for plotting across layers
@@ -320,7 +209,7 @@ def main():
             gc.collect()
             torch.cuda.empty_cache()
 
-        analysis_results = analyze_manifolds(all_activations)
+        analysis_results = analyse_manifolds(all_activations)
 
         if "dog" in analysis_results:
             dog_analysis = analysis_results["dog"]
@@ -451,8 +340,6 @@ def main():
         else:
             print(f"No analysis results for concept '{test_concept}', skipping orthogonal perturbation.")
 
-
-    # --- FINAL PLOTTING ---
     print("\n" + "#"*80)
     print("### PLOTTING OVERALL RESULTS ###")
     print("#"*80 + "\n")
