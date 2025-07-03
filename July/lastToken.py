@@ -25,23 +25,32 @@ import json
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch.nn.functional as F
+from shared_functions import (
+    get_model_and_tokenizer,
+    analyze_manifolds,
+    find_top_prompts,
+    plot_avg_eigenvalues,
+    plot_similarity_matrix,
+)
 
 # MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
+USE_SYSTEM_PROMPT_FOR_MANIFOLD = True
 
-def get_model_and_tokenizer(model_name):
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        torch_dtype=TORCH_DTYPE,
-        device_map=DEVICE
-    )
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    tokenizer.pad_token = tokenizer.eos_token
-    return model, tokenizer
+def _deprecated_get_model_and_tokenizer(*args, **kwargs):
+    """Deprecated duplicate; use shared_functions.get_model_and_tokenizer instead."""
+    pass
 
-def get_final_token_activations(model, tokenizer, prompts, layer_idx):
+def get_model_and_tokenizer_disabled():
+    raise RuntimeError("get_model_and_tokenizer was removed; import from shared_functions instead.")
+
+# -------------------- END DEPRECATED SECTION --------------------
+
+
+
+def get_final_token_activations(model, tokenizer, prompts, layer_idx, system_prompt=""):
     activations = []
 
     def hook_fn(module, input, output):
@@ -51,9 +60,15 @@ def get_final_token_activations(model, tokenizer, prompts, layer_idx):
     hook_handle = model.model.layers[layer_idx].register_forward_hook(hook_fn)
 
     print(f"Extracting activations from layer {layer_idx}...")
-    for prompt in tqdm(prompts, desc="Processing prompts"):
-        messages = [{"role": "user", "content": prompt}]
-        
+    for prompt in tqdm(prompts, desc="Extracting activations"):
+        if USE_SYSTEM_PROMPT_FOR_MANIFOLD and system_prompt:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ]
+        else:
+            messages = [{'role': 'user', 'content': prompt}]
+
         inputs = tokenizer.apply_chat_template(
             messages,
             return_tensors="pt",
@@ -65,7 +80,10 @@ def get_final_token_activations(model, tokenizer, prompts, layer_idx):
     hook_handle.remove()
     return torch.cat(activations, dim=0)
 
-def analyze_manifolds(all_activations_by_concept):
+# Deprecated helper functions removed.
+# (analysis helpers now live in shared_functions)
+def _deprecated_analyze_manifolds(*args, **kwargs):
+    raise RuntimeError("Deprecated; use analyze_manifolds from shared_functions")
     """
     Centres the concept manifolds and finds their 'effective' eigenvectors using PCA.
     """
@@ -144,7 +162,9 @@ def generate_with_perturbation(model, tokenizer, messages, layer_idx, direction,
     
     return decoded_text
 
-def find_top_prompts(prompts, centered_acts, direction, n=10):
+# Deprecated helper functions removed.
+def _deprecated_find_top_prompts(*args, **kwargs):
+    raise RuntimeError("Deprecated; use find_top_prompts from shared_functions")
     projections = centered_acts @ direction
     sorted_values, sorted_indices = torch.sort(projections, descending=False)
     neg_indices = sorted_indices[:n]
@@ -157,7 +177,9 @@ def find_top_prompts(prompts, centered_acts, direction, n=10):
         "negative": top_negative_prompts
     }
 
-def plot_avg_eigenvalues(eigenvalue_data, model_name_str, filename_prefix):
+# Deprecated helper functions removed.
+def _deprecated_plot_avg_eigenvalues(*args, **kwargs):
+    raise RuntimeError("Deprecated; use plot_avg_eigenvalues from shared_functions")
     """Plots the average eigenvalue for a concept across layers.""" 
     if not eigenvalue_data:
         print("No eigenvalue data to plot.")
@@ -178,7 +200,9 @@ def plot_avg_eigenvalues(eigenvalue_data, model_name_str, filename_prefix):
     print(f"Saved average eigenvalue plot to {filename}")
     plt.close()
 
-def plot_similarity_matrix(eigenvector_data, model_name_str, filename_prefix):
+# Deprecated helper functions removed.
+def _deprecated_plot_similarity_matrix(*args, **kwargs):
+    raise RuntimeError("Deprecated; use plot_similarity_matrix from shared_functions")
     """Plots the cosine similarity matrix of top eigenvectors across layers.""" 
     if len(eigenvector_data) < 2:
         print("Not enough eigenvector data to create a similarity matrix.")
@@ -209,6 +233,7 @@ def plot_similarity_matrix(eigenvector_data, model_name_str, filename_prefix):
 def main():
     PERTURB_ONCE = False # true entails perturbing only the final token in the user prompt; false entails perturbing the final token in every subsequent pass through the model
     print(f"\nConfiguration: PERTURB_ONCE is set to {PERTURB_ONCE}\n")
+    print(f"Configuration: USE_SYSTEM_PROMPT_FOR_MANIFOLD is set to {USE_SYSTEM_PROMPT_FOR_MANIFOLD}\n")
 
     # Data for plotting across layers
     dog_avg_eigenvalues = {}
@@ -229,8 +254,10 @@ def main():
         print("#"*80 + "\n")
 
         all_activations = {}
+        system_prompt_for_manifold = system_prompt if USE_SYSTEM_PROMPT_FOR_MANIFOLD else ""
+
         for concept, prompts in concept_prompts.items():
-            all_activations[concept] = get_final_token_activations(model, tokenizer, prompts, target_layer)
+            all_activations[concept] = get_final_token_activations(model, tokenizer, prompts, target_layer, system_prompt=system_prompt_for_manifold)
             gc.collect()
             torch.cuda.empty_cache()
 
@@ -329,12 +356,12 @@ def main():
             print(f"\nSystem Prompt: '{system_prompt}'")
             print(f"User Prompt:   '{user_prompt}'")
 
-            original_output = generate_with_perturbation(model, tokenizer, messages_to_test, target_layer, ortho_direction, 0, ortho_eigenvalue, perturb_once=PERTURB_ONCE)
+            original_output = generate_with_perturbation(model, tokenizer, messages_to_test, target_layer, ortho_direction, 0, concept_analysis["eigenvalues"][0], perturb_once=PERTURB_ONCE)
             print(f"Original model completion: {original_output}")
 
             for scale in perturbation_scales:
                 perturbed_output = generate_with_perturbation(
-                    model, tokenizer, messages_to_test, target_layer, ortho_direction, scale, ortho_eigenvalue,
+                    model, tokenizer, messages_to_test, target_layer, ortho_direction, scale, concept_analysis["eigenvalues"][0],   #ortho_eigenvalue, (ortho eigenvalue is too small; I use largest now)
                     perturb_once=PERTURB_ONCE
                 )
                 print(f"Perturbation scale {scale:+.1f}x: {perturbed_output}")

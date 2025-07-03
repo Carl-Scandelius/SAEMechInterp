@@ -23,6 +23,9 @@ MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 
+# --- CONFIGURATION ---
+USE_SYSTEM_PROMPT_FOR_MANIFOLD = False # If True, prepends the system prompt to prompts from the dataset when building concept manifolds.
+
 def get_model_and_tokenizer(model_name):
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
@@ -82,34 +85,50 @@ def find_word_token_index(prompt, concept, tokenizer, add_generation_prompt):
     inputs.to(DEVICE)
     return target_token_idx, inputs
 
-def get_word_token_activations(model, tokenizer, prompts, layer_idx, concept):
+def get_word_token_activations(model, tokenizer, prompt_keyword_pairs, layer_idx, concept, system_prompt=""):
     activations = []
     print(f"Extracting activations from layer {layer_idx} for concept '{concept}'...")
 
-    for prompt in tqdm(prompts, desc=f"Processing prompts for '{concept}'"):
-        target_token_idx, inputs = find_word_token_index(prompt, concept, tokenizer, add_generation_prompt=False)
+    activation_storage = []
+    def hook_fn(module, input, output, target_token_idx):
+        token_activation = output[0][:, target_token_idx, :].detach().cpu()
+        activation_storage.append(token_activation)
 
+    for prompt, keyword in tqdm(prompt_keyword_pairs, desc=f"Extracting '{concept}' activations"):
+        activation_storage.clear()
+
+        messages = [{'role': 'user', 'content': prompt}]
+        if USE_SYSTEM_PROMPT_FOR_MANIFOLD and system_prompt:
+            messages.insert(0, {'role': 'system', 'content': system_prompt})
+
+        inputs = tokenizer.apply_chat_template(messages, return_tensors="pt", add_generation_prompt=False).to(DEVICE)
+        
+        input_ids_list = inputs[0].tolist()
+        keyword_ids = tokenizer.encode(keyword, add_special_tokens=False)
+        
+        target_token_idx = -1
+        for i in range(len(input_ids_list) - len(keyword_ids) + 1):
+            if input_ids_list[i:i+len(keyword_ids)] == keyword_ids:
+                target_token_idx = i + len(keyword_ids) - 1
+        
         if target_token_idx == -1:
-            print(f"Warning: Could not find token for concept '{concept}' in prompt: '{prompt}'. Skipping.")
             continue
 
-        activation_storage = []
-        def hook_fn(module, input, output):
-            token_activation = output[0][:, target_token_idx, :].detach().cpu()
-            activation_storage.append(token_activation)
-
-        hook_handle = model.model.layers[layer_idx].register_forward_hook(hook_fn)
-
+        hook_handle = model.model.layers[layer_idx].register_forward_hook(
+            lambda module, input, output: hook_fn(module, input, output, target_token_idx)
+        )
+        
         with torch.no_grad():
-            model(input_ids=inputs['input_ids'], attention_mask=inputs['attention_mask'])
-
+            model(input_ids=inputs)
+        
         hook_handle.remove()
 
         if activation_storage:
             activations.append(activation_storage[0])
 
     if not activations:
-        return torch.empty(0, model.config.hidden_size)
+        print(f"Warning: Could not extract any activations for concept '{concept}' in layer {layer_idx}.")
+        return torch.empty(0, model.config.hidden_size, device=DEVICE)
 
     return torch.cat(activations, dim=0)
 
@@ -262,19 +281,23 @@ def main():
 
     # Filter prompts to only include those with the concept word
     filtered_prompts = {}
-    variations = {
-        "dog": ["dog", "dogs", "dog's"],
-        "lion": ["lion", "lions", "lion's"],
-        "human": ["human", "humans", "human's", "man", "woman", "person"],
-        "house": ["house", "houses", "house's"]
-    }
+    print("Filtering prompts based on keywords...")
     for concept, prompts in concept_prompts.items():
-        concept_vars = variations.get(concept, [concept])
-        filtered_prompts[concept] = [
-            p for p in prompts 
-            if any(var in p.lower() for var in concept_vars)
-        ]
-        print(f"Concept '{concept}': Filtered from {len(prompts)} to {len(filtered_prompts[concept])} prompts.")
+        if concept in concept_keywords:
+            keywords = concept_keywords[concept]
+            # Store (prompt, keyword) pairs
+            pairs = []
+            for p in prompts:
+                for keyword in keywords:
+                    if keyword in p.lower():
+                        pairs.append((p, keyword))
+                        break # Move to the next prompt once a keyword is found
+            filtered_prompts[concept] = pairs
+        else:
+            print(f"Warning: No keywords defined for concept '{concept}'. Falling back to simple string match.")
+            filtered_prompts[concept] = [(p, concept) for p in prompts if concept in p.lower()]
+        
+        print(f"  - Concept '{concept}': Found {len(filtered_prompts[concept])} matching prompts out of {len(prompts)}.")
 
     TARGET_LAYERS = [0, 15, 31] # Llama-3.1-8B has 32 layers (0-31)
     AXES_TO_ANALYZE = range(5)
@@ -285,11 +308,15 @@ def main():
         print("#"*80 + "\n")
 
         all_activations = {}
+        system_prompt_for_manifold = "You are a language model assistant. Please translate the following text accurately from English into German:" if USE_SYSTEM_PROMPT_FOR_MANIFOLD else ""
         for concept, prompts in filtered_prompts.items():
             if not prompts:
                 print(f"No prompts for concept '{concept}' after filtering. Skipping.")
                 continue
-            all_activations[concept] = get_word_token_activations(model, tokenizer, prompts, target_layer, concept)
+        for concept, prompt_keyword_pairs in filtered_prompts.items():
+            all_activations[concept] = get_word_token_activations(
+                model, tokenizer, prompt_keyword_pairs, target_layer, concept, system_prompt=system_prompt_for_manifold
+            )
             gc.collect()
             torch.cuda.empty_cache()
 
@@ -369,19 +396,20 @@ def main():
 
             print("\n" + "="*80)
             print(f"--- Analyzing original dataset prompts along the PC{axis} '{test_concept}' direction (Layer {target_layer}) ---")
-            top_prompts = find_top_prompts(
-                filtered_prompts[test_concept],
+            prompts_for_concept = [p for p, k in filtered_prompts[test_concept]]
+            top_prompts_dict = find_top_prompts(
+                prompts_for_concept,
                 concept_analysis["centered_acts"],
                 pc_direction,
                 n=10
             )
 
             print(f"\nTop 10 prompts most aligned with POSITIVE PC{axis} direction:")
-            for i, prompt in enumerate(top_prompts['positive'], 1):
+            for i, prompt in enumerate(top_prompts_dict['positive'], 1):
                 print(f"{i:2d}. '{prompt}'")
                 
             print(f"\nTop 10 prompts most aligned with NEGATIVE PC{axis} direction:")
-            for i, prompt in enumerate(top_prompts['negative'], 1):
+            for i, prompt in enumerate(top_prompts_dict['negative'], 1):
                 print(f"{i:2d}. '{prompt}'")
             print("="*80)
 
