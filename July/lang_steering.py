@@ -7,6 +7,12 @@ different target languages. We split dog-related prompts into two groups, one fo
 translation and one for German translation. The manifolds are analysed for similarities,
 and we test whether perturbation in the direction of one language manifold can "steer"
 the model toward that language.
+
+Advanced analysis features:
+- Cross-language PC similarity matrices at each layer
+- Within-language PC similarity matrices across layers
+- Centroid distance analysis across all layers
+- Interpolation between language manifolds
 """
 
 import torch
@@ -68,6 +74,219 @@ def compute_cosine_similarity(v1, v2):
     norm1 = torch.norm(v1)
     norm2 = torch.norm(v2)
     return dot_product / (norm1 * norm2)
+
+def run_centroid_interpolation(model, tokenizer, messages_to_test, target_layer, spanish_analysis, german_analysis):
+    """Run interpolation between German and Spanish translation centroids.
+    
+    Interpolates along the vector connecting the German centroid to the Spanish centroid
+    in 20% steps of the total distance between them.
+    At 0% we are at the German centroid, at 100% we are at the Spanish centroid.
+    """
+    # Prepare inputs
+    inputs = tokenizer.apply_chat_template(
+        messages_to_test,
+        return_tensors="pt",
+        add_generation_prompt=True
+    ).to(model.device)
+    
+    # Get centroids
+    spanish_centroid = spanish_analysis["centroid"]
+    german_centroid = german_analysis["centroid"]
+    
+    # Vector from German to Spanish centroid
+    centroid_vector = spanish_centroid - german_centroid
+    
+    # Compute the total distance between centroids
+    centroid_distance = torch.norm(centroid_vector).item()
+    
+    # Normalize the direction vector
+    direction_vector = centroid_vector / centroid_distance
+    
+    print("\n" + "="*80)
+    print(f"--- INTERPOLATING FROM GERMAN TO SPANISH TRANSLATION ---")
+    print(f"--- LAYER: {target_layer} ---")
+    print(f"--- CENTROID DISTANCE: {centroid_distance:.4f} ---")
+    print("="*80)
+    
+    # Format for display
+    system_prompt = messages_to_test[0]['content'] if messages_to_test[0]['role'] == 'system' else ""
+    user_prompt = next((msg['content'] for msg in messages_to_test if msg['role'] == 'user'), "")
+    
+    print(f"\nSystem Prompt: '{system_prompt}'")
+    print(f"User Prompt:   '{user_prompt}'")
+    print("\nInterpolation Results:")
+    
+    # Get the original (baseline) output without any perturbation
+    with torch.no_grad():
+        output_ids = model.generate(
+            inputs, max_new_tokens=50, temperature=0.7, top_p=0.9,
+            do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
+        )
+        prompt_length = inputs.shape[1]
+        original_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
+    
+    print(f"\n0% (German baseline): {original_text}")
+    
+    # Interpolate in 20% steps (5 steps from 20% to 100%)
+    for step in range(1, 6):  # 20%, 40%, 60%, 80%, 100%
+        percentage = step * 20
+        
+        if step == 5:
+            print(f"\n{percentage}% (Spanish target):")
+        else:
+            print(f"\n{percentage}% interpolation:")
+        
+        # Calculate perturbation magnitude for this step (as a fraction of total distance)
+        # This ensures we're moving by equal *distance* steps, not just equal vector scaling
+        perturbation_magnitude = step * 0.2 * centroid_distance
+        
+        # Generate with perturbation
+        # Pass eigenvalue as tensor of 1.0 since we're directly controlling magnitude
+        # and don't want additional eigenvalue scaling
+        perturbed_output = generate_with_perturbation(
+            model, tokenizer, inputs, target_layer,
+            direction_vector,  # Unit vector in the direction from German to Spanish
+            perturbation_magnitude,  # Magnitude is the fraction of total distance
+            torch.tensor(1.0, device=model.device),  # Eigenvalue of 1.0 as tensor for neutral scaling
+            None,  # Perturb last token
+            PERTURB_ONCE
+        )
+        
+        print(perturbed_output)
+
+def plot_cross_layer_pc_similarity(all_layer_results, concept, num_pcs=5, model_name_str=""):
+    """Plot PC similarity matrices across different layers for a single concept."""
+    layers = sorted(all_layer_results.keys())
+    n_layers = len(layers)
+    
+    # Create a figure with n_layers × n_layers subplots
+    fig, axes = plt.subplots(n_layers, n_layers, figsize=(20, 20))
+    fig.suptitle(f"Cross-Layer PC Similarity for '{concept}' Concept\n{model_name_str}", fontsize=16)
+    
+    # For each pair of layers, calculate PC similarity
+    for i, layer_i in enumerate(layers):
+        for j, layer_j in enumerate(layers):
+            # Get eigenvectors from both layers
+            eigenvectors_i = all_layer_results[layer_i][concept]["eigenvectors"][:num_pcs]
+            eigenvectors_j = all_layer_results[layer_j][concept]["eigenvectors"][:num_pcs]
+            
+            # Calculate similarity matrix
+            similarity_matrix = torch.zeros((num_pcs, num_pcs))
+            for pi in range(num_pcs):
+                for pj in range(num_pcs):
+                    if pi < len(eigenvectors_i) and pj < len(eigenvectors_j):  # Check bounds
+                        similarity = compute_cosine_similarity(eigenvectors_i[pi], eigenvectors_j[pj])
+                        similarity_matrix[pi, pj] = similarity
+            
+            # Plot heatmap
+            im = sns.heatmap(similarity_matrix.cpu().numpy(), 
+                       annot=True, fmt='.2f', cmap='coolwarm', 
+                       vmin=-1, vmax=1, center=0, 
+                       xticklabels=[f"PC{i}" for i in range(num_pcs)],
+                       yticklabels=[f"PC{i}" for i in range(num_pcs)],
+                       ax=axes[i, j], cbar=False)
+            
+            if i == 0:
+                axes[i, j].set_title(f"Layer {layer_j}")
+            if j == 0:
+                axes[i, j].set_ylabel(f"Layer {layer_i}")
+                
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    filename = f"{model_name_str}_{concept.replace(' ', '_')}_cross_layer_pc_similarity.png"
+    plt.savefig(filename)
+    plt.close()
+    print(f"Saved cross-layer PC similarity matrix for '{concept}' to {filename}")
+
+def plot_cross_concept_pc_similarity_by_layer(all_layer_results, concepts, layer, num_pcs=5, model_name_str=""):
+    """Plot PC similarity matrix between concepts at a specific layer."""
+    # Ensure we have data for the requested layer
+    if layer not in all_layer_results:
+        print(f"Warning: No data for layer {layer}")
+        return
+        
+    # Get eigenvectors for each concept at this layer
+    layer_data = all_layer_results[layer]
+    
+    # Create figure
+    plt.figure(figsize=(10, 8))
+    
+    # Calculate similarity matrix
+    similarity_matrix = torch.zeros((len(concepts) * num_pcs, len(concepts) * num_pcs))
+    
+    # Labels for the axes
+    xlabels = []
+    ylabels = []
+    
+    # Fill the similarity matrix
+    for i, concept_i in enumerate(concepts):
+        if concept_i not in layer_data:
+            continue
+            
+        eigenvectors_i = layer_data[concept_i]["eigenvectors"][:num_pcs]
+        for pi in range(min(num_pcs, len(eigenvectors_i))):
+            ylabels.append(f"{concept_i}\nPC{pi}")
+            
+            for j, concept_j in enumerate(concepts):
+                if concept_j not in layer_data:
+                    continue
+                    
+                eigenvectors_j = layer_data[concept_j]["eigenvectors"][:num_pcs]
+                for pj in range(min(num_pcs, len(eigenvectors_j))):
+                    if i == 0:  # Only add labels once
+                        xlabels.append(f"{concept_j}\nPC{pj}")
+                    
+                    # Calculate similarity
+                    sim = compute_cosine_similarity(eigenvectors_i[pi], eigenvectors_j[pj])
+                    similarity_matrix[i * num_pcs + pi, j * num_pcs + pj] = sim
+    
+    # Plot heatmap
+    sns.heatmap(similarity_matrix[:len(ylabels), :len(xlabels)].cpu().numpy(), 
+                annot=True, fmt='.2f', cmap='coolwarm',
+                vmin=-1, vmax=1, center=0,
+                xticklabels=xlabels, yticklabels=ylabels)
+    
+    plt.title(f"Cross-Concept PC Similarity at Layer {layer}\n{model_name_str}")
+    plt.tight_layout()
+    filename = f"{model_name_str}_layer_{layer}_cross_concept_pc_similarity.png"
+    plt.savefig(filename)
+    plt.close()
+    print(f"Saved cross-concept PC similarity matrix for layer {layer} to {filename}")
+
+def plot_centroid_distances_across_layers(all_layer_results, concepts, model_name_str=""):
+    """Plot centroid distances between concepts across all analyzed layers."""
+    layers = sorted(all_layer_results.keys())
+    
+    # Calculate distances between each pair of concepts at each layer
+    distances = {}
+    for pair in [(concepts[i], concepts[j]) for i in range(len(concepts)) for j in range(i+1, len(concepts))]:
+        distances[f"{pair[0]}-{pair[1]}"] = []
+        
+        for layer in layers:
+            if pair[0] not in all_layer_results[layer] or pair[1] not in all_layer_results[layer]:
+                distances[f"{pair[0]}-{pair[1]}"].append(float('nan'))
+                continue
+                
+            centroid_1 = all_layer_results[layer][pair[0]]["centroid"]
+            centroid_2 = all_layer_results[layer][pair[1]]["centroid"]
+            distance = torch.norm(centroid_1 - centroid_2).item()
+            distances[f"{pair[0]}-{pair[1]}"].append(distance)
+    
+    # Create plot
+    plt.figure(figsize=(12, 6))
+    for pair_name, dists in distances.items():
+        plt.plot(layers, dists, marker='o', label=pair_name)
+        
+    plt.xlabel('Layer')
+    plt.ylabel('Centroid Distance')
+    plt.title(f"Centroid Distances Across Layers\n{model_name_str}")
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.legend()
+    plt.xticks(layers)
+    
+    filename = f"{model_name_str}_centroid_distances_across_layers.png"
+    plt.savefig(filename)
+    plt.close()
+    print(f"Saved centroid distances plot to {filename}")
 
 def analyse_manifold_relationships(spanish_analysis, german_analysis, model_name_str):
     """Analyse relationships between Spanish and German translation manifolds."""
@@ -146,16 +365,16 @@ def analyse_manifold_relationships(spanish_analysis, german_analysis, model_name
         print(f"PC{i}: {variance_explained:.2f}%")
 
 def main():
-    print(f"\nConfiguration: PERTURB_ONCE is set to {PERTURB_ONCE}\n")
-    print(f"Configuration: USE_SYSTEM_PROMPT_FOR_MANIFOLD is set to {USE_SYSTEM_PROMPT_FOR_MANIFOLD}\n")
-
-    # Load and initialize model
-    model_name_str = MODEL_NAME.split('/')[-1]
-    model, tokenizer = get_model_and_tokenizer(MODEL_NAME)
-
-    # Load prompts and split dog prompts randomly into two equal groups
-    with open('prompts.json', 'r', encoding='utf-8') as f:
+    """Run language manifold analysis and perturbation experiments."""
+    # Load prompts from JSON file
+    with open("prompts.json", "r") as f:
         concept_prompts = json.load(f)
+    
+    # Load model and tokenizer
+    model_name_str = MODEL_NAME.split("/")[-1]
+    model, tokenizer = get_model_and_tokenizer(MODEL_NAME)
+    
+    print(f"Using model: {MODEL_NAME}")
     
     # Get all dog prompts and shuffle them
     dog_prompts = concept_prompts["dog"].copy()
@@ -168,16 +387,22 @@ def main():
     
     print(f"Split {len(dog_prompts)} dog prompts into {len(spanish_prompts)} Spanish prompts and {len(german_prompts)} German prompts")
     
-    TARGET_LAYERS = [0, 15, 31]  # Llama-3.1-8B has 32 layers (0-31)
+    # Analyze all layers (not just a subset) for more detailed cross-layer analysis
+    TARGET_LAYERS = list(range(0, 32, 2))  # Analyze every other layer (0, 2, 4, ..., 30) for efficiency
+    ANALYSIS_LAYERS = [0, 15, 31]  # Detailed analysis only for these layers
     AXES_TO_ANALYZE = range(5)
     
     # System prompts for translation
     spanish_system_prompt = "You are a language model assistant. Please translate the following text accurately from English into Spanish:"
     german_system_prompt = "You are a language model assistant. Please translate the following text accurately from English into German:"
     
+    # Dictionary to store analysis results for each layer
+    all_layer_results = {}
+    
+    # First pass: collect data from all layers
     for target_layer in TARGET_LAYERS:
         print("\n" + "#"*80)
-        print(f"### STARTING ANALYSIS FOR LAYER {target_layer} ###")
+        print(f"### COLLECTING DATA FOR LAYER {target_layer} ###")
         print("#"*80 + "\n")
         
         # Dictionary to store activations for different concepts
@@ -207,112 +432,88 @@ def main():
         print("\nAnalyzing manifolds...")
         analysis_results = analyse_manifolds(all_activations)
         
-        # Analyze manifold relationships
-        analyse_manifold_relationships(
-            analysis_results["dog into spanish"], 
-            analysis_results["dog into german"],
-            model_name_str
-        )
+        # Store analysis results for this layer
+        all_layer_results[target_layer] = analysis_results
         
-        # Test prompt for perturbation experiments
-        test_prompt = "The dog ran around the park. It was a labrador."
-        
-        # Prepare messages for perturbation experiment - using German system prompt but perturbing toward Spanish
-        messages_to_test = [
-            {"role": "system", "content": german_system_prompt},
-            {"role": "user", "content": test_prompt}
-        ]
-        
-        # Run perturbation experiments in the direction of Spanish manifold
-        print("\n" + "="*80)
-        print(f"--- PERTURBATION EXPERIMENT: GERMAN TRANSLATION PERTURBED TOWARD SPANISH ---")
-        print(f"--- LAYER: {target_layer} ---")
-        print("="*80)
-        
-        # Run perturbation experiment along principal components of the Spanish manifold
-        # This will help us understand if perturbing toward the Spanish manifold affects translation
-        run_perturbation_experiment(
-            model, tokenizer, messages_to_test, target_layer, 
-            analysis_results["dog into spanish"], "dog into spanish", AXES_TO_ANALYZE, 
-            target_token_idx=None, perturb_once=PERTURB_ONCE, orthogonal_mode=False
-        )
-        
-        # Also run an experiment perturbing along the centroid vector (from German to Spanish)
-        print("\n" + "="*80)
-        print(f"--- PERTURBATION EXPERIMENT: PERTURBING ALONG CENTROID VECTOR ---")
-        print(f"--- LAYER: {target_layer} ---")
-        print("="*80)
-        
-        # Prepare inputs
-        inputs = tokenizer.apply_chat_template(
-            messages_to_test,
-            return_tensors="pt",
-            add_generation_prompt=True
-        ).to(model.device)
-        
-        # Get centroids
-        spanish_centroid = analysis_results["dog into spanish"]["centroid"]
-        german_centroid = analysis_results["dog into german"]["centroid"]
-        centroid_vector = spanish_centroid - german_centroid
-        
-        # Find the eigenvalue to use for scaling the perturbation
-        eigenvalue = analysis_results["dog into spanish"]["eigenvalues"][0]  # Use largest eigenvalue for scaling
-        
-        # Interpolate between German and Spanish centroids in 20% steps
-        print("\n" + "="*80)
-        print(f"--- INTERPOLATION BETWEEN GERMAN AND SPANISH CENTROIDS ---")
-        print(f"--- LAYER: {target_layer} ---")
-        print("="*80)
-        
-        # Format for display
-        system_prompt = messages_to_test[0]['content'] if messages_to_test[0]['role'] == 'system' else ""
-        user_prompt = next((msg['content'] for msg in messages_to_test if msg['role'] == 'user'), "")
-        
-        print(f"\nSystem Prompt: '{system_prompt}'")
-        print(f"User Prompt:   '{user_prompt}'")
-        
-        # Prepare inputs
-        inputs = tokenizer.apply_chat_template(
-            messages_to_test,
-            return_tensors="pt",
-            add_generation_prompt=True
-        ).to(model.device)
-        
-        # Get original output without perturbation
-        with torch.no_grad():
-            output_ids = model.generate(
-                inputs, max_new_tokens=50, temperature=0.7, top_p=0.9,
-                do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
-            )
-            prompt_length = inputs.shape[1]
-            original_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
-            
-        print(f"\nOriginal output (German): {original_text}")
-        
-        # Apply interpolation in 20% steps from German (0%) to Spanish (100%)
-        interpolation_steps = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
-        
-        for step in interpolation_steps:
-            # Skip 0.0 as it's the original German
-            if step == 0.0:
-                continue
-                
-            # Calculate the interpolated vector
-            # At step=0.0, we're at German; at step=1.0, we're at Spanish
-            perturbation = step * centroid_vector
-            
-            # Apply the perturbation
-            perturbed_output = generate_with_perturbation(
-                model, tokenizer, inputs, target_layer,
-                perturbation / torch.norm(perturbation),  # Normalize direction vector
-                1.0,  # Use constant scale since we're explicitly controlling magnitude via step
-                eigenvalue,  # Use eigenvalue for appropriate scaling
-                None,  # Perturb last token
-                PERTURB_ONCE
+        # If this is one of the layers for detailed analysis, do perturbation experiments
+        if target_layer in ANALYSIS_LAYERS:
+            # Analyze manifold relationships
+            analyse_manifold_relationships(
+                analysis_results["dog into spanish"], 
+                analysis_results["dog into german"],
+                model_name_str
             )
             
-            print(f"\n{int(step * 100)}% toward Spanish: {perturbed_output}")
-        
+            # Test prompt for perturbation experiments
+            test_prompt = "The dog ran around the park. It was a labrador."
+            
+            # Prepare messages for perturbation experiment - using German system prompt but perturbing toward Spanish
+            messages_to_test = [
+                {"role": "system", "content": german_system_prompt},
+                {"role": "user", "content": test_prompt}
+            ]
+            
+            # Run perturbation experiments in the direction of Spanish manifold
+            print("\n" + "="*80)
+            print(f"--- PERTURBATION EXPERIMENT: GERMAN TRANSLATION PERTURBED TOWARD SPANISH ---")
+            print(f"--- LAYER: {target_layer} ---")
+            print("="*80)
+            
+            # Run perturbation experiment along principal components of the Spanish manifold
+            run_perturbation_experiment(
+                model, tokenizer, messages_to_test, target_layer, 
+                analysis_results["dog into spanish"], "dog into spanish", AXES_TO_ANALYZE, 
+                target_token_idx=None, perturb_once=PERTURB_ONCE, orthogonal_mode=False
+            )
+            
+            # Run centroid interpolation experiment
+            run_centroid_interpolation(
+                model, tokenizer, messages_to_test, target_layer, 
+                analysis_results["dog into spanish"], 
+                analysis_results["dog into german"]
+            )
+    
+    # Second pass: cross-layer analyses using all collected data
+    print("\n" + "#"*80)
+    print(f"### CROSS-LAYER ANALYSES ###")
+    print("#"*80 + "\n")
+    
+    # Plot centroid distances across all layers
+    print("\nPlotting centroid distances across all layers...")
+    plot_centroid_distances_across_layers(
+        all_layer_results, 
+        concepts=["dog into spanish", "dog into german"], 
+        model_name_str=model_name_str
+    )
+    
+    # Plot cross-layer PC similarity for each concept
+    print("\nPlotting cross-layer PC similarity for Spanish translation...")
+    plot_cross_layer_pc_similarity(
+        all_layer_results, 
+        concept="dog into spanish", 
+        num_pcs=5, 
+        model_name_str=model_name_str
+    )
+    
+    print("\nPlotting cross-layer PC similarity for German translation...")
+    plot_cross_layer_pc_similarity(
+        all_layer_results, 
+        concept="dog into german", 
+        num_pcs=5, 
+        model_name_str=model_name_str
+    )
+    
+    # Plot cross-concept PC similarity for selected layers
+    for layer in ANALYSIS_LAYERS:
+        print(f"\nPlotting cross-concept PC similarity for layer {layer}...")
+        plot_cross_concept_pc_similarity_by_layer(
+            all_layer_results, 
+            concepts=["dog into spanish", "dog into german"], 
+            layer=layer, 
+            num_pcs=5, 
+            model_name_str=model_name_str
+        )
+    
     print("\n" + "#"*80)
     print("### ANALYSIS COMPLETE ###")
     print("#"*80 + "\n")
