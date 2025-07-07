@@ -171,14 +171,6 @@ def main():
             orthogonal_mode=True, use_largest_eigenvalue=True
         )
 
-        # --- ABLATION EXPERIMENT ---
-        from helpers import run_ablation_experiment
-        run_ablation_experiment(
-            model, tokenizer, messages_to_test, target_layer,
-            analysis_results[test_concept], test_concept,
-            target_token_idx=None, perturb_once=PERTURB_ONCE
-        )
-
     print("\n" + "#"*80)
     print("### PLOTTING OVERALL RESULTS ###")
     print("#"*80 + "\n")

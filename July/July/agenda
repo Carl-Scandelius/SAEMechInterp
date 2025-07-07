@@ -1,13 +1,13 @@
 ####
 Next orders of business:
--Repeat in Q&A format and classification task: data should be a list of user questions with system prompt. Then proceed as usual.
-
+-Repeat in Q&A format and classification task
 -Classification task: give features and model predicts animal; then ablate PCs to see if this leads to ignorance of feature (e.g. classifies horse features where "mane" is dropped as dog)
 -Repeat last token work with interpolation between manifold centroids and same for word manifolds
+-Try ablating all but one PC of the manifold (find the feature of that PC with neutral other features)
 
 
-Test (already implemented):
-ablating all but one PC of the manifold (find the feature of that PC with neutral other features)
+For translation:
+I want to implement the following alteration of lastWord.py (but as its own script, without changing lastWord.py). Take same .json dog prompts, pass half into inference with "translate from english to spanish" system prompt and the other half "translate from english to german" system prompt. Make sure to mark the concepts of these separate groups of prompts as "dog into spanish" and "dog into german" to get two manifolds. Then we want to ask: How are these manifolds similar? Is there some easy translation between the two?
 
 
 ####

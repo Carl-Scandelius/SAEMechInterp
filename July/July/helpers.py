@@ -111,42 +111,14 @@ def find_top_prompts(
     direction: torch.Tensor,
     n: int = 10,
 )-> dict[str, list[str]]:
-    """Return the n prompts furthest in positive/negative direction of a particular eigenvector.
-    
-    Args:
-        prompts: List of prompts (must be same length as centered_acts)
-        centered_acts: Centered activation vectors [num_prompts, hidden_dim]
-        direction: Direction vector to project onto [hidden_dim]
-        n: Number of top prompts to return in each direction
-        
-    Returns:
-        Dictionary with keys 'positive' and 'negative', each containing lists of prompts
-    """
-    # Ensure prompts and activations are aligned
-    if len(prompts) != centered_acts.shape[0]:
-        raise ValueError(f"Number of prompts ({len(prompts)}) must match number of activation vectors ({centered_acts.shape[0]})")
-    
-    # Calculate projection values for each activation onto the direction
+    """Return the n prompts furthest in direction of particulat eigenvector."""
     projections = centered_acts @ direction
-    
-    # Sort indices by projection value (ascending)
     _, sorted_idx = torch.sort(projections, descending=False)
-    
-    # Get indices for most negative and most positive projections
-    neg_idx = sorted_idx[:min(n, len(sorted_idx))]
-    pos_idx = sorted_idx[-min(n, len(sorted_idx)):].flip(dims=[0])
-    
-    # Debug print for transparency
-    print(f"\nProjection values:")
-    for i in range(min(3, len(pos_idx))):
-        print(f"Top positive #{i+1}: {projections[pos_idx[i]]:.4f}")
-    for i in range(min(3, len(neg_idx))):
-        print(f"Top negative #{i+1}: {projections[neg_idx[i]]:.4f}")
-    
-    # Get corresponding prompts
+    neg_idx = sorted_idx[:n]
+    pos_idx = sorted_idx[-n:].flip(dims=[0])
     return {
-        "positive": [prompts[i.item()] for i in pos_idx],
-        "negative": [prompts[i.item()] for i in neg_idx],
+        "positive": [prompts[i] for i in pos_idx],
+        "negative": [prompts[i] for i in neg_idx],
     }
 
 # -----------------------------------------------------------------------------
@@ -532,128 +504,3 @@ def run_perturbation_experiment(
         print("="*80)
         
     return original_output
-
-def run_ablation_experiment(
-    model, tokenizer, messages, layer_idx, concept_analysis,
-    target_concept, target_token_idx=None, perturb_once=False
-):
-    """
-    Run ablation experiments by removing different numbers of principal components.
-    
-    Ablation types:
-    1. All PCs (just centroid) - removes all principal components, leaving only the centroid
-    2. All PCs except the largest - removes all PCs except PC0
-    3. All PCs except the largest two - removes all PCs except PC0 and PC1
-    
-    Args:
-        model: The transformer model
-        tokenizer: The tokenizer for the model
-        messages: List of message dictionaries or tensor of input_ids
-        layer_idx: Layer index to apply ablation
-        concept_analysis: Analysis results for the concept
-        target_concept: The name of the concept being analyzed
-        target_token_idx: Index of token to ablate (None for last token)
-        perturb_once: If True, only apply ablation on first forward pass
-    """
-    # Format for display
-    system_prompt = messages[0]['content'] if isinstance(messages, list) and messages[0].get('role') == 'system' else ""
-    user_prompt = next((msg['content'] for msg in messages if isinstance(messages, list) and msg.get('role') == 'user'), "") if isinstance(messages, list) else ""
-    
-    # Prepare inputs (if not already a tensor)
-    if not isinstance(messages, torch.Tensor):
-        inputs = tokenizer.apply_chat_template(
-            messages,
-            return_tensors="pt",
-            add_generation_prompt=True
-        ).to(model.device)
-    else:
-        inputs = messages
-    
-    # Get all eigenvectors and centroid from the concept analysis
-    all_eigenvectors = concept_analysis["eigenvectors"]
-    centroid = concept_analysis["centroid"]
-    
-    print("\n" + "="*80)
-    print(f"--- ABLATION EXPERIMENT ON CONCEPT: '{target_concept}' ---")
-    print(f"--- LAYER: {layer_idx} ---")
-    print("="*80)
-    
-    print(f"\nSystem Prompt: '{system_prompt}'")
-    print(f"User Prompt:   '{user_prompt}'")
-    
-    # Define ablation hook
-    def ablation_hook(module, input_tensor, output):
-        # Get the activations we want to modify
-        hidden_states = output[0]
-        
-        if target_token_idx is not None:
-            # Ablate only the target token
-            token_idx = target_token_idx
-        else:
-            # Ablate the last token
-            token_idx = -1
-        
-        # Extract the activation vector for the target token
-        token_activation = hidden_states[0, token_idx].detach()
-        
-        # Project onto all eigenvectors to get coefficients
-        coefficients = [torch.dot(token_activation, evec) for evec in all_eigenvectors]
-        
-        # Test different ablation scenarios
-        ablation_scenarios = [
-            ("All PCs (centroid only)", []),  # Remove all PCs
-            ("All PCs except largest (PC0 only)", [0]),  # Keep only PC0
-            ("All PCs except largest two (PC0+PC1)", [0, 1]),  # Keep PC0 and PC1
-        ]
-        
-        for scenario_name, keep_pcs in ablation_scenarios:
-            # Start with centroid
-            reconstructed_activation = centroid.clone()
-            
-            # Add back only the specified PCs
-            for pc_idx in keep_pcs:
-                if pc_idx < len(coefficients):
-                    reconstructed_activation += coefficients[pc_idx] * all_eigenvectors[pc_idx]
-            
-            # Create a copy of the hidden states and modify the target token
-            modified_hidden_states = hidden_states.clone()
-            modified_hidden_states[0, token_idx] = reconstructed_activation
-            
-            # Generate text with the modified hidden states
-            with torch.no_grad():
-                if perturb_once:
-                    # Apply the ablation only once at the specified layer
-                    def single_forward_hook(mod, inp, out):
-                        out_mod = out
-                        out_mod[0][0, token_idx] = reconstructed_activation
-                        return out_mod
-                    
-                    hook_handle = module.register_forward_hook(single_forward_hook)
-                    output_ids = model.generate(
-                        inputs, max_new_tokens=50, temperature=0.7, top_p=0.9, 
-                        do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
-                    )
-                    hook_handle.remove()
-                else:
-                    # Apply the ablation at every forward pass
-                    output[0] = modified_hidden_states
-                    output_ids = model.generate(
-                        inputs, max_new_tokens=50, temperature=0.7, top_p=0.9, 
-                        do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
-                    )
-                
-                # Extract just the new tokens
-                prompt_length = inputs.shape[1]
-                decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
-                print(f"{scenario_name}: {decoded_text}")
-    
-    # Register the hook and run inference
-    hook_handle = model.model.layers[layer_idx].register_forward_hook(ablation_hook)
-    
-    # Run a dummy forward pass to trigger the hook
-    with torch.no_grad():
-        model(inputs)
-    
-    # Remove the hook
-    hook_handle.remove()
-    print("="*80)

@@ -297,21 +297,6 @@ def main():
             print("="*80)
             print(f"No analysis results for concept '{test_concept}', skipping orthogonal perturbation.")
 
-        # --- ABLATION EXPERIMENT ---
-        if test_concept in analysis_results:
-            from helpers import run_ablation_experiment
-            run_ablation_experiment(
-                model, tokenizer, inputs_for_gen, target_layer,
-                analysis_results[test_concept], test_concept,
-                target_token_idx=target_token_idx, perturb_once=True  # Always perturb once for word tokens
-            )
-        else:
-            print("\n" + "="*80)
-            print(f"--- ABLATION EXPERIMENT ON CONCEPT: '{test_concept}' ---")
-            print(f"--- LAYER: {target_layer} ---")
-            print("="*80)
-            print(f"No analysis results for concept '{test_concept}', skipping ablation experiment.")
-
     print("\n" + "#"*80)
     print("### PLOTTING OVERALL RESULTS ###")
     print("#"*80 + "\n")

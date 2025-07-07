@@ -288,10 +288,10 @@ def plot_centroid_distances_across_layers(all_layer_results, concepts, model_nam
     plt.close()
     print(f"Saved centroid distances plot to {filename}")
 
-def analyse_manifold_relationships(spanish_analysis, german_analysis, layer_idx, model_name_str=""):
+def analyse_manifold_relationships(spanish_analysis, german_analysis, model_name_str):
     """Analyse relationships between Spanish and German translation manifolds."""
     print("\n" + "#"*80)
-    print(f"--- MANIFOLD RELATIONSHIP ANALYSIS (LAYER {layer_idx}) ---")
+    print("### ANALYZING MANIFOLD RELATIONSHIPS ###")
     print("#"*80 + "\n")
     
     # Get centroids and calculate centroid vector (the vector from German to Spanish centroid)
@@ -336,12 +336,12 @@ def analyse_manifold_relationships(spanish_analysis, german_analysis, layer_idx,
                 vmin=-1, vmax=1, center=0,
                 xticklabels=[f"German PC{i}" for i in range(num_components)],
                 yticklabels=[f"Spanish PC{i}" for i in range(num_components)])
-    plt.title(f"Cosine Similarity Between Spanish and German PCs (Layer {layer_idx})\n{model_name_str}")
+    plt.title(f"Cosine Similarity Between Spanish and German PCs\n{model_name_str}")
     plt.tight_layout()
-    plt.savefig(f"{model_name_str}_layer{layer_idx}_spanish_german_pc_similarity.png")
+    plt.savefig(f"{model_name_str}_spanish_german_pc_similarity.png")
     plt.close()
     
-    print(f"\nEigenvector similarity matrix saved as '{model_name_str}_layer{layer_idx}_spanish_german_pc_similarity.png'")
+    print("\nEigenvector similarity matrix saved as '{model_name_str}_spanish_german_pc_similarity.png'")
     
     # Calculate cosine similarity between corresponding PCs
     print("\nCosine similarity between corresponding Spanish and German PCs:")
@@ -441,7 +441,6 @@ def main():
             analyse_manifold_relationships(
                 analysis_results["dog into spanish"], 
                 analysis_results["dog into german"],
-                target_layer,
                 model_name_str
             )
             
