@@ -344,77 +344,62 @@ def run_projection_based_perturbation(
     print(f"\nSystem Prompt: '{system_prompt}'")
     print(f"User Prompt:   '{user_prompt}'")
     
-    # Define a hook that projects activations onto just one PC direction
-    def projection_hook(module, input_tensor, output):
-        # Get the activations we want to modify
-        hidden_states = output[0]
-        
-        if target_token_idx is not None:
-            # Perturb only the target token
-            token_idx = target_token_idx
-        else:
-            # Perturb the last token
-            token_idx = -1
-        
-        # Extract the activation vector for the target token
-        token_activation = hidden_states[0, token_idx].detach()
-        
-        # Project onto all eigenvectors to get coefficients
-        coefficients = [torch.dot(token_activation, evec) for evec in all_eigenvectors]
-        
-        # Create a new activation that's projected only onto the target PC
-        # (zero out all other components)
-        projected_activation = coefficients[projection_axis] * target_eigenvector
-        
-        # Apply perturbation to the target PC's projection
-        for scale in perturbation_scales:
-            # Calculate perturbation
-            perturbation = scale * torch.sqrt(eigenvalue) * target_eigenvector
-            
-            # Apply perturbation to create modified activation
-            modified_activation = projected_activation + perturbation
-            
-            # Create a copy of the hidden states and modify the target token
-            modified_hidden_states = hidden_states.clone()
-            modified_hidden_states[0, token_idx] = modified_activation
-            
-            # Generate text with the modified hidden states
-            with torch.no_grad():
-                if perturb_once:
-                    # Apply the perturbation only once at the specified layer
-                    def single_forward_hook(mod, inp, out):
-                        out_mod = out
-                        out_mod[0][0, token_idx] = modified_activation
-                        return out_mod
-                    
-                    hook_handle = module.register_forward_hook(single_forward_hook)
-                    output_ids = model.generate(
-                        inputs, max_new_tokens=50, temperature=0.7, top_p=0.9, 
-                        do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
-                    )
-                    hook_handle.remove()
-                else:
-                    # Apply the perturbation at every forward pass
-                    output[0] = modified_hidden_states
-                    output_ids = model.generate(
-                        inputs, max_new_tokens=50, temperature=0.7, top_p=0.9, 
-                        do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
-                    )
+    # Test each perturbation scale
+    for scale in perturbation_scales:
+        # Create a hook for this specific scale
+        def create_projection_hook(scale_val):
+            def projection_hook(module, input_tensor, output):
+                # Get the activations we want to modify
+                hidden_states = output[0]
                 
-                # Extract just the new tokens
-                prompt_length = inputs.shape[1]
-                decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
-                print(f"Perturbation scale {scale:+.1f}x: {decoded_text}")
+                if target_token_idx is not None:
+                    # Perturb only the target token
+                    token_idx = target_token_idx
+                else:
+                    # Perturb the last token
+                    token_idx = -1
+                
+                # Extract the activation vector for the target token
+                token_activation = hidden_states[0, token_idx].detach()
+                
+                # Project onto all eigenvectors to get coefficients
+                coefficients = [torch.dot(token_activation, evec) for evec in all_eigenvectors]
+                
+                # Create a new activation that's projected only onto the target PC
+                # (zero out all other components)
+                projected_activation = coefficients[projection_axis] * target_eigenvector
+                
+                # Calculate perturbation
+                perturbation = scale_val * torch.sqrt(eigenvalue) * target_eigenvector
+                
+                # Apply perturbation to create modified activation
+                modified_activation = projected_activation + perturbation
+                
+                # Create a copy of the hidden states and modify the target token
+                modified_hidden_states = hidden_states.clone()
+                modified_hidden_states[0, token_idx] = modified_activation
+                
+                # Return modified output
+                return (modified_hidden_states,) + output[1:]
+            
+            return projection_hook
+        
+        # Register the hook and run generation
+        hook_handle = model.model.layers[layer_idx].register_forward_hook(create_projection_hook(scale))
+        
+        with torch.no_grad():
+            output_ids = model.generate(
+                inputs, max_new_tokens=50, temperature=0.7, top_p=0.9, 
+                do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
+            )
+        
+        hook_handle.remove()
+        
+        # Extract just the new tokens
+        prompt_length = inputs.shape[1]
+        decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
+        print(f"Perturbation scale {scale:+.1f}x: {decoded_text}")
     
-    # Register the hook and run inference
-    hook_handle = model.model.layers[layer_idx].register_forward_hook(projection_hook)
-    
-    # Run a dummy forward pass to trigger the hook
-    with torch.no_grad():
-        model(inputs)
-    
-    # Remove the hook
-    hook_handle.remove()
     print("="*80)
 
 
@@ -581,79 +566,64 @@ def run_ablation_experiment(
     print(f"\nSystem Prompt: '{system_prompt}'")
     print(f"User Prompt:   '{user_prompt}'")
     
-    # Define ablation hook
-    def ablation_hook(module, input_tensor, output):
-        # Get the activations we want to modify
-        hidden_states = output[0]
-        
-        if target_token_idx is not None:
-            # Ablate only the target token
-            token_idx = target_token_idx
-        else:
-            # Ablate the last token
-            token_idx = -1
-        
-        # Extract the activation vector for the target token
-        token_activation = hidden_states[0, token_idx].detach()
-        
-        # Project onto all eigenvectors to get coefficients
-        coefficients = [torch.dot(token_activation, evec) for evec in all_eigenvectors]
-        
-        # Test different ablation scenarios
-        ablation_scenarios = [
-            ("All PCs (centroid only)", []),  # Remove all PCs
-            ("All PCs except largest (PC0 only)", [0]),  # Keep only PC0
-            ("All PCs except largest two (PC0+PC1)", [0, 1]),  # Keep PC0 and PC1
-        ]
-        
-        for scenario_name, keep_pcs in ablation_scenarios:
-            # Start with centroid
-            reconstructed_activation = centroid.clone()
-            
-            # Add back only the specified PCs
-            for pc_idx in keep_pcs:
-                if pc_idx < len(coefficients):
-                    reconstructed_activation += coefficients[pc_idx] * all_eigenvectors[pc_idx]
-            
-            # Create a copy of the hidden states and modify the target token
-            modified_hidden_states = hidden_states.clone()
-            modified_hidden_states[0, token_idx] = reconstructed_activation
-            
-            # Generate text with the modified hidden states
-            with torch.no_grad():
-                if perturb_once:
-                    # Apply the ablation only once at the specified layer
-                    def single_forward_hook(mod, inp, out):
-                        out_mod = out
-                        out_mod[0][0, token_idx] = reconstructed_activation
-                        return out_mod
-                    
-                    hook_handle = module.register_forward_hook(single_forward_hook)
-                    output_ids = model.generate(
-                        inputs, max_new_tokens=50, temperature=0.7, top_p=0.9, 
-                        do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
-                    )
-                    hook_handle.remove()
-                else:
-                    # Apply the ablation at every forward pass
-                    output[0] = modified_hidden_states
-                    output_ids = model.generate(
-                        inputs, max_new_tokens=50, temperature=0.7, top_p=0.9, 
-                        do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
-                    )
+    # Test different ablation scenarios
+    ablation_scenarios = [
+        ("All PCs (centroid only)", []),  # Remove all PCs
+        ("All PCs except largest (PC0 only)", [0]),  # Keep only PC0
+        ("All PCs except largest two (PC0+PC1)", [0, 1]),  # Keep PC0 and PC1
+    ]
+    
+    for scenario_name, keep_pcs in ablation_scenarios:
+        # Create a hook for this specific ablation scenario
+        def create_ablation_hook(scenario_name, keep_pcs):
+            def ablation_hook(module, input_tensor, output):
+                # Get the activations we want to modify
+                hidden_states = output[0]
                 
-                # Extract just the new tokens
-                prompt_length = inputs.shape[1]
-                decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
-                print(f"{scenario_name}: {decoded_text}")
+                if target_token_idx is not None:
+                    # Ablate only the target token
+                    token_idx = target_token_idx
+                else:
+                    # Ablate the last token
+                    token_idx = -1
+                
+                # Extract the activation vector for the target token
+                token_activation = hidden_states[0, token_idx].detach()
+                
+                # Project onto all eigenvectors to get coefficients
+                coefficients = [torch.dot(token_activation, evec) for evec in all_eigenvectors]
+                
+                # Start with centroid
+                reconstructed_activation = centroid.clone()
+                
+                # Add back only the specified PCs
+                for pc_idx in keep_pcs:
+                    if pc_idx < len(coefficients):
+                        reconstructed_activation += coefficients[pc_idx] * all_eigenvectors[pc_idx]
+                
+                # Create a copy of the hidden states and modify the target token
+                modified_hidden_states = hidden_states.clone()
+                modified_hidden_states[0, token_idx] = reconstructed_activation
+                
+                # Return modified output
+                return (modified_hidden_states,) + output[1:]
+            
+            return ablation_hook
+        
+        # Register the hook and run generation
+        hook_handle = model.model.layers[layer_idx].register_forward_hook(create_ablation_hook(scenario_name, keep_pcs))
+        
+        with torch.no_grad():
+            output_ids = model.generate(
+                inputs, max_new_tokens=50, temperature=0.7, top_p=0.9, 
+                do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
+            )
+        
+        hook_handle.remove()
+        
+        # Extract just the new tokens
+        prompt_length = inputs.shape[1]
+        decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
+        print(f"{scenario_name}: {decoded_text}")
     
-    # Register the hook and run inference
-    hook_handle = model.model.layers[layer_idx].register_forward_hook(ablation_hook)
-    
-    # Run a dummy forward pass to trigger the hook
-    with torch.no_grad():
-        model(inputs)
-    
-    # Remove the hook
-    hook_handle.remove()
     print("="*80)
