@@ -1,0 +1,16 @@
+name: july-sae-mech-interp
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - pytorch
+  - numpy
+  - transformers
+  - scikit-learn
+  - tqdm
+  - matplotlib
+  - seaborn
+  - scipy

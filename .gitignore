@@ -1,0 +1,21 @@
+# Python bytecode / cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Mac OS files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Other common files to ignore
+*.log
+*.swp
+*.swo
+.env
+.venv
+env/
+venv/
+ENV/

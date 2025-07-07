@@ -1,44 +1,43 @@
 """
 Word manifold exploration.
 
-Pass concept-labelled prompts (in QA format) into decoder-only model (Llama 3.3, GPT-2, or something more modern). Extract corresponding token representation in residual stream of layer \ell.
+Pass concept-labelled prompts (in QA format) into Llama. Extract corresponding token representation
+in residual stream of layer l.
 
-We now have some sample of the representation space. Ideally this is in the form of concept manifolds. Centre this representation to remove correlation between centroids
-
-Find 'effective' eigenvectors of the manifolds. Project work token (from new labelled prompt) representation onto respective 'effective' concept manifold.
+We now have some sample of the representation space. Ideally this is in the form of concept manifolds. 
+Centre this representation to remove correlation between centroids Find 'effective' eigenvectors of the manifolds.
+ Project work token (from new labelled prompt) representation onto respective 'effective' concept manifold.
 
 Check decoded sentence for:
 1) original prompt
-2) original with final token embedding perturbed in PC1 by \pm 1.5x eigenvalue, \pm 2x eigenvalue, \pm 5x eigenvalue
+2) original with final token embedding perturbed in eigenvec direction
 
-Find prompts in initial dataset that are furthest in the direction of PC1: how are they correlated? Is this a global feature or just for that manifold's PC1?
+Find prompts in initial dataset that are furthest in the direction of eigenvec: how are they correlated?
+Is this a global feature or just for that manifold's eigenvec?
 
 """
 
 import torch
-import numpy as np
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from sklearn.decomposition import PCA
 from tqdm import tqdm
 import gc
 import json
+from helpers import (
+    get_model_and_tokenizer,
+    analyse_manifolds,
+    find_top_prompts,
+    plot_avg_eigenvalues,
+    plot_similarity_matrix,
+    run_perturbation_experiment,
+    MODEL_NAME,
+    DEVICE,
+)
+from transformers import logging
+logging.set_verbosity(40)
 
-# MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
-MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
+USE_SYSTEM_PROMPT_FOR_MANIFOLD = True
+PERTURB_ONCE = False
 
-def get_model_and_tokenizer(model_name):
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        torch_dtype=TORCH_DTYPE,
-        device_map=DEVICE
-    )
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    tokenizer.pad_token = tokenizer.eos_token
-    return model, tokenizer
-
-def get_final_token_activations(model, tokenizer, prompts, layer_idx):
+def get_final_token_activations(model, tokenizer, prompts, layer_idx, system_prompt=""):
     activations = []
 
     def hook_fn(module, input, output):
@@ -48,9 +47,15 @@ def get_final_token_activations(model, tokenizer, prompts, layer_idx):
     hook_handle = model.model.layers[layer_idx].register_forward_hook(hook_fn)
 
     print(f"Extracting activations from layer {layer_idx}...")
-    for prompt in tqdm(prompts, desc="Processing prompts"):
-        messages = [{"role": "user", "content": prompt}]
-        
+    for prompt in tqdm(prompts, desc="Extracting activations"):
+        if USE_SYSTEM_PROMPT_FOR_MANIFOLD and system_prompt:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ]
+        else:
+            messages = [{'role': 'user', 'content': prompt}]
+
         inputs = tokenizer.apply_chat_template(
             messages,
             return_tensors="pt",
@@ -62,101 +67,13 @@ def get_final_token_activations(model, tokenizer, prompts, layer_idx):
     hook_handle.remove()
     return torch.cat(activations, dim=0)
 
-def analyze_manifolds(all_activations_by_concept):
-    """
-    Centres the concept manifolds and finds their 'effective' eigenvectors using PCA.
-    """
-    concept_analysis = {}
-    
-    centroids = {
-        concept: acts.mean(dim=0)
-        for concept, acts in all_activations_by_concept.items()
-    }
-    global_centroid = torch.stack(list(centroids.values())).mean(dim=0)
-    centered_activations = {
-        concept: acts - global_centroid
-        for concept, acts in all_activations_by_concept.items()
-    }
-    
-    print("Finding effective eigenvectors via PCA...")
-    for concept, acts in centered_activations.items():
-        pca = PCA()
-        pca.fit(acts.numpy())
-        
-        eigenvectors = pca.components_
-        eigenvalues = pca.explained_variance_
-
-        mean_eigval = eigenvalues.mean()
-        std_eigval = eigenvalues.std()
-        threshold = mean_eigval #- 1.0 * std_eigval
-        
-        effective_mask = eigenvalues > threshold
-        
-        print(f"Concept '{concept}': Found {np.sum(effective_mask)} effective eigenvectors out of {len(eigenvectors)} (threshold: {threshold:.4f})")
-        
-        concept_analysis[concept] = {
-            "pca": pca,
-            "eigenvectors": torch.tensor(eigenvectors, dtype=torch.float32),
-            "eigenvalues": torch.tensor(eigenvalues, dtype=torch.float32),
-            "effective_mask": torch.tensor(effective_mask, dtype=torch.bool),
-            "centered_acts": acts
-        }
-        
-    return concept_analysis
-
-def generate_with_perturbation(model, tokenizer, messages, layer_idx, direction, magnitude, eigenvalue, perturb_once=False):
-    perturbation = direction * magnitude * torch.sqrt(eigenvalue)
-    
-    def hook_fn_modify(module, input, output):
-        hidden_states = output[0]
-        if perturb_once:
-            # Only apply perturbation during the initial prompt processing pass
-            if hidden_states.shape[1] > 1:
-                hidden_states[:, -1, :] += perturbation.to(hidden_states.device, dtype=hidden_states.dtype)
-        else:
-            # Original behavior: apply perturbation on every forward pass
-            hidden_states[:, -1, :] += perturbation.to(hidden_states.device, dtype=hidden_states.dtype)
-        return (hidden_states,) + output[1:]
-
-    inputs = tokenizer.apply_chat_template(
-        messages,
-        return_tensors="pt",
-        add_generation_prompt=True
-    ).to(DEVICE)
-
-    hook_handle = model.model.layers[layer_idx].register_forward_hook(hook_fn_modify)
-    
-    with torch.no_grad():
-        output_ids = model.generate(
-            input_ids=inputs,
-            max_new_tokens=70,
-            do_sample=False,
-            pad_token_id=tokenizer.eos_token_id
-        )
-        
-    hook_handle.remove()
-
-    prompt_length = inputs.shape[1]
-    decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
-    
-    return decoded_text
-
-def find_top_prompts(prompts, centered_acts, direction, n=10):
-    projections = centered_acts @ direction
-    sorted_values, sorted_indices = torch.sort(projections, descending=False)
-    neg_indices = sorted_indices[:n]
-    pos_indices = sorted_indices[-n:].flip(dims=[0])
-    top_positive_prompts = [prompts[i] for i in pos_indices]
-    top_negative_prompts = [prompts[i] for i in neg_indices]
-
-    return {
-        "positive": top_positive_prompts,
-        "negative": top_negative_prompts
-    }
-
 def main():
-    PERTURB_ONCE = True # true entails perturbing only the final token in the user prompt; false entails perturbing the final token in every subsequent pass through the model
     print(f"\nConfiguration: PERTURB_ONCE is set to {PERTURB_ONCE}\n")
+    print(f"Configuration: USE_SYSTEM_PROMPT_FOR_MANIFOLD is set to {USE_SYSTEM_PROMPT_FOR_MANIFOLD}\n")
+
+    dog_avg_eigenvalues = {}
+    dog_top_eigenvectors = {}
+    model_name_str = MODEL_NAME.split('/')[-1]
 
     model, tokenizer = get_model_and_tokenizer(MODEL_NAME)
 
@@ -172,12 +89,20 @@ def main():
         print("#"*80 + "\n")
 
         all_activations = {}
+        system_prompt = "You are a language model assistant. Please translate the following text accurately from English into German:"
+        system_prompt_for_manifold = system_prompt if USE_SYSTEM_PROMPT_FOR_MANIFOLD else ""
+
         for concept, prompts in concept_prompts.items():
-            all_activations[concept] = get_final_token_activations(model, tokenizer, prompts, target_layer)
+            all_activations[concept] = get_final_token_activations(model, tokenizer, prompts, target_layer, system_prompt=system_prompt_for_manifold)
             gc.collect()
             torch.cuda.empty_cache()
 
-        analysis_results = analyze_manifolds(all_activations)
+        analysis_results = analyse_manifolds(all_activations)
+
+        if "dog" in analysis_results:
+            dog_analysis = analysis_results["dog"]
+            dog_avg_eigenvalues[target_layer] = dog_analysis["eigenvalues"].mean().item()
+            dog_top_eigenvectors[target_layer] = dog_analysis["eigenvectors"][0]
         
         test_concept = "dog"
         user_prompt = "The dog was running around the park. It was a labrador."
@@ -192,43 +117,25 @@ def main():
             {"role": "user", "content": user_prompt}
         ]
 
+        run_perturbation_experiment(
+            model, tokenizer, messages_to_test, target_layer, 
+            analysis_results[test_concept], test_concept, AXES_TO_ANALYZE, 
+            target_token_idx=None, perturb_once=PERTURB_ONCE, 
+            orthogonal_mode=False, use_largest_eigenvalue=True  # actual orthogonal eigenval too small
+        )
+        
+        # Display top prompts aligned with the PC direction
         for axis in AXES_TO_ANALYZE:
-            print("\n" + "="*80)
-            print(f"--- INTERVENTION EXPERIMENT ON CONCEPT: '{test_concept}' ---")
-            print(f"--- LAYER: {target_layer}, AXIS: {axis} ---")
-            print("="*80)
-
-            concept_analysis = analysis_results[test_concept]
-
-            if axis >= len(concept_analysis["eigenvectors"]):
-                print(f"Axis {axis} is out of bounds for the number of principal components found ({len(concept_analysis['eigenvectors'])}).")
-                print("Skipping remaining axes for this layer.")
+            if axis >= len(analysis_results[test_concept]["eigenvectors"]):
                 break
-
-            pc_direction = concept_analysis["eigenvectors"][axis]
-            pc_eigenvalue = concept_analysis["eigenvalues"][axis]
+                
+            pc_direction = analysis_results[test_concept]["eigenvectors"][axis]
             
-            print(f"\nSystem Prompt: '{system_prompt}'")
-            print(f"User Prompt:   '{user_prompt}'")
-
-            original_output = generate_with_perturbation(model, tokenizer, messages_to_test, target_layer, pc_direction, 0, pc_eigenvalue, perturb_once=PERTURB_ONCE)
-            print(f"Original model completion: {original_output}")
-            
-            perturbation_scales = [-20.0, -10.0, -5.0, -2.5, -1.5, 0.0, 1.5, 2.5, 5.0, 10.0, 20.0]
-            
-            print(f"\n--- Perturbing final token activation along PC{axis} ---")
-            for scale in perturbation_scales:
-                perturbed_output = generate_with_perturbation(
-                    model, tokenizer, messages_to_test, target_layer, pc_direction, scale, pc_eigenvalue,
-                    perturb_once=PERTURB_ONCE
-                )
-                print(f"Perturbation scale {scale:+.1f}x: {perturbed_output}")
-
             print("\n" + "="*80)
             print(f"--- Analyzing original dataset prompts along the PC{axis} '{test_concept}' direction (Layer {target_layer}) ---")
             top_prompts = find_top_prompts(
                 concept_prompts[test_concept],
-                concept_analysis["centered_acts"],
+                analysis_results[test_concept]["centered_acts"],
                 pc_direction,
                 n=10
             )
@@ -241,6 +148,42 @@ def main():
             for i, prompt in enumerate(top_prompts['negative'], 1):
                 print(f"{i:2d}. '{prompt}'")
             print("="*80)
+        
+        # --- PROJECTION-BASED PERTURBATION ---
+        # For each PC, run a projection-based perturbation that zeroes out all other PCs
+        from helpers import run_projection_based_perturbation
+        for axis in AXES_TO_ANALYZE:
+            if axis >= len(analysis_results[test_concept]["eigenvectors"]):
+                break
+                
+            # Run projection-based perturbation for this PC
+            run_projection_based_perturbation(
+                model, tokenizer, messages_to_test, target_layer,
+                analysis_results[test_concept], test_concept, axis,
+                target_token_idx=None, perturb_once=PERTURB_ONCE
+            )
+
+        # --- ORTHOGONAL PERTURBATION ---
+        run_perturbation_experiment(
+            model, tokenizer, messages_to_test, target_layer,
+            analysis_results[test_concept], test_concept,
+            target_token_idx=None, perturb_once=PERTURB_ONCE,
+            orthogonal_mode=True, use_largest_eigenvalue=True
+        )
+
+        # --- ABLATION EXPERIMENT ---
+        from helpers import run_ablation_experiment
+        run_ablation_experiment(
+            model, tokenizer, messages_to_test, target_layer,
+            analysis_results[test_concept], test_concept,
+            target_token_idx=None, perturb_once=PERTURB_ONCE
+        )
+
+    print("\n" + "#"*80)
+    print("### PLOTTING OVERALL RESULTS ###")
+    print("#"*80 + "\n")
+    plot_avg_eigenvalues(dog_avg_eigenvalues, model_name_str, "lastToken")
+    plot_similarity_matrix(dog_top_eigenvectors, model_name_str, "lastToken")
 
 if __name__ == "__main__":
     main()
