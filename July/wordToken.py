@@ -22,14 +22,13 @@ from helpers import (
     DEVICE,
 )
 from transformers import logging
-logging.set_verbosity(logging.ERROR)
+logging.set_verbosity(40)
+
 
 USE_SYSTEM_PROMPT_FOR_MANIFOLD = False 
 concept_keywords = {
     "dog": ["dog", "dogs", "dog's", "puppy", "puppies"],
-    "lion": ["lion", "lions", "lion's"],
-    "human": ["human", "humans", "human's", "man", "woman", "person", "people"],
-    "house": ["house", "houses", "house's", "home"]
+    "lion": ["lion", "lions", "lion's", "lioness", "lionesses", "lioness's", "lioness'"]
 }
 
 def find_word_token_index(prompt, concept, tokenizer, add_generation_prompt):
@@ -188,13 +187,13 @@ def main():
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
-        inputs_for_gen = tokenizer.apply_chat_template(
+        inputs_for_gen = tokenizer.apply_chat_template(  # type: ignore
             messages_to_test,
             return_tensors="pt",
             add_generation_prompt=True
-        ).to(model.device)
+        ).to(DEVICE)
 
-        decoded_input = tokenizer.decode(inputs_for_gen[0], skip_special_tokens=False)
+        decoded_input = tokenizer.decode(inputs_for_gen[0], skip_special_tokens=False)  # type: ignore
         decoded_input_lower = decoded_input.lower()
         variations = concept_keywords.get(test_concept, [test_concept])
         
@@ -211,20 +210,20 @@ def main():
             target_token_idx = -1
         else:
             input_ids = inputs_for_gen[0].tolist()
-            keyword_end_pos = last_pos + len(matched_variation)
+            keyword_end_pos = last_pos + len(matched_variation)  # type: ignore
             token_indices = []
             
             for i, token_id in enumerate(input_ids):
                 # Get the text for this token
                 for var in variations:
-                    if var.lower() in token_text:
+                    if var.lower() in token_text:  # type: ignore
                         token_indices.append(i)
             
             if token_indices:
                 target_token_idx = max(token_indices)
             else:
                 # Fallback: try the original exact token matching approach
-                concept_ids = tokenizer.encode(test_concept, add_special_tokens=False)
+                concept_ids = tokenizer.encode(test_concept, add_special_tokens=False)  # type: ignore
                 for i in range(len(input_ids) - len(concept_ids) + 1):
                     if input_ids[i:i+len(concept_ids)] == concept_ids:
                         target_token_idx = i + len(concept_ids) - 1

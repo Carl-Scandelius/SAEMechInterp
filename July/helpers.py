@@ -145,9 +145,9 @@ def find_top_prompts(
     
     # Get corresponding prompts
     return {
-        "positive": [prompts[i.item()] for i in pos_idx],
-        "negative": [prompts[i.item()] for i in neg_idx],
-    }
+        "positive": [prompts[i.item()] for i in pos_idx],  # type: ignore
+        "negative": [prompts[i.item()] for i in neg_idx],  # type: ignore
+    }   
 
 # -----------------------------------------------------------------------------
 # Plotting helpers
@@ -190,7 +190,7 @@ def plot_similarity_matrix(eigenvector_data: Dict[int, torch.Tensor], model_name
             sims[i, j] = F.cosine_similarity(vecs[i].unsqueeze(0), vecs[j].unsqueeze(0)).item()
 
     plt.figure(figsize=(10, 8))
-    sns.heatmap(sims, annot=True, fmt=".2f", cmap="viridis", xticklabels=layers, yticklabels=layers)
+    sns.heatmap(sims, annot=True, fmt=".2f", cmap="viridis", xticklabels=layers, yticklabels=layers)  # type: ignore
     plt.title(f'Cosine Similarity of "Dog" Manifold PC0 Across Layers\nModel: {model_name}')
     plt.xlabel("Model Layer")
     plt.ylabel("Model Layer")
@@ -331,9 +331,9 @@ def run_projection_based_perturbation(
     else:
         inputs = messages
     
-    # Get all eigenvectors from the concept analysis
-    all_eigenvectors = concept_analysis["eigenvectors"]
-    target_eigenvector = concept_analysis["eigenvectors"][projection_axis]
+    # Get all eigenvectors from the concept analysis and move to device
+    all_eigenvectors = [evec.to(DEVICE) for evec in concept_analysis["eigenvectors"]]
+    target_eigenvector = concept_analysis["eigenvectors"][projection_axis].to(DEVICE)
     eigenvalue = concept_analysis["eigenvalues"][projection_axis]
     
     print("\n" + "="*80)
@@ -478,7 +478,7 @@ def run_perturbation_experiment(
             return ""
             
         # Set up the direction and eigenvalue for the orthogonal case
-        direction = concept_analysis["eigenvectors"][orthogonal_pc_index]
+        direction = concept_analysis["eigenvectors"][orthogonal_pc_index].to(DEVICE)
         
         # Choose which eigenvalue to use for scaling
         if use_largest_eigenvalue:
@@ -505,7 +505,7 @@ def run_perturbation_experiment(
             print(f"--- LAYER: {layer_idx}, AXIS: {axis} ---")
             print("="*80)
             
-            direction = concept_analysis["eigenvectors"][axis]
+            direction = concept_analysis["eigenvectors"][axis].to(DEVICE)
             eigenvalue = concept_analysis["eigenvalues"][axis]
         
         print(f"\nSystem Prompt: '{system_prompt}'")
@@ -569,9 +569,9 @@ def run_ablation_experiment(
     else:
         inputs = messages
     
-    # Get all eigenvectors and centroid from the concept analysis
-    all_eigenvectors = concept_analysis["eigenvectors"]
-    centroid = concept_analysis["centroid"]
+    # Get all eigenvectors and centroid from the concept analysis and move to device
+    all_eigenvectors = [evec.to(DEVICE) for evec in concept_analysis["eigenvectors"]]
+    centroid = concept_analysis["centroid"].to(DEVICE)
     
     print("\n" + "="*80)
     print(f"--- ABLATION EXPERIMENT ON CONCEPT: '{target_concept}' ---")

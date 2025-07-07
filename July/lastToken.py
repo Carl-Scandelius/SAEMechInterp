@@ -32,7 +32,7 @@ from helpers import (
     DEVICE,
 )
 from transformers import logging
-logging.set_verbosity(logging.ERROR)
+logging.set_verbosity(40)
 
 USE_SYSTEM_PROMPT_FOR_MANIFOLD = True
 PERTURB_ONCE = False
