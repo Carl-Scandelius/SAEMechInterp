@@ -1,0 +1,38 @@
+{
+  "model_name": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+  "device": "cpu",
+  "target_layers": [
+    4,
+    8,
+    16,
+    24,
+    31
+  ],
+  "target_concepts": [
+    "dog",
+    "cat",
+    "car",
+    "book"
+  ],
+  "perturbation_scales": [
+    -2.0,
+    -1.0,
+    -0.5,
+    0.0,
+    0.5,
+    1.0,
+    2.0
+  ],
+  "perturbation_strategies": [
+    "additive",
+    "projection_based",
+    "replacement"
+  ],
+  "max_new_tokens": 50,
+  "temperature": 0.7,
+  "do_sample": true,
+  "top_p": 0.9,
+  "num_repetitions": 3,
+  "significance_threshold": 0.05,
+  "effect_size_threshold": 0.3
+}

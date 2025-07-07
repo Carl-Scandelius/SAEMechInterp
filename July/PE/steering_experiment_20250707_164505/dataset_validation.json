@@ -1,0 +1,110 @@
+{
+  "concepts": [
+    "dog",
+    "cat",
+    "car",
+    "book"
+  ],
+  "total_samples": 900,
+  "samples_per_concept": {
+    "dog": 225,
+    "cat": 225,
+    "car": 225,
+    "book": 225
+  },
+  "samples_per_dimension": {
+    "emotional_positive": {
+      "total": 100,
+      "per_concept": {
+        "dog": 25,
+        "cat": 25,
+        "car": 25,
+        "book": 25
+      },
+      "std_dev": 0.0
+    },
+    "personal": {
+      "total": 100,
+      "per_concept": {
+        "dog": 25,
+        "cat": 25,
+        "car": 25,
+        "book": 25
+      },
+      "std_dev": 0.0
+    },
+    "formal": {
+      "total": 100,
+      "per_concept": {
+        "dog": 25,
+        "cat": 25,
+        "car": 25,
+        "book": 25
+      },
+      "std_dev": 0.0
+    },
+    "casual": {
+      "total": 100,
+      "per_concept": {
+        "dog": 25,
+        "cat": 25,
+        "car": 25,
+        "book": 25
+      },
+      "std_dev": 0.0
+    },
+    "specific": {
+      "total": 100,
+      "per_concept": {
+        "dog": 25,
+        "cat": 25,
+        "car": 25,
+        "book": 25
+      },
+      "std_dev": 0.0
+    },
+    "general": {
+      "total": 100,
+      "per_concept": {
+        "dog": 25,
+        "cat": 25,
+        "car": 25,
+        "book": 25
+      },
+      "std_dev": 0.0
+    },
+    "emotional_neutral": {
+      "total": 100,
+      "per_concept": {
+        "dog": 25,
+        "cat": 25,
+        "car": 25,
+        "book": 25
+      },
+      "std_dev": 0.0
+    },
+    "emotional_negative": {
+      "total": 100,
+      "per_concept": {
+        "dog": 25,
+        "cat": 25,
+        "car": 25,
+        "book": 25
+      },
+      "std_dev": 0.0
+    },
+    "scientific": {
+      "total": 100,
+      "per_concept": {
+        "dog": 25,
+        "cat": 25,
+        "car": 25,
+        "book": 25
+      },
+      "std_dev": 0.0
+    }
+  },
+  "balance_score": 1.0,
+  "passes_validation": true,
+  "issues": []
+}
