@@ -103,6 +103,71 @@ def get_global_activations(model, tokenizer, concept_prompts, layer_idx, system_
     
     return global_activations, prompt_to_concept, all_prompts
 
+def get_enhanced_global_activations(model, tokenizer, concept_prompts, layer_idx, system_prompt=""):
+    """
+    Extract activations from all prompts across all concepts AND STSB dataset to compute global PCs.
+    This creates a much larger and more diverse dataset for global PC computation.
+    
+    Args:
+        model: The language model
+        tokenizer: The tokenizer
+        concept_prompts: Dictionary mapping concept names to lists of prompts
+        layer_idx: Layer index to extract activations from
+        system_prompt: System prompt to use (if any)
+    
+    Returns:
+        Tuple of (all_activations_tensor, prompt_to_source_mapping, all_prompts_list)
+    """
+    all_prompts = []
+    prompt_to_source = []
+    
+    # Collect all prompts from all concepts in prompts.json
+    concept_count = 0
+    for concept, prompts in concept_prompts.items():
+        for prompt in prompts:
+            all_prompts.append(prompt)
+            prompt_to_source.append(f"concept_{concept}")
+            concept_count += 1
+    
+    print(f"Loaded {concept_count} prompts from {len(concept_prompts)} concepts in prompts.json")
+    
+    # Load and add STSB dataset sentences
+    try:
+        from datasets import load_dataset
+        print("Loading STSB dataset...")
+        
+        # Load the STSB dataset
+        stsb_dataset = load_dataset("sentence-transformers/stsb", split="train")
+        stsb_sentences = stsb_dataset["sentence2"]
+        
+        # Add STSB sentences to our dataset
+        stsb_count = 0
+        for sentence in stsb_sentences:
+            if sentence and len(sentence.strip()) > 0:  # Skip empty sentences
+                all_prompts.append(sentence.strip())
+                prompt_to_source.append("stsb_dataset")
+                stsb_count += 1
+        
+        print(f"Loaded {stsb_count} sentences from STSB dataset (sentence2 column, train split)")
+        
+    except ImportError:
+        print("WARNING: 'datasets' library not available. Install with: pip install datasets")
+        print("Continuing with only prompts.json data...")
+    except Exception as e:
+        print(f"WARNING: Failed to load STSB dataset: {e}")
+        print("Continuing with only prompts.json data...")
+    
+    total_prompts = len(all_prompts)
+    print(f"Total dataset size: {total_prompts} sentences ({concept_count} from prompts.json + {total_prompts - concept_count} from STSB)")
+    print(f"Extracting global activations from this enhanced dataset at layer {layer_idx}...")
+    
+    # Extract activations for all prompts
+    global_activations = get_final_token_activations(
+        model, tokenizer, all_prompts, layer_idx, system_prompt
+    )
+    
+    return global_activations, prompt_to_source, all_prompts
+
 def analyse_global_manifolds(global_activations):
     """
     Compute global PCs from all activations combined.
@@ -137,7 +202,7 @@ def analyse_global_manifolds(global_activations):
     
     return global_analysis
 
-def find_top_prompts_global(all_prompts, global_centered_acts, pc_direction, n=10, use_normalized_projection=True):
+def find_top_prompts_global(all_prompts, global_centered_acts, pc_direction, n=10, use_normalized_projection=True, prompt_sources=None):
     """
     Find top prompts aligned with a global PC direction.
     
@@ -147,9 +212,10 @@ def find_top_prompts_global(all_prompts, global_centered_acts, pc_direction, n=1
         pc_direction: Principal component direction vector
         n: Number of top prompts to return
         use_normalized_projection: Whether to normalize projections by vector magnitude
+        prompt_sources: Optional list of source labels for each prompt
     
     Returns:
-        Dictionary with 'positive' and 'negative' lists of top prompts
+        Dictionary with 'positive' and 'negative' lists of top prompts (and sources if provided)
     """
     if use_normalized_projection:
         # Normalize projections by vector magnitude
@@ -167,10 +233,16 @@ def find_top_prompts_global(all_prompts, global_centered_acts, pc_direction, n=1
     top_positive_indices = sorted_indices[-n:]
     top_positive_indices = torch.flip(top_positive_indices, dims=[0])  # Reverse to get highest first
     
-    top_prompts = {
-        'positive': [all_prompts[i.item()] for i in top_positive_indices],
-        'negative': [all_prompts[i.item()] for i in top_negative_indices]
-    }
+    if prompt_sources is not None:
+        top_prompts = {
+            'positive': [(all_prompts[i.item()], prompt_sources[i.item()]) for i in top_positive_indices],
+            'negative': [(all_prompts[i.item()], prompt_sources[i.item()]) for i in top_negative_indices]
+        }
+    else:
+        top_prompts = {
+            'positive': [all_prompts[i.item()] for i in top_positive_indices],
+            'negative': [all_prompts[i.item()] for i in top_negative_indices]
+        }
     
     return top_prompts
 
@@ -243,6 +315,11 @@ def main():
     print(f"Configuration: USE_SYSTEM_PROMPT_FOR_MANIFOLD is set to {USE_SYSTEM_PROMPT_FOR_MANIFOLD}\n")
     print(f"Configuration: USE_NORMALIZED_PROJECTION is set to {USE_NORMALIZED_PROJECTION}\n")
     print(f"Configuration: RUN_GLOBAL_PC_ANALYSIS is set to {RUN_GLOBAL_PC_ANALYSIS}\n")
+    if RUN_GLOBAL_PC_ANALYSIS:
+        print("Note: Global PC analysis uses enhanced dataset including:")
+        print("  - All sentences from prompts.json")
+        print("  - All sentences from STSB dataset (sentence2 column, train split: ~5.75k sentences)")
+        print("  - Requires 'datasets' library: pip install datasets\n")
 
     dog_avg_eigenvalues = {}
     dog_top_eigenvectors = {}
@@ -322,10 +399,11 @@ def main():
             # GLOBAL PC ANALYSIS - Extract and compute global PCs if not already cached
             if RUN_GLOBAL_PC_ANALYSIS and target_layer not in global_analysis_cache:
                 print("\n" + "~"*80)
-                print(f"### COMPUTING GLOBAL PCs FOR LAYER {target_layer} ###")
+                print(f"### COMPUTING ENHANCED GLOBAL PCs FOR LAYER {target_layer} ###")
+                print(f"### (prompts.json + STSB dataset for broader representation) ###")
                 print("~"*80 + "\n")
                 
-                global_activations, prompt_to_concept, all_prompts = get_global_activations(
+                global_activations, prompt_to_source, all_prompts = get_enhanced_global_activations(
                     model, tokenizer, concept_prompts, target_layer, 
                     system_prompt=system_prompt_for_manifold
                 )
@@ -334,7 +412,7 @@ def main():
                 global_analysis_cache[target_layer] = {
                     'analysis': global_analysis,
                     'all_prompts': all_prompts,
-                    'prompt_to_concept': prompt_to_concept
+                    'prompt_to_source': prompt_to_source
                 }
                 
                 gc.collect()
@@ -441,7 +519,8 @@ def main():
                 
                 print("\n" + "@"*80)
                 print(f"### GLOBAL PC PERTURBATION EXPERIMENTS FOR LAYER {target_layer} ###")
-                print(f"### Using Global PCs computed from all {len(all_prompts)} prompts ###")
+                print(f"### Using Global PCs computed from {len(all_prompts)} sentences ###")
+                print(f"### (prompts.json + STSB dataset for enhanced global representation) ###")
                 print("@"*80 + "\n")
                 
                 # Run perturbation experiment using global PCs
@@ -467,21 +546,35 @@ def main():
                     else:
                         print("Using raw projections")
                     
+                    # Get prompt sources from cached data
+                    prompt_sources = global_data.get('prompt_to_source', None)
+                    
                     top_prompts_global = find_top_prompts_global(
                         all_prompts,
                         global_analysis["centered_acts"],
                         global_pc_direction,
                         n=10,
-                        use_normalized_projection=USE_NORMALIZED_PROJECTION
+                        use_normalized_projection=USE_NORMALIZED_PROJECTION,
+                        prompt_sources=prompt_sources
                     )
 
-                    print(f"\nTop 10 prompts most aligned with POSITIVE GLOBAL PC{axis} direction:")
-                    for i, prompt in enumerate(top_prompts_global['positive'], 1):
-                        print(f"{i:2d}. '{prompt}'")
+                    print(f"\nTop 10 sentences most aligned with POSITIVE GLOBAL PC{axis} direction:")
+                    for i, item in enumerate(top_prompts_global['positive'], 1):
+                        if isinstance(item, tuple):
+                            prompt, source = item
+                            source_display = source.replace('concept_', '').replace('stsb_dataset', 'STSB')
+                            print(f"{i:2d}. [{source_display}] '{prompt}'")
+                        else:
+                            print(f"{i:2d}. '{item}'")
                         
-                    print(f"\nTop 10 prompts most aligned with NEGATIVE GLOBAL PC{axis} direction:")
-                    for i, prompt in enumerate(top_prompts_global['negative'], 1):
-                        print(f"{i:2d}. '{prompt}'")
+                    print(f"\nTop 10 sentences most aligned with NEGATIVE GLOBAL PC{axis} direction:")
+                    for i, item in enumerate(top_prompts_global['negative'], 1):
+                        if isinstance(item, tuple):
+                            prompt, source = item
+                            source_display = source.replace('concept_', '').replace('stsb_dataset', 'STSB')
+                            print(f"{i:2d}. [{source_display}] '{prompt}'")
+                        else:
+                            print(f"{i:2d}. '{item}'")
                     print("="*80)
                 
                 # --- GLOBAL PC ORTHOGONAL PERTURBATION ---
