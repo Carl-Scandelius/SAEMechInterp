@@ -400,11 +400,6 @@ def main():
     print(f"Configuration: USE_SYSTEM_PROMPT_FOR_MANIFOLD is set to {USE_SYSTEM_PROMPT_FOR_MANIFOLD}\n")
     print(f"Configuration: USE_NORMALIZED_PROJECTION is set to {USE_NORMALIZED_PROJECTION}\n")
     print(f"Configuration: RUN_GLOBAL_PC_ANALYSIS is set to {RUN_GLOBAL_PC_ANALYSIS}\n")
-    if RUN_GLOBAL_PC_ANALYSIS:
-        print("Note: Global PC analysis uses enhanced dataset including:")
-        print("  - All sentences from prompts.json")
-        print("  - All sentences from STSB dataset (sentence2 column, train split: ~5.75k sentences)")
-        print("  - Requires 'datasets' library: pip install datasets\n")
 
     dog_avg_eigenvalues = {}
     dog_top_eigenvectors = {}
@@ -458,7 +453,7 @@ def main():
             print("="*80 + "\n")
 
             # Extract activations for this specific concept at this layer
-            system_prompt_for_manifold = "You are a language model assistant. Please translate the following text accurately from English into German:" if USE_SYSTEM_PROMPT_FOR_MANIFOLD else ""
+            system_prompt_for_manifold = system_prompt if USE_SYSTEM_PROMPT_FOR_MANIFOLD else ""
             
             concept_activations = get_final_token_activations(
                 model, tokenizer, concept_prompts[concept], target_layer, 
