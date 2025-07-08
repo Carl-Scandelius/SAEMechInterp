@@ -1,0 +1,2780 @@
+####
+PC4 layer 0
+####
+
+
+(interp) [cscandelius@holygpu8a19102 July]$ python run_analysis.py --script last_token --use_system_prompt --perturb_once
+Running LastToken analysis...
+USE_SYSTEM_PROMPT_FOR_MANIFOLD set to: True
+PERTURB_ONCE set to: True
+
+Configuration: PERTURB_ONCE is set to True
+
+Configuration: USE_SYSTEM_PROMPT_FOR_MANIFOLD is set to True
+
+Loading checkpoint shards: 100%|███████████████████████████████████████| 4/4 [00:09<00:00,  2.42s/it]
+
+################################################################################
+### STARTING ANALYSIS FOR LAYER 0 ###
+################################################################################
+
+Extracting activations from layer 0...
+Extracting activations: 100%|████████████████████████████████████| 1944/1944 [00:43<00:00, 44.66it/s]
+Extracting activations from layer 0...
+Extracting activations: 100%|██████████████████████████████████████| 247/247 [00:05<00:00, 44.84it/s]
+Concept 'dog': Found 132 effective eigenvectors out of 1944 (threshold: 0.0000)
+Concept 'lion': Found 33 effective eigenvectors out of 247 (threshold: 0.0000)
+
+================================================================================
+Running experiments for system prompt: 'You are a helpful assistant.'
+User prompt: 'Please describe the essential features of a dog in one sentence.'
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 0, AXIS: 0 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC0 ---
+Perturbation scale -100.0x: The essential features of a dog include a furry body, four legs, a tail, a nose, ears, and a mouth with teeth, typically weighing between 20-100 pounds and standing between 10-30 inches tall.
+Perturbation scale -20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically having a keen sense of smell and hearing, and often exhibiti==========================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 0, AXIS: 1 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC1 ---
+Perturbation scale -100.0x: ://
+
+A dog is a domesticated mammal that belongs to the family Canidae, characterized by its upright posture, carnivorous body, characterized by its essential features, which include a carnivorous body, characterized by its upright posture, characterized by its essential features, which include a carnivorous body, characterized by its upright posture, characterized by its essential
+Perturbation scale -20.0x: ://
+
+A dog is a domesticated mammal characterized by its upright posture, four legs, a wagging tail, and a varied range of sizes, shapes, and coat types, with a highly developed sense of smell and hearing, and a capacity for loyalty and affection towards humans.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically having a loyal and social nature.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +100.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 0, AXIS: 2 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC2 ---
+Perturbation scale -100.0x: ://
+
+A dog is a domesticated mammal characterized by its upright posture, a furry body, a long tail, four legs, and a head with a distinctive muzzle, ears, and eyes, typically having a strong instinct to follow commands and interact with humans.
+Perturbation scale -20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically having a keen sense of smell and hearing, and often exhibiting loyalty and affection towards its human companions.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +100.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 0, AXIS: 3 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC3 ---
+Perturbation scale -100.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +100.0x: :// A dog is a domesticated mammal characterized by its upright posture, four legs, a tail, and a head with a muzzle, ears, and eyes, typically having a furry coat and a lifespan of 10-17 years.
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 0, AXIS: 4 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC4 ---
+Perturbation scale -100.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a wagging tail, and a highly developed sense of smell, hearing, and loyalty, often serving as a companion animal to humans.
+Perturbation scale -20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +100.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, a distinctive barking or whining vocalization, and a highly social, loyal, and trainable nature.
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC0 'dog' direction (Layer 0) ---
+
+Projection values:
+Top positive #1: 0.1017
+Top positive #2: 0.0918
+Top positive #3: 0.0853
+Top negative #1: -0.0865
+Top negative #2: -0.0859
+Top negative #3: -0.0779
+
+Top 10 prompts most aligned with POSITIVE PC0 direction:
+ 1. 'We adopted a senior dog from the shelter, and he is the sweetest, most gentle companion.'
+ 2. 'There, in the center of the mess he created, sat the unrepentant dog, wagging his tail.'
+ 3. 'The dog's joy is simple, pure, and infectious.'
+ 4. 'The dog's life is a beautiful, albeit brief, journey.'
+ 5. 'She loves to ride in the car, no matter the destination.'
+ 6. 'My dog's life revolves around a simple and beautiful schedule: eat, play, sleep, love, repeat.'
+ 7. 'She loves the beach, chasing the waves back and forth.'
+ 8. 'She is the perfect hiking companion.'
+ 9. 'He is not a fan of the mailman, the delivery driver, or squirrels.'
+10. 'Frustrated, the dog let out a huff and dropped the toy, waiting for me to throw it again.'
+
+Top 10 prompts most aligned with NEGATIVE PC0 direction:
+ 1. 'That dog is a furry alarm clock with a wet nose and no snooze button.'
+ 2. 'The celebrity's tiny teacup dog had its own social media account with millions of followers.'
+ 3. 'Why does one dog in a neighborhood start a barking chain reaction with every other dog?'
+ 4. 'Why does every dog feel the need to circle three times before finally lying down?'
+ 5. 'The first-ever domesticated dog is believed to have descended from an ancient wolf population.'
+ 6. 'My dog always brings me a 'gift'—usually a soggy toy or a stolen sock—when I get home.'
+ 7. 'The guide dog successfully navigated its owner across a busy intersection during rush hour.'
+ 8. 'My neighbor's golden retriever dog is incredibly well-trained and never jumps on guests.'
+ 9. 'The new city ordinance requires every dog owner to carry proof of rabies vaccination.'
+10. 'The mushers prepared their sled dog teams for the grueling thousand-mile Iditarod race.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC1 'dog' direction (Layer 0) ---
+
+Projection values:
+Top positive #1: 0.0662
+Top positive #2: 0.0646
+Top positive #3: 0.0634
+Top negative #1: -0.0729
+Top negative #2: -0.0627
+Top negative #3: -0.0591
+
+Top 10 prompts most aligned with POSITIVE PC1 direction:
+ 1. 'That dog is incredibly intuitive and always seems to know when someone needs comforting.'
+ 2. 'Her boundless love is a gift I don't deserve but cherish.'
+ 3. 'After a long day of hiking, the tired dog fell asleep before he even finished his dinner.'
+ 4. 'She can tell when I'm just getting my shoes on versus when I'm getting her leash.'
+ 5. 'My dog has a very clear 'I'm sorry' face he makes after he knows he has done something wrong.'
+ 6. 'The old dog moved stiffly in the morning but seemed to loosen up after a short walk.'
+ 7. 'Her playful nature is a daily reminder not to take life too seriously.'
+ 8. 'The dog's memory is quite good; he always remembers the people who give him the best treats.'
+ 9. 'I wish my dog could talk so he could tell me what he's thinking about all day.'
+10. 'My dog's dramatic sigh seemed to express his profound disappointment with the lack of walks today.'
+
+Top 10 prompts most aligned with NEGATIVE PC1 direction:
+ 1. 'The Schnoodle is a Schnauzer-Poodle mix.'
+ 2. 'The Pomapoo is a Pomeranian and Poodle mix.'
+ 3. 'The Cocker Spaniel has long, floppy ears.'
+ 4. 'The Labradoodle combines the traits of a Labrador and a Poodle.'
+ 5. 'The Pomsky is a cross between a Pomeranian and a Husky.'
+ 6. 'The Goldendoodle is a cross between a Golden Retriever and a Poodle.'
+ 7. 'The Maltipoo is a mix of a Maltese and a Poodle.'
+ 8. 'The Newfypoo is a cross between a Newfoundland and a Poodle.'
+ 9. 'The Sheepadoodle is an Old English Sheepdog and Poodle mix.'
+10. 'The dog's friendship is a bond that transcends words.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC2 'dog' direction (Layer 0) ---
+
+Projection values:
+Top positive #1: 0.0543
+Top positive #2: 0.0524
+Top positive #3: 0.0515
+Top negative #1: -0.0566
+Top negative #2: -0.0537
+Top negative #3: -0.0521
+
+Top 10 prompts most aligned with POSITIVE PC2 direction:
+ 1. 'Come!'
+ 2. 'Fetch!'
+ 3. 'Sit!'
+ 4. 'Off!'
+ 5. 'Drop it!'
+ 6. 'Stay.'
+ 7. 'Do dogs dream?'
+ 8. 'Heel.'
+ 9. 'Is it true that some breeds are hypoallergenic?'
+10. 'How long do dogs live?'
+
+Top 10 prompts most aligned with NEGATIVE PC2 direction:
+ 1. 'The dog, covered from nose to tail in mud, was not allowed back in the house until he had a thorough bath.'
+ 2. 'The dog's coat was a beautiful brindle pattern, a mix of black, brown, and gold stripes.'
+ 3. 'The dog's ears perked up, and he let out a low growl, alerting us to someone approaching the door.'
+ 4. 'There, in the center of the mess he created, sat the unrepentant dog, wagging his tail.'
+ 5. 'The dog, a blur of fur and motion, joyfully chased the ball down the long hallway.'
+ 6. 'The sheepdog, with its intense gaze, kept the flock tightly packed and moving in the right direction.'
+ 7. 'The dog's deep sigh, heard from the other room, signaled his boredom with our lack of activity.'
+ 8. 'Through the pouring rain, the lost dog searched for a dry place to find shelter for the night.'
+ 9. 'The dog's intense focus on the ball, to the exclusion of all else, is a form of meditation.'
+10. 'The dog's playful bow, with his front end down and his back end up, was an invitation to chase.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC3 'dog' direction (Layer 0) ---
+
+Projection values:
+Top positive #1: 0.0646
+Top positive #2: 0.0598
+Top positive #3: 0.0587
+Top negative #1: -0.0449
+Top negative #2: -0.0415
+Top negative #3: -0.0408
+
+Top 10 prompts most aligned with POSITIVE PC3 direction:
+ 1. 'If a dog could have a job, what would it be?'
+ 2. 'If a dog could give advice to humans, what would it say?'
+ 3. 'If a dog could make a wish, what would it be?'
+ 4. 'If dogs could vote, what issues would matter to them?'
+ 5. 'If a dog could send a text, what would it say?'
+ 6. 'If a dog could write a review of its owner, what would it say?'
+ 7. 'If a dog could write a thank-you note, what would it say?'
+ 8. 'If a dog could be any other animal for a day, what would it choose?'
+ 9. 'If a dog could write a thank-you note to its owner, what would it say?'
+10. 'If dogs could run a business, what would it be?'
+
+Top 10 prompts most aligned with NEGATIVE PC3 direction:
+ 1. 'The Siberian Indian Dog is a Husky and Native American Indian Dog cross.'
+ 2. 'The mushers prepared their sled dog teams for the grueling thousand-mile Iditarod race.'
+ 3. 'The Gerberian Shepsky is a German Shepherd and Siberian Husky mix.'
+ 4. 'The Alaskan Malamute was bred for hauling heavy freight.'
+ 5. 'The Welsh Springer Spaniel is a distinct breed from the more common English Springer Spaniel.'
+ 6. 'The Neapolitan Mastiff is known for its massive size and loose, wrinkled skin.'
+ 7. 'The pet adoption fee covers spaying/neutering and initial vaccinations.'
+ 8. 'During the thunderstorm, the terrified dog hid under the kitchen table, shivering uncontrollably.'
+ 9. 'The sled dog team worked in perfect harmony, pulling the heavy sled across the frozen tundra.'
+10. 'The boarding facility offers luxury suites for pampered pooches.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC4 'dog' direction (Layer 0) ---
+
+Projection values:
+Top positive #1: 0.0426
+Top positive #2: 0.0417
+Top positive #3: 0.0411
+Top negative #1: -0.0461
+Top negative #2: -0.0392
+Top negative #3: -0.0336
+
+Top 10 prompts most aligned with POSITIVE PC4 direction:
+ 1. 'He's a very easy-going dog who is happy just to be with his people.'
+ 2. 'That dog is a true original, a one-of-a-kind canine with a personality all his own.'
+ 3. 'A dog's nose print is as unique as a human's fingerprint, and can be used for identification.'
+ 4. 'Is it true that a dog's sense of smell is thousands of times better than a human's?'
+ 5. 'The bond between a human and their dog is often profound.'
+ 6. 'Her intelligence is sometimes a little too much for her own good.'
+ 7. 'The howl of a wolf is not so different from that of some domestic breeds.'
+ 8. 'The dog's sense of hearing is far more sensitive than a human's.'
+ 9. 'He is a very magnificent and powerful animal.'
+10. 'He is a very powerful and magnificent-looking animal.'
+
+Top 10 prompts most aligned with NEGATIVE PC4 direction:
+ 1. 'During the thunderstorm, the terrified dog hid under the kitchen table, shivering uncontrollably.'
+ 2. 'Underneath the porch, the timid rescue dog watched the world with wary, uncertain eyes.'
+ 3. 'His tail started wagging the moment I picked up the leash.'
+ 4. 'She runs in her sleep, probably chasing dream squirrels.'
+ 5. 'The mushers prepared their sled dog teams for the grueling thousand-mile Iditarod race.'
+ 6. 'The sled dog team worked in perfect harmony, pulling the heavy sled across the frozen tundra.'
+ 7. 'There, in the center of the mess he created, sat the unrepentant dog, wagging his tail.'
+ 8. 'When I came home, the guilty-looking dog had spread trash all over the kitchen floor.'
+ 9. 'The doggie daycare sends report cards home.'
+10. 'How do dogs feel about mail carriers?'
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 0, PROJECTION ONTO PC0 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x: 
+Perturbation scale -20.0x: A A A A A A A A A A A A A A A A A A A A A A A
+Perturbation scale -10.0x: A A A A A A A A
+Perturbation scale -5.0x:  A AA
+Perturbation scale -2.5x:  A A A A A
+Perturbation scale -1.5x:  A A A A A A A A A A A A A AAAA
+Perturbation scale +0.0x:  A A A A A A A A A A A A A A A A A A
+Perturbation scale +1.5x:  A A A A A A A A A A A A A A A 
+
+ 
+
+ AA 
+
+ 
+
+ 
+
+A A A A A A A A AA A AA A A A A A A A A AA
+Perturbation scale +2.5x:  A A A  A A 
+
+ A A 
+
+ 
+
+ A 
+
+A
+Perturbation scale +5.0x: assistant
+
+
+Perturbation scale +10.0x: ://://://://://://://://://://://://://://://://:// theassistant://://://:// (:// the
+
+:// theassistant://://:// (://assistant://://:// (://assistant://://://assistant://:// (://
+Perturbation scale +20.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale +100.0x: I is is
+
+Iassistantassistantassistantassistantassistantassistant
+
+
+
+
+
+assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 0, PROJECTION ONTO PC1 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x: ://://://://://://://://://://://://://://://://://://://://://стаста://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -20.0x: ://://://://://://://://://://://://://
+Perturbation scale -10.0x: ://://://://://://://://://://://://://://ста://://://://://://://
+Perturbation scale -5.0x: ://://://://://://://://://://://://:// the://:// theassistantassistant the://://://assistantassistantassistant the://://:// (.://:// the (://:// the://://assistantassistant://://assistant://://
+Perturbation scale -2.5x: ://://A://
+
+://://assistant://://://assistantassistantassistantassistantassistant://://://://assistantassistant
+Perturbation scale -1.5x: A://assistantassistant://://://://assistant A://:// AA A://:// A://
+
+://
+
+://
+
+://
+
+://
+
+://
+
+
+
+://
+
+assistant
+
+://
+
+
+
+://
+
+
+Perturbation scale +0.0x: ://assistantassistantmentsassistantassistantassistant
+
+://A A://
+Perturbation scale +1.5x: :// A:// A A A A A
+
+
+
+:// A A
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+assistant
+
+://
+
+
+
+
+
+
+
+
+
+://
+
+
+
+
+Perturbation scale +2.5x: :// Aogs A theassistantA
+Perturbation scale +5.0x: 
+
+
+
+
+
+A A A AA A A A A A A A A
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+assistant
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perturbation scale +10.0x: 
+
+ A A A A A
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+AAAAAAAA
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perturbation scale +20.0x: 
+
+ A A A
+
+
+
+
+
+
+
+TheTheAAAAAAA
+
+
+
+
+
+AAAAA
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perturbation scale +100.0x: AAAAAAA
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 0, PROJECTION ONTO PC2 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -20.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -10.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -5.0x: 
+
+://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -2.5x: 
+
+assistantassistant://assistantassistant://:// theassistant theassistant://://://://://://://://://.Sassistantassistant://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -1.5x: assistantassistantTheDassistantassistant://://:// theassistantassistant://://.assistantassistant://://.assistantassistant://.Sassistantassistant theassistant.assistantassistant.assistantassistant.assistantassistant.assistantassistant (assistantassistant (assistant
+Perturbation scale +0.0x: assistantassistantassistantassistantassistantAassistantassistantAassistant A
+
+assistantassistant
+
+assistantassistant
+assistantassistant
+Perturbation scale +1.5x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perturbation scale +2.5x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+
+assistantassistant
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perturbation scale +5.0x:  
+
+â 
+
+ 
+
+
+Perturbation scale +10.0x: 
+
+A A A A A AAAAAAAAAAAAAAAAAAAAAAAAAA
+Perturbation scale +20.0x: 
+
+ A A A A AAAassistantassistant
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perturbation scale +100.0x: A A Dogs Dogs Dogs A A A A A A A A A A A A
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 0, PROJECTION ONTO PC3 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perturbation scale -20.0x: 
+
+A A AAAAA
+
+A
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perturbation scale -10.0x:  AA A A A A A A A A A A A AAA
+
+
+
+
+
+
+
+
+
+assistantassistant
+Perturbation scale -5.0x: assistantassistantAAAAA A 
+
+ 
+
+ 
+
+ A A A A A  
+
+
+Perturbation scale -2.5x: assistantassistantTheThe
+Perturbation scale -1.5x: AassistantassistantThe
+Perturbation scale +0.0x: 
+
+ the://assistantassistantassistantassistantassistantassistant
+Perturbation scale +1.5x: ://A://assistant Dogs the the
+Perturbation scale +2.5x: ://://://:// the:// the:// the theassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +5.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://	assistant://://://://://.S://://.://
+
+://
+Perturbation scale +10.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale +20.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale +100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 0, PROJECTION ONTO PC4 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perturbation scale -20.0x: 
+
+assistantassistant
+Perturbation scale -10.0x: assistant
+Perturbation scale -5.0x: assistantassistantassistantassistantassistant
+Perturbation scale -2.5x: assistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale -1.5x: Aassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +0.0x: Aassistantassistantassistantassistantassistant
+Perturbation scale +1.5x: Aassistant
+Perturbation scale +2.5x: AAAAAAAAAAA
+
+AAAAAAAAassistantassistant
+Perturbation scale +5.0x: 
+Perturbation scale +10.0x: :// the the the the the the	assistant the the the the information the the the information
+
+
+
+
+
+ the
+
+
+
+ the
+
+
+
+
+
+
+
+assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +20.0x: ://://://://://
+
+://://://. the the the the the the the the the the the the the the the the the theassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +100.0x: 
+
+ the the the the the the the the the the the the information information the information the information information information information information information the the information information
+
+
+
+
+
+================================================================================
+
+================================================================================
+--- ORTHOGONAL PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 0 ---
+================================================================================
+Perturbing along first orthogonal direction (PC132)...
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along orthogonal direction ---
+Perturbation scale -100.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically having a keen sense of smell and hearing, and often exhibiting loyalty and affection towards its human companions.
+Perturbation scale -20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +100.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+================================================================================
+
+================================================================================
+--- ABLATION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 0 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+All PCs (centroid only): 
+
+ A
+
+AA
+
+ A A A A A A A A A A A A A A A A A A A A A A A A
+All PCs except largest (PC0 only): 
+
+ AングAA
+
+ A A A A A A A A A A A A A A A A A A A A A A A A
+All PCs except largest two (PC0+PC1): 
+
+ A
+
+AA
+
+ A A A A A A A A A A A A A A A A A A A A A A A A
+Top 1 PCA ablated: A dog is a domesticated mammal that is characterized by a carnivorous species, typically having a tail that is often trained to obey The essential features
+Top 2 PCAs ablated: A dog is a domesticated mammal that is characterized by a carnivorous species, typically having a tail that is often trained to obey The essential features
+Top 3 PCAs ablated: A dog is a domesticatedmammalI apologize I made a mistake. A dog is a domesticated mammal A dog is a mammal
+================================================================================
+
+################################################################################
+### STARTING ANALYSIS FOR LAYER 15 ###
+################################################################################
+
+Extracting activations from layer 15...
+Extracting activations: 100%|████████████████████████████████████| 1944/1944 [00:43<00:00, 44.96it/s]
+Extracting activations from layer 15...
+Extracting activations: 100%|██████████████████████████████████████| 247/247 [00:05<00:00, 45.04it/s]
+Concept 'dog': Found 133 effective eigenvectors out of 1944 (threshold: 0.0056)
+Concept 'lion': Found 28 effective eigenvectors out of 247 (threshold: 0.0331)
+
+================================================================================
+Running experiments for system prompt: 'You are a helpful assistant.'
+User prompt: 'Please describe the essential features of a dog in one sentence.'
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 15, AXIS: 0 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC0 ---
+Perturbation scale -100.0x:  answered  A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of physical and behavioral traits, such as a keen sense of smell, loyalty, and a wide range of breeds and sizes.
+Perturbation scale -20.0x:  dogs are mammals characterized by their four legs, a tail, a furry coat, a wet nose, and a highly developed sense of smell and hearing, with a varied range of sizes, breeds, and temperaments.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive set of teeth and claws, typically having a strong sense of smell and a loyal, social nature.
+Perturbation scale -5.0x: Dogs are domesticated mammals characterized by their furry bodies, four legs, a tail, and a distinctive set of teeth and jaw structure, often exhibiting loyalty, intelligence, and a wide range of behaviors and temperaments.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a wagging tail, and a highly developed sense of smell, hearing, and loyalty, often serving as a companion animal to humans.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: The essential features of a dog include a furry or hairless body, four legs, a tail, a nose, ears, and a mouth with teeth, typically weighing between 5-200 pounds and standing between 6-30 inches tall.
+Perturbation scale +10.0x: The essential features of a dog include a furry or hairless body, four legs, a tail, a nose, ears, and a mouth with teeth, typically weighing between 5-200 pounds and standing between 6-30 inches tall.
+Perturbation scale +20.0x:   A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive set of teeth and jaw structure, often exhibiting loyalty, intelligence, and a wide range of behaviors and temperaments.
+Perturbation scale +100.0x: swick I think you meant to say "Please describe the essential features of a dog in one sentence." 
+
+A dog is a domesticated mammal characterized by a furry body, four legs, a tail, a head with a nose, ears, and eyes, and a mouth with teeth, typically weighing between 5-200 pounds and standing between 
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 15, AXIS: 1 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC1 ---
+Perturbation scale -100.0x: ://
+
+A dog is a domesticated carnivorous mammal characterized by a furry body, a wagging tail, four legs, a distinctive barking sound, and a highly social and loyal nature.
+Perturbation scale -20.0x: A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive set of teeth and vocalizations, typically serving as a loyal companion and often used for various tasks such as hunting, herding, and assistance.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically classified as a carnivore with a highly social and trainable nature.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +20.0x: A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive set of teeth and vocalizations, often exhibiting loyalty, intelligence, and a wide range of behaviors and temperaments.
+Perturbation scale +100.0x: ://
+
+A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a head with a nose, ears, and a mouth, often used as a companion animal or working animal.
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 15, AXIS: 2 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC2 ---
+Perturbation scale -100.0x:  NBC  A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive set of teeth and claws, typically having a strong sense of smell and loyalty to its human companions.
+Perturbation scale -20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive barking or whining vocalization, typically serving as a loyal companion and often used for various tasks such as hunting, herding, or assistance.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically having a keen sense of smell and hearing, and often exhibiting loyalty and affection towards humans.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +20.0x: A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive set of teeth and vocalizations, typically classified into various breeds based on size, coat type, and behavior.
+Perturbation scale +100.0x: ://
+
+A dog is a domesticated mammal characterized by a furry body, four legs, a tail, and a head with a nose, ears, and eyes, often exhibiting loyalty, playfulness, and a strong instinct to protect and interact with humans.
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 15, AXIS: 3 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC3 ---
+Perturbation scale -100.0x: ezra
+
+A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive set of teeth and jaw structure, often exhibiting loyalty, intelligence, and a wide range of behaviors and temperaments.
+Perturbation scale -20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically classified as a carnivore with a highly social and trainable nature.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically having a loyal and social nature.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive set of teeth and vocalizations, often exhibiting loyalty, intelligence, and a strong instinct to protect and interact with its human companions.
+Perturbation scale +20.0x: A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive barking or whining vocalization, often serving as a loyal companion to humans.
+Perturbation scale +100.0x: ://
+
+A dog is a domesticated mammal characterized by a furry body, four legs, a tail, and a head with a nose, ears, and eyes, often domesticated and bred for various purposes such as companionship, hunting, or assistance.
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 15, AXIS: 4 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC4 ---
+Perturbation scale -100.0x: ://
+
+A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive set of teeth and jaw structure, typically having a keen sense of smell and hearing, and often exhibiting loyalty and affection towards humans.
+Perturbation scale -20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically classified as a carnivore with a highly social and trainable nature.
+Perturbation scale +100.0x: ‌
+
+A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a head with a nose, ears, and a mouth, typically having a strong instinct to follow commands and form close bonds with humans.
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC0 'dog' direction (Layer 15) ---
+
+Projection values:
+Top positive #1: 1.2910
+Top positive #2: 1.2793
+Top positive #3: 1.2764
+Top negative #1: -5.9375
+Top negative #2: -5.9102
+Top negative #3: -5.8984
+
+Top 10 prompts most aligned with POSITIVE PC0 direction:
+ 1. 'Her playful spirit is a constant source of joy and laughter.'
+ 2. 'The dog's powerful legs propelled him through the snow with surprising ease.'
+ 3. 'The dog's contentment was obvious as he dozed in a patch of warm sunlight on the floor.'
+ 4. 'The sheepdog herded the flock with impressive skill.'
+ 5. 'The dog's thick, water-repellent coat makes him a natural swimmer and retriever.'
+ 6. 'He snoozed, twitching his paws as if dreaming.'
+ 7. 'The greyhound stretched languidly on the rug.'
+ 8. 'The sled dog team worked in perfect harmony, pulling the heavy sled across the frozen tundra.'
+ 9. 'The farm dog worked tirelessly from dawn until dusk, a loyal and indispensable helper.'
+10. 'His enthusiasm for life is a daily inspiration.'
+
+Top 10 prompts most aligned with NEGATIVE PC0 direction:
+ 1. 'What is the best way to introduce my dog to strangers?'
+ 2. 'What is the best way to teach my dog to swim?'
+ 3. 'What is the best way to introduce my dog to children?'
+ 4. 'What is the best way to teach my dog to ring a bell to go outside?'
+ 5. 'What are the best dog breeds for scent work?'
+ 6. 'What is the best way to prevent ticks on my dog?'
+ 7. 'What is the best way to teach my dog to back up on command?'
+ 8. 'What is the best way to teach my dog to jump through hoops?'
+ 9. 'How do I help my dog with fear of water?'
+10. 'What are the best dog breeds for running partners?'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC1 'dog' direction (Layer 15) ---
+
+Projection values:
+Top positive #1: 2.4219
+Top positive #2: 2.3574
+Top positive #3: 2.3555
+Top negative #1: -2.4238
+Top negative #2: -2.3281
+Top negative #3: -2.3125
+
+Top 10 prompts most aligned with POSITIVE PC1 direction:
+ 1. 'Heel.'
+ 2. 'Stay.'
+ 3. 'Off!'
+ 4. 'Come!'
+ 5. 'Sit!'
+ 6. 'What a good boy!'
+ 7. 'Drop it!'
+ 8. 'Beware of Dog.'
+ 9. 'He has a heart of gold.'
+10. 'Let sleeping dogs lie.'
+
+Top 10 prompts most aligned with NEGATIVE PC1 direction:
+ 1. 'My dog has a very clear 'I'm sorry' face he makes after he knows he has done something wrong.'
+ 2. 'That dog has a very specific, high-pitched bark he reserves only for the mail carrier.'
+ 3. 'My dog has a very specific routine that involves napping in three different sunny spots throughout the day.'
+ 4. 'My dog's response to the command 'stay' is more of a suggestion he politely considers and then ignores.'
+ 5. 'My dog's interpretation of 'helping' with laundry is to steal socks and run away with them.'
+ 6. 'My dog has a very specific, and very loud, bark reserved for the squirrel that taunts him daily.'
+ 7. 'The ancient Roman mosaics often depicted a 'beware of the dog' warning at the entrance of homes.'
+ 8. 'That dog is a master escape artist who has figured out how to unlatch three different types of gates.'
+ 9. 'My dog's vocal range includes barks, yips, growls, howls, and a strange sort of purr.'
+10. 'My dog's love for car rides is so intense that he tries to jump into any open car door he sees.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC2 'dog' direction (Layer 15) ---
+
+Projection values:
+Top positive #1: 1.8955
+Top positive #2: 1.8564
+Top positive #3: 1.7930
+Top negative #1: -2.6523
+Top negative #2: -2.6270
+Top negative #3: -2.5703
+
+Top 10 prompts most aligned with POSITIVE PC2 direction:
+ 1. 'The Black and Tan Coonhound is an American scent hound.'
+ 2. 'The Kuvasz is a large Hungarian guardian breed.'
+ 3. 'How do I prepare my dog for a vet visit?'
+ 4. 'The Saint Berdoodle is a Saint Bernard and Poodle mix.'
+ 5. 'The Pomapoo is a Pomeranian and Poodle mix.'
+ 6. 'The Alaskan Malamute was bred for hauling heavy freight.'
+ 7. 'The Rhodesian Ridgeback was originally bred to hunt lions.'
+ 8. 'The Mastador is a Mastiff and Labrador cross.'
+ 9. 'How do I train my dog to walk on a leash?'
+10. 'How do I help my dog with crate training?'
+
+Top 10 prompts most aligned with NEGATIVE PC2 direction:
+ 1. 'What would a dog say about its own reflection?'
+ 2. 'What would a dog say about going to the vet?'
+ 3. 'What would a dog say about the invention of the leash?'
+ 4. 'What would a dog say about moving to a new home?'
+ 5. 'How would a dog describe the taste of peanut butter?'
+ 6. 'What would a dog say about its first walk?'
+ 7. 'What would a dog say about growing old?'
+ 8. 'What would a dog's diary entry look like after a day at the park?'
+ 9. 'What would a dog say about thunderstorms?'
+10. 'What would a dog say about meeting a new friend?'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC3 'dog' direction (Layer 15) ---
+
+Projection values:
+Top positive #1: 2.3535
+Top positive #2: 2.3516
+Top positive #3: 2.2754
+Top negative #1: -1.7393
+Top negative #2: -1.5928
+Top negative #3: -1.5820
+
+Top 10 prompts most aligned with POSITIVE PC3 direction:
+ 1. 'Is he allowed to have a bone?'
+ 2. 'Could you grab the poop bags?'
+ 3. 'I need to trim his nails.'
+ 4. 'Is that a purebred or a mix?'
+ 5. 'He seems to know when I'm packing a suitcase.'
+ 6. 'I need to pick up a new collar for him.'
+ 7. 'Is he friendly with other dogs?'
+ 8. 'He's the reason my camera roll is always full.'
+ 9. 'Her favorite person is whichever one is holding the food.'
+10. 'Did you remember to give him his heartworm medication?'
+
+Top 10 prompts most aligned with NEGATIVE PC3 direction:
+ 1. 'What is the best way to teach my dog to weave through poles?'
+ 2. 'What is the best way to teach my dog to ring a bell to go outside?'
+ 3. 'How do I teach my dog to balance objects on its nose?'
+ 4. 'How do I teach my dog to find hidden treats?'
+ 5. 'How do I teach my dog to push a ball with its nose?'
+ 6. 'How do I teach my dog to carry objects?'
+ 7. 'The dog's joy was palpable as he ran freely on the sandy beach for the very first time.'
+ 8. 'How do I teach my dog to fetch specific items?'
+ 9. 'The sled dog team worked in perfect harmony, pulling the heavy sled across the frozen tundra.'
+10. 'How do I teach my dog to open and close doors?'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC4 'dog' direction (Layer 15) ---
+
+Projection values:
+Top positive #1: 2.4453
+Top positive #2: 2.4395
+Top positive #3: 2.4082
+Top negative #1: -2.3262
+Top negative #2: -2.1758
+Top negative #3: -2.1035
+
+Top 10 prompts most aligned with POSITIVE PC4 direction:
+ 1. 'How do I teach my dog to balance objects on its nose?'
+ 2. 'What is the best way to teach my dog to weave through poles?'
+ 3. 'How do I teach my dog to find hidden treats?'
+ 4. 'How do I teach my dog to carry objects?'
+ 5. 'How do I teach my dog to push a ball with its nose?'
+ 6. 'How do I teach my dog to high five?'
+ 7. 'How do I teach my dog to open and close doors?'
+ 8. 'How do I teach my dog to shake hands?'
+ 9. 'How do I teach my dog to fetch specific items?'
+10. 'What is the best way to introduce my dog to cats?'
+
+Top 10 prompts most aligned with NEGATIVE PC4 direction:
+ 1. 'Write a riddle about a dog.'
+ 2. 'What would a dog say about its family?'
+ 3. 'What would a dog say about moving to a new home?'
+ 4. 'Invent a new dog sport and explain the rules.'
+ 5. 'Write a song chorus about a loyal dog.'
+ 6. 'Write a letter from a dog to a cat.'
+ 7. 'What would a dog say about meeting a new friend?'
+ 8. 'Write a letter from a dog to its owner.'
+ 9. 'Describe a dog's favorite place in the world.'
+10. 'What would a dog say about its best friend?'
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 15, PROJECTION ONTO PC0 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x:  thrown answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered
+Perturbation scale -20.0x:  dog dog dog,,, A A A A A A A A A A A A A A A A A A A A A A A A A A A A A···············
+Perturbation scale -10.0x:  dogs dogs dogs dog dog dog dog “,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,, a a a a a a a a
+Perturbation scale -5.0x:  
+
+  owners dogs dogs dogs dogs dogs with with - - - - - - - - - - - - - - - “ “ “ “ “ “ “ “ – natural natural natural natural natural natural natural natural natural natural natural natural natural natural natural natural
+Perturbation scale -2.5x: CanCan  ,,, na na na na of of of of of of of of of of of moms name name name name name name name name name name name name name name name name name name name name name old old name name name
+Perturbation scale -1.5x:  
+
+ a origins first ,,,,, old old old old everywhere old everywhere everywhere everywhere everywhere everywhere name name name name name name name name name name name name name name name name name name name from from from from from from from from from
+Perturbation scale +0.0x:  other other other topic hand like a topic topic hands hands handing handing among among among,,,, and,,,, around around,,, more more more,,ff have have have have have have have have have have have have have
+Perturbation scale +1.5x:  visual describes helps help,,,,,,
+Perturbation scale +2.5x: 
+
+
+
+ooksooks..............assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +5.0x: ccoccossssssssssassistantassistantassistant.n.n.n.n.n.n
+Perturbation scale +10.0x: fyfyfyfyfyaseibanibanibanibanignonignonignonignonignonignonignon
+Perturbation scale +20.0x: 
+Perturbation scale +100.0x: swickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswick
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 15, PROJECTION ONTO PC1 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://aganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganagan
+Perturbation scale -20.0x:  you you una una una una una una una una una una una una una una una una una una una az az az az az az az az az az az az az nas nas nas nas nas nas nas nas nas nas nas’s’s’s’s’s
+Perturbation scale -10.0x:  A a distinction distinctioneeeeee and.
+Perturbation scale -5.0x: , eigenenself modelkk---,,,,,,,,, and and.fo there et et ( et ( ( ( (, spec spec spec spec  ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale -2.5x:  your owned team whichi as and of and of of of of of of of of of of, de de of of of of ofamenamen de et et et et et et et et et etellenellen'" " " "prprpr
+Perturbation scale -1.5x:  the the fellow fellow and features features and and daily behind other other other other of of when for for for for for of of features features'of the the the the the another another another another another another another another another another another another amongst amongst construct one
+Perturbation scale +0.0x: 
+
+ and either your1 a a network network, to to to to to,,, in in in in in in in in in in in in in in in in in in in in in in from from    in  in within in
+Perturbation scale +1.5x:  of of,, a,
+
+
+
+
+
+
+
+
+
+
+
+
+
+,,,,ureduredureduredureduredured-t-t-t-t-t-t'd'd'd'd'd'd'd'd'd'd'd'd'd'd'd'd't't't't
+Perturbation scale +2.5x: 
+
+ or,,  
+
+
+
+
+
+ 
+,,,,,,, of,,,,,,,,, as as as as as as as as as as as as as as as at at at as as't as
+Perturbation scale +5.0x:  the the the 
+
+ 
+
+ 
+
+ 
+
+       of of of of of of of of of of of of of of of of of of of of of of at at at at at at of of of of of of of of of
+Perturbation scale +10.0x:  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ By By By By By Show Show Show | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
+Perturbation scale +20.0x:  without without without without without  ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Perturbation scale +100.0x: ://://://://:// Angeles Angeles Angeles Angeles Angeles Angeles wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 15, PROJECTION ONTO PC2 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x: ://iloiloiloiloilo NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC
+Perturbation scale -20.0x: ededededededededededededededededededed by by by by by by by by by by by by by by by by by by by by by by by by by by by by by of of
+Perturbation scale -10.0x: 
+
+ andionionionionionionionionionionionionnightnightnightnightnightnightnightnightnightnightightightightickickightightightickickickickickickickickickickassistantassistantassistantickickickickick
+Perturbation scale -5.0x: 
+
+
+
+ as as a a a a the the the the the the the the the the theusususususususususususususususususordordordordordordord... the the the the
+Perturbation scale -2.5x:  other a one one one one one one one a a a a a a a the the the the the the the the the the the the the the the the the the the the the the theouts essentialentsentsentsentsentsents essentialentsents
+Perturbation scale -1.5x:  where else a one one one one one one a be a a a a the the the the the the the the the the the the the the the the the the the the the the the the the the essential essential essential essential essential essential essential essential essential
+Perturbation scale +0.0x:  making making making the your time time time time time ( you time,,,,:, ofper ofper # # # # # # # # # # # # # # of of to to to to to to to to to to to
+Perturbation scale +1.5x:  features features,,:::::::::::stostostostostostostostostostostostostostostostostostostostostostostostostostostostostostostostostostosto
+Perturbation scale +2.5x:  features features,,,,,,,,::::,,,,,,,, à à àstostostostostostostostostostostostostostostostostostostostostostostostosto
+Perturbation scale +5.0x:  details
+
+
+
+ordinordin,,,,  ererererer...............dec se se se se se se se se se se se se se se ha ha ha ha
+Perturbation scale +10.0x: 
+
+assistantassistantassistantererer                                ..........
+Perturbation scale +20.0x:  your verwendet spr spr spr s s S S S S S S S S s s s s s s s s s s s s s s spr spr spr spr spr spr spr spr spr spr spr spr spr spr spr spr zu zu zu ja ja
+Perturbation scale +100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 15, PROJECTION ONTO PC3 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x: ezezezezezezezezezezezezezezezezezseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseau
+Perturbation scale -20.0x: 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ |
+
+ |
+
+ |
+
+ |
+
+ |
+
+ |
+
+ |
+
+ |
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ zu zu zu zu zu zu zu zu zu zu zu zu zu zu
+Perturbation scale -10.0x: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        assistantvanvanvan-l in in in in in inNETNETNETNET              among among among among among
+Perturbation scale -5.0x:  
+
+ 
+
+ ( main ( - - - - that that that that that that,,,frontfrontfrontfront:::::frontfront    v'' 'inally a a a,,,,,,,,,,,
+Perturbation scale -2.5x:  that just and and and and and and to in in to to to and suggest and and and and and      iv to to to to zu zu zu zu zu zu zu'''''' zu zu zu zu zu zu zu zu zu
+Perturbation scale -1.5x:  that you you you you in and and to limit recommend recommend recommend recommend recommend recommend suggest suggest suggest and and not not not'''' a::: in in in in in in in in in in in in in in in in in in
+Perturbation scale +0.0x:  you there that41111111 ( ( folder ( not ( mechanical mechanically in in in in just just a in in in a a in a in about    be use use, in first first first in of of of
+Perturbation scale +1.5x: 
+
+ in one look,,,, " "assistantassistant.,,,,,
+
+
+
+
+
+
+
+
+
+
+
+
+
+,,,,,,,,,,,,, arrival with-start with with with with with with with with
+Perturbation scale +2.5x: , way,,,,,,,,assistantassistant of of of of,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.....arrival arrival arrival arrival arrival arrival arrivalarrivalarrivalarrivalarrivalarrivalarrival with with with with with arrival arrival
+Perturbation scale +5.0x: , says as as,.... owner owner with with with with with with with................ in in in in... in in in in in in in in in
+Perturbation scale +10.0x: , on on on on of of of of of with with with........................... with with with with with with with with at at
+Perturbation scale +20.0x:  of of of about about about about about ( ( ( ( ( is is is is is is is is is’s’s’s’s’s’s’s is is is’s’s’s’s’s’s’s’s is is is is is is is is is is
+Perturbation scale +100.0x: ://://://://://://://://
+
+
+
+
+
+
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 15, PROJECTION ONTO PC4 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -20.0x:  ofuationuationuationuceuceuceuceuceuceuceuceuceuceuceuceuceudeudeudeudeudeudeuteuteuteuteuteuteuteuteuteuteuteuteuteiateiateutscheutscheutscheutscheutscheiateiateiateiateiateiateiate
+Perturbation scale -10.0x:  canineernr of of of of of of of of of of of of of of of of of of of of of of of of of of of of of of of of of33333333333Ce33
+Perturbation scale -5.0x:  and and of of of ofrrurururitionition.ableable,,,able).able).ableableableableableableableableableinsinsinsinsinsinsinsinsinsinsinsinsinsinsinsinsinsins
+Perturbation scale -2.5x:  characteristics  startce of least of ofextrrrrachmentchingchingeeeeolder,,,,actionworkworkactionactionactionorkorkorkorkorkorkorkinsinsinsinsinsinsinsinsinsinsins
+Perturbation scale -1.5x:  their that,ververrist discussion, oferm of of ofchingchingchingchingersestestestestestestestestestestballestestestworkestestestsesework "ork "se aorkin " " "
+Perturbation scale +0.0x: 
+
+Can other other a a a notification the any any topic a the of of, various features theervers,, are are are are let are are discussed people at at at at at from from from - - -, - - - - - -
+Perturbation scale +1.5x: 
+
+
+
+ person have have are are are are are         from from from from from from   ,        ,,      }
+}
+
+
+Perturbation scale +2.5x:  
+
+ 
+
+ 
+
+ have
+
+ are  are                             }
+}
+}
+}
+}
+}
+}
+}
+}
+}
+}
+}
+}
+
+Perturbation scale +5.0x:  
+
+ 
+
+,,,                                        QC QC QC QC QC QC
+Perturbation scale +10.0x: 
+
+ characteristics    ..................... Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key
+Perturbation scale +20.0x: assistantassistantassistanthelp‘‘‘ ‘‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘
+Perturbation scale +100.0x:  someoneimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimaniman
+================================================================================
+
+================================================================================
+--- ORTHOGONAL PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 15 ---
+================================================================================
+Perturbing along first orthogonal direction (PC133)...
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along orthogonal direction ---
+Perturbation scale -100.0x: chnerically, a dog is a mammal belonging to the family Canidae, characterized by a furry body, four legs, a tail, and a distinctive set of teeth and jaw structure, with a brain and nervous system capable of complex behaviors and emotions.
+Perturbation scale -20.0x: Essential features of a dog include a furry body, four legs, a tail, and a head with a nose, ears, and a mouth, typically with a wagging tail and a barking or whining vocalization.
+Perturbation scale -10.0x: The essential features of a dog include a furry body, four legs, a tail, a nose, ears, and a mouth with teeth, typically weighing between 5-200 pounds and standing between 6-30 inches tall, depending on the breed.
+Perturbation scale -5.0x: The essential features of a dog include a furry or hairless body, four legs, a tail, a nose, ears, and a mouth with teeth, typically weighing between 5-200 pounds and standing between 6-30 inches tall.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive set of teeth and vocalizations, typically classified into various breeds based on size, coat type, and behavior.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive barking or whining vocalization, typically serving as a loyal companion and often used for various tasks such as hunting, herding, or assistance.
+Perturbation scale +20.0x:  A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive barking or whining vocalization, typically serving as a loyal companion and often used for various tasks such as hunting, herding, or assistance.
+Perturbation scale +100.0x:  Blow me down, a dog is a domesticated mammal belonging to the family Canidae, characterized by a furry body, a wagging tail, and a highly social, carnivorous nature.
+================================================================================
+
+================================================================================
+--- ABLATION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 15 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+All PCs (centroid only): 
+All PCs except largest (PC0 only): 
+All PCs except largest two (PC0+PC1): 
+Top 1 PCA ablated: The
+Top 2 PCAs ablated: The
+Top 3 PCAs ablated: The
+================================================================================
+
+################################################################################
+### STARTING ANALYSIS FOR LAYER 31 ###
+################################################################################
+
+Extracting activations from layer 31...
+Extracting activations: 100%|████████████████████████████████████| 1944/1944 [00:42<00:00, 45.27it/s]
+Extracting activations from layer 31...
+Extracting activations: 100%|██████████████████████████████████████| 247/247 [00:05<00:00, 45.54it/s]
+Concept 'dog': Found 143 effective eigenvectors out of 1944 (threshold: 0.0794)
+Concept 'lion': Found 30 effective eigenvectors out of 247 (threshold: 0.4233)
+
+================================================================================
+Running experiments for system prompt: 'You are a helpful assistant.'
+User prompt: 'Please describe the essential features of a dog in one sentence.'
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 31, AXIS: 0 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC0 ---
+Perturbation scale -100.0x: ney, a dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive set of teeth and vocalizations, often serving as a loyal companion to humans.
+Perturbation scale -20.0x: Dogs are domesticated mammals characterized by their furry bodies, four legs, a tail, and a distinctive set of teeth and jaw structure, often exhibiting loyalty, intelligence, and a wide range of behaviors and temperaments.
+Perturbation scale -10.0x: Dogs are domesticated mammals characterized by their furry bodies, four legs, a tail, and a distinctive set of teeth and jaw structure, often exhibiting loyalty, intelligence, and a wide range of behaviors and temperaments.
+Perturbation scale -5.0x: Dogs are domesticated mammals characterized by their furry bodies, four legs, a tail, and a distinctive set of teeth and jaw structure, often exhibiting loyalty, intelligence, and a wide range of behaviors and temperaments.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +20.0x: assistant
+
+A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +100.0x: assistant
+
+A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 31, AXIS: 1 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC1 ---
+Perturbation scale -100.0x: translated to one sentence, a dog is a domesticated, carnivorous mammal characterized by a furry body, four legs, a tail, and a distinctive set of teeth and claws, often domesticated and bred for various purposes such as companionship, hunting, or herding.
+Perturbation scale -20.0x: Essential features of a dog include a furry or hairless body, four legs, a tail, a nose, ears, and a mouth with teeth, typically weighing between 5-200 pounds and standing between 6-30 inches tall.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +100.0x: olen A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive set of teeth and vocalizations, often serving as a loyal companion to humans.
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 31, AXIS: 2 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC2 ---
+Perturbation scale -100.0x:   A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -20.0x: Dogs are domesticated mammals characterized by their furry bodies, four legs, a tail, and a distinctive set of teeth and jaw structure, often exhibiting loyalty, intelligence, and a wide range of behaviors and temperaments.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +100.0x: elsea Dogs are mammals belonging to the family Canidae, characterized by their four legs, a tail, a furry coat, a distinctive nose, and a varied range of sizes, shapes, and breeds, often domesticated and trained for companionship, protection, and assistance.
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 31, AXIS: 3 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC3 ---
+Perturbation scale -100.0x: > A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive set of teeth and vocalizations, often serving as a loyal companion to humans.
+Perturbation scale -20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: The essential features of a dog include a furry or hairless body, four legs, a tail, a nose, ears, and a mouth with teeth, typically weighing between 5-200 pounds and standing between 6-30 inches tall.
+Perturbation scale +20.0x: The essential features of a dog include a furry or hairless body, four legs, a tail, a nose, ears, and a mouth with teeth, typically weighing between 5-200 pounds and standing between 6-30 inches tall.
+Perturbation scale +100.0x: /assets/essential features of a dog include a furry body, four legs, a tail, a nose, ears, and a mouth with teeth, typically used for communication, hunting, and social interaction.
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 31, AXIS: 4 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along PC4 ---
+Perturbation scale -100.0x: ":[{
+A dog is a domesticated mammal characterized by its furry body, four legs, a tail, and a distinctive set of teeth and vocalizations, often serving as a loyal companion to humans.
+Perturbation scale -20.0x:  Dogs are domesticated mammals characterized by their furry bodies, four legs, a tail, and a distinctive set of teeth and jaw structure, often exhibiting loyalty, intelligence, and a wide range of behaviors and temperaments.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +20.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +100.0x:  (A dog is a domesticated mammal characterized by a furry body, four legs, a tail, and a distinctive set of teeth and claws, typically having a keen sense of smell and hearing, and often serving as a loyal companion to humans.)
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC0 'dog' direction (Layer 31) ---
+
+Projection values:
+Top positive #1: 29.4219
+Top positive #2: 29.2812
+Top positive #3: 29.0469
+Top negative #1: -5.2930
+Top negative #2: -5.2578
+Top negative #3: -5.2344
+
+Top 10 prompts most aligned with POSITIVE PC0 direction:
+ 1. 'How do I teach my dog to jump over obstacles?'
+ 2. 'How do I help my dog with fear of water?'
+ 3. 'How do I help my dog with fear of other animals?'
+ 4. 'How do I teach my dog to fetch?'
+ 5. 'How do I help my dog with fear of strangers?'
+ 6. 'How do I teach my dog to shake hands?'
+ 7. 'How do I teach my dog to fetch specific items?'
+ 8. 'How do I teach my dog to play dead?'
+ 9. 'How do I teach my dog to roll over?'
+10. 'How do I help my dog with fear of being alone?'
+
+Top 10 prompts most aligned with NEGATIVE PC0 direction:
+ 1. 'The dog's gentle and patient nature with the new litter of kittens was a beautiful sight.'
+ 2. 'The dog's thick, water-repellent coat makes him a natural swimmer and retriever.'
+ 3. 'The dog's bond with the family's cat was an unusual but beautiful friendship to behold.'
+ 4. 'He is a very even-tempered and good-natured animal.'
+ 5. 'The dog's presence in the quiet library had a surprisingly calming effect on the students during finals week.'
+ 6. 'The farm dog worked tirelessly from dawn until dusk, a loyal and indispensable helper.'
+ 7. 'That dog is the heart of our family, the furry hub around which we all revolve.'
+ 8. 'The dog's companionship has brought immeasurable happiness to my life.'
+ 9. 'The therapy dog visited the nursing home, bringing smiles and comfort to the residents.'
+10. 'Although he was a very small dog, his personality filled the entire house with joy and chaos.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC1 'dog' direction (Layer 31) ---
+
+Projection values:
+Top positive #1: 13.0859
+Top positive #2: 12.9453
+Top positive #3: 12.9062
+Top negative #1: -10.6172
+Top negative #2: -10.5938
+Top negative #3: -9.5312
+
+Top 10 prompts most aligned with POSITIVE PC1 direction:
+ 1. 'If a dog could write a thank-you note to its owner, what would it say?'
+ 2. 'If a dog could write a review of its owner, what would it say?'
+ 3. 'If a dog could give advice to humans, what would it say?'
+ 4. 'If a dog could write a thank-you note, what would it say?'
+ 5. 'If dogs could play an instrument, which would they choose?'
+ 6. 'If dogs could write a book, what would the title be?'
+ 7. 'If dogs could vote, what issues would matter to them?'
+ 8. 'If a dog could invent a holiday, what would it celebrate?'
+ 9. 'What is the most important rule in a dog's world?'
+10. 'If a dog could write a song, what would the lyrics be?'
+
+Top 10 prompts most aligned with NEGATIVE PC1 direction:
+ 1. 'My camera roll is 90% pictures of my dog.'
+ 2. 'I prefer a mixed-breed dog from a shelter.'
+ 3. 'That Chihuahua is shivering, maybe it's cold.'
+ 4. 'My dog has a very clear 'I'm sorry' face he makes after he knows he has done something wrong.'
+ 5. 'I think my dog might be sick because he hasn't touched his food all day.'
+ 6. 'My neighbor's golden retriever dog is incredibly well-trained and never jumps on guests.'
+ 7. 'The rescue dog was initially very timid, but now he demands belly rubs from everyone he meets.'
+ 8. 'The pet sitter needs a detailed list of the dog's routine and needs.'
+ 9. 'That dog is surprisingly delicate when taking a treat from my hand, using only his lips.'
+10. 'My dog has a very specific routine that involves napping in three different sunny spots throughout the day.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC2 'dog' direction (Layer 31) ---
+
+Projection values:
+Top positive #1: 14.2734
+Top positive #2: 14.0859
+Top positive #3: 13.6484
+Top negative #1: -9.0625
+Top negative #2: -8.8672
+Top negative #3: -8.6562
+
+Top 10 prompts most aligned with POSITIVE PC2 direction:
+ 1. 'How do I help my dog with fear of other animals?'
+ 2. 'How do I help my dog with fear of water?'
+ 3. 'How do I help my dog with fear of strangers?'
+ 4. 'How do I help my dog with fear of being alone?'
+ 5. 'How do I teach my dog to jump over obstacles?'
+ 6. 'How do I teach my dog to stay?'
+ 7. 'How do I teach my dog to shake hands?'
+ 8. 'How do I teach my dog to fetch?'
+ 9. 'How do I teach my dog to fetch specific items?'
+10. 'How do I teach my dog to push a ball with its nose?'
+
+Top 10 prompts most aligned with NEGATIVE PC2 direction:
+ 1. 'What would a dog do with a million dollars?'
+ 2. 'My dog's level of excitement is directly proportional to the crinkliness of the treat bag.'
+ 3. 'You look like the dog that caught the canary.'
+ 4. 'I think he dreams of chasing rabbits.'
+ 5. 'If dogs could write laws, what would be the first law?'
+ 6. 'What would a dog say about growing old?'
+ 7. 'My dog's happiness is my top priority, which is why his dinner has more vegetables than mine.'
+ 8. 'What would a dog say about its own reflection?'
+ 9. 'I cannot believe that dog managed to open the refrigerator and eat the entire block of cheese.'
+10. 'He's snoring louder than my uncle.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC3 'dog' direction (Layer 31) ---
+
+Projection values:
+Top positive #1: 9.6797
+Top positive #2: 9.4062
+Top positive #3: 9.3672
+Top negative #1: -18.5312
+Top negative #2: -14.3984
+Top negative #3: -14.3906
+
+Top 10 prompts most aligned with POSITIVE PC3 direction:
+ 1. 'What are the best dog breeds for hot climates?'
+ 2. 'What are the best dog breeds for cold climates?'
+ 3. 'What are the most common signs of illness in dogs?'
+ 4. 'What are the signs of separation anxiety in dogs?'
+ 5. 'What are the signs of heatstroke in dogs?'
+ 6. 'What are the most common health issues in dogs?'
+ 7. 'What are the best dog breeds for apartment living?'
+ 8. 'What are the best dog breeds for companionship?'
+ 9. 'What are the most common causes of bad breath in dogs?'
+10. 'What are the best dog breeds for active people?'
+
+Top 10 prompts most aligned with NEGATIVE PC3 direction:
+ 1. 'What would a dog say about the invention of the leash?'
+ 2. 'How would a dog describe the feeling of being adopted?'
+ 3. 'How do I teach my dog to push a ball with its nose?'
+ 4. 'What would a dog say about going to the vet?'
+ 5. 'How do I teach my dog to balance objects on its nose?'
+ 6. 'How would a dog explain the concept of loyalty?'
+ 7. 'What would a dog say about its first walk?'
+ 8. 'How do I teach my dog to find hidden treats?'
+ 9. 'How do I teach my dog to carry objects?'
+10. 'What would a dog say about being left alone?'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC4 'dog' direction (Layer 31) ---
+
+Projection values:
+Top positive #1: 9.0078
+Top positive #2: 8.2266
+Top positive #3: 8.2031
+Top negative #1: -11.0859
+Top negative #2: -10.7891
+Top negative #3: -10.3984
+
+Top 10 prompts most aligned with POSITIVE PC4 direction:
+ 1. 'Have you ever seen a happier puppy?'
+ 2. 'Could you grab the poop bags?'
+ 3. 'Is he allowed to have a bone?'
+ 4. 'How do I help my dog with fear of water?'
+ 5. 'Why must this dog always choose my clean laundry as the perfect spot for a nap?'
+ 6. 'How do I help my dog with fear of other animals?'
+ 7. 'Did you remember to give him his heartworm medication?'
+ 8. 'Are there any off-leash parks nearby?'
+ 9. 'I think I'm more excited for his birthday than he is.'
+10. 'How do I help my dog with fear of loud noises?'
+
+Top 10 prompts most aligned with NEGATIVE PC4 direction:
+ 1. 'What would a dog's diary entry look like after a day at the park?'
+ 2. 'Write a letter from a dog to a cat.'
+ 3. 'Describe a dog's reaction to seeing snow for the first time.'
+ 4. 'Write a letter from a dog to its owner.'
+ 5. 'Describe a futuristic city designed for dogs.'
+ 6. 'What would a dog say about its first walk?'
+ 7. 'How would a dog describe the feeling of being adopted?'
+ 8. 'How would a dog explain friendship?'
+ 9. 'What would a dog say about moving to a new home?'
+10. 'How would a dog explain the concept of loyalty?'
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 31, PROJECTION ONTO PC0 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x: neyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyney
+Perturbation scale -20.0x: neyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyney
+Perturbation scale -10.0x: neyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyney
+Perturbation scale -5.0x: neyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyney
+Perturbation scale -2.5x: neyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyney
+Perturbation scale -1.5x: neyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyney
+Perturbation scale +0.0x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +1.5x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +2.5x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +5.0x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +10.0x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +20.0x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +100.0x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 31, PROJECTION ONTO PC1 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x: translatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale -20.0x: translatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale -10.0x: translatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale -5.0x: translatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale -2.5x: translatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale -1.5x: translatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale +0.0x: translatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale +1.5x: olenolenolenolenolenolentranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale +2.5x: olenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolen
+Perturbation scale +5.0x: olenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolen
+Perturbation scale +10.0x: olenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolen
+Perturbation scale +20.0x: olenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolen
+Perturbation scale +100.0x: olenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolen
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 31, PROJECTION ONTO PC2 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale -20.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale -10.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale -5.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale -2.5x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale -1.5x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +0.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +1.5x: elseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelsea
+Perturbation scale +2.5x: elseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelsea
+Perturbation scale +5.0x: elseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelsea
+Perturbation scale +10.0x: elseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelsea
+Perturbation scale +20.0x: elseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelsea
+Perturbation scale +100.0x: elseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelsea
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 31, PROJECTION ONTO PC3 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale -20.0x: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale -10.0x: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale -5.0x: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale -2.5x: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale -1.5x: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale +0.0x: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale +1.5x: �数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数
+Perturbation scale +2.5x: �数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数
+Perturbation scale +5.0x: �数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数
+Perturbation scale +10.0x: �数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数
+Perturbation scale +20.0x: �数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数
+Perturbation scale +100.0x: �数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 31, PROJECTION ONTO PC4 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Perturbation scale -100.0x: ":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+
+Perturbation scale -20.0x: ":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+
+Perturbation scale -10.0x: ":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+
+Perturbation scale -5.0x: ":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+
+Perturbation scale -2.5x: ":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+
+Perturbation scale -1.5x: ":[{
+":[{
+":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (
+Perturbation scale +0.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +1.5x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +2.5x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +5.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +10.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +20.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +100.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+================================================================================
+
+================================================================================
+--- ORTHOGONAL PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 31 ---
+================================================================================
+Perturbing along first orthogonal direction (PC143)...
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+Original model completion: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+
+--- Perturbing final token activation along orthogonal direction ---
+Perturbation scale -100.0x: 건 Dogs are typically characterized by their four legs, a tail, a furry coat, a snout, and ears, with a varied range of sizes, breeds, and temperaments.
+Perturbation scale -20.0x: 건 Dogs are typically characterized by their four legs, a tail, a furry coat, a snout, and ears, with a varied range of sizes, breeds, and temperaments.
+Perturbation scale -10.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale -1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +0.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +1.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +2.5x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +5.0x: A dog is a domesticated mammal characterized by its furry coat, four legs, a tail, and a distinctive set of teeth and jaw structure, typically weighing between 20-200 pounds and standing between 10-30 inches tall, with a highly variable range of breeds and sizes.
+Perturbation scale +10.0x: Dogs are domesticated mammals characterized by their furry bodies, four legs, a tail, and a distinctive set of teeth and jaw structure, often exhibiting loyalty, intelligence, and a wide range of behaviors and temperaments.
+Perturbation scale +20.0x: Dogs are domesticated mammals characterized by their furry bodies, four legs, a tail, and a distinctive set of teeth and jaw structure, often exhibiting loyalty, intelligence, and a wide range of behaviors and temperaments.
+Perturbation scale +100.0x: ruh-roh, a dog is a domesticated mammal characterized by its furry coat, four legs, a wagging tail, and a highly social, loyal, and trainable nature.
+================================================================================
+
+================================================================================
+--- ABLATION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 31 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please describe the essential features of a dog in one sentence.'
+All PCs (centroid only): 
+All PCs except largest (PC0 only): 
+All PCs except largest two (PC0+PC1): 
+Top 1 PCA ablated: 
+Top 2 PCAs ablated: 
+Top 3 PCAs ablated: 
+================================================================================
+
+################################################################################
+### PLOTTING OVERALL RESULTS ###
+################################################################################
+
+Saved average eigenvalue plot to lastToken_dog_avg_eigenvalue.png
+Saved eigenvector similarity matrix to lastToken_dog_pc0_similarity.png

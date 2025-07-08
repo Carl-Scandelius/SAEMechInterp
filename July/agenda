@@ -3,12 +3,12 @@ Have: substantial results for prompts from dataset tending most to positive and 
 
 ####
 Next orders of business:
--Classification task: give features and model predicts animal; then ablate PCs to see if this leads to ignorance of feature (e.g. classifies horse features where "mane" is dropped as dog)
+-Repeat for multiple concepts
 -Repeat last token work with interpolation between manifold centroids and same for word manifolds
 
 
 ####
-Papers: train meta-meta-SAE on same data as Nanda paper; see if you keep getting more atomic features
+Papers: train meta-meta-SAE on same data as Nanda paper; see if you keep getting more atomic features. I am quite sure concepts will circle back on themselves--more/less "atomic" is only defined with respect to one use. Language is not semantically well-ordered.
 
 
 ####
@@ -26,3 +26,4 @@ Concerns about current experiments:
 ####
 Pre-discarded ideas:
 -Repeat wordToken for multi-word perturbations
+-Classification task: give features and model predicts animal; then ablate PCs to see if this leads to ignorance of feature (e.g. classifies horse features where "mane" is dropped as dog)

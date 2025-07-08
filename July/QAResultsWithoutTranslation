@@ -1,0 +1,3952 @@
+(base) carlscandelius@dhcp-10-250-129-76 ~ % ssh cscandelius@login.rc.fas.harvard.edu
+(cscandelius@login.rc.fas.harvard.edu) Password: 
+(cscandelius@login.rc.fas.harvard.edu) VerificationCode: 
+!!!!!!!!!!!!!!!!!!!!!!! Cannon Cluster !!!!!!!!!!!!!!!!!!!!!!!!!!
+Cannon is a general HPC resource for Harvard's research community
+hosted by the Faculty of Arts and Sciences Research Computing.
+
++-------------------- NEWS & UPDATES ---------------------------+
++ Status and maintenance page: https://fasrc.instatus.com       +
++ Office Hours: Wednesdays noon-3pm, see website for details:   +
++    https://www.rc.fas.harvard.edu/training/office-hours       +
++ Training: https://www.rc.fas.harvard.edu/upcoming-training    +
++---------------------------------------------------------------+
+
++------------------- HELPFUL DOCUMENTATION ---------------------+
++ https://docs.rc.fas.harvard.edu/kb/quickstart-guide           +
++ https://docs.rc.fas.harvard.edu/kb/running-jobs               +
++ https://docs.rc.fas.harvard.edu/kb/convenient-slurm-commands  +
++---------------------------------------------------------------+
+
+NEXT MAINTENANCE: AUGUST 4TH 9AM - 1PM
+
+ROLLING OS UPGRADE: We will be upgrading to Rocky 8.10
+from JULY 7TH - 11TH. See this blog post for more details:
+
+https://www.rc.fas.harvard.edu/blog/2025-compute-os-upgrade/
+[cscandelius@holylogin05 ~]$ salloc --partition=kempner_requeue --account=kempner_undergads --gres=gpu:1 --mem=128G --time=0-02:00 --cpus-per-task=8
+salloc: error: Job submit/allocate failed: Invalid account or account/partition combination specified
+[cscandelius@holylogin05 ~]$ salloc --partition=kempner_requeue --account=kempner_undergrads --gres=gpu:1 --mem=128G --time=0-02:00 --cpus-per-task=8
+salloc: Pending job allocation 23375811
+salloc: job 23375811 queued and waiting for resources
+Read from remote host login.rc.fas.harvard.edu: Connection reset by peer
+Connection to login.rc.fas.harvard.edu closed.
+client_loop: send disconnect: Broken pipe
+(base) carlscandelius@dhcp-10-250-129-76 ~ % ssh cscandelius@login.rc.fas.harvard.edu
+(cscandelius@login.rc.fas.harvard.edu) Password: 
+(cscandelius@login.rc.fas.harvard.edu) VerificationCode: 
+Last login: Mon Jul  7 22:52:04 2025 from 65.112.8.28
+!!!!!!!!!!!!!!!!!!!!!!! Cannon Cluster !!!!!!!!!!!!!!!!!!!!!!!!!!
+Cannon is a general HPC resource for Harvard's research community
+hosted by the Faculty of Arts and Sciences Research Computing.
+
++-------------------- NEWS & UPDATES ---------------------------+
++ Status and maintenance page: https://fasrc.instatus.com       +
++ Office Hours: Wednesdays noon-3pm, see website for details:   +
++    https://www.rc.fas.harvard.edu/training/office-hours       +
++ Training: https://www.rc.fas.harvard.edu/upcoming-training    +
++---------------------------------------------------------------+
+
++------------------- HELPFUL DOCUMENTATION ---------------------+
++ https://docs.rc.fas.harvard.edu/kb/quickstart-guide           +
++ https://docs.rc.fas.harvard.edu/kb/running-jobs               +
++ https://docs.rc.fas.harvard.edu/kb/convenient-slurm-commands  +
++---------------------------------------------------------------+
+
+NEXT MAINTENANCE: AUGUST 4TH 9AM - 1PM
+
+ROLLING OS UPGRADE: We will be upgrading to Rocky 8.10
+from JULY 7TH - 11TH. See this blog post for more details:
+
+https://www.rc.fas.harvard.edu/blog/2025-compute-os-upgrade/
+[cscandelius@holylogin05 ~]$ ls
+July
+[cscandelius@holylogin05 ~]$ cd July
+[cscandelius@holylogin05 July]$ ls
+agenda		   helpers.py	     lastToken.py  prompts.json  run_analysis.py
+dependencies.yaml  lang_steering.py  PE		   __pycache__	 wordToken.py
+[cscandelius@holylogin05 July]$ salloc --partition=kempner_requeue --account=kempner_undergrads --gres=gpu:1 --mem=128G --time=0-02:00 --cpus-per-task=8
+salloc: Pending job allocation 23381038
+salloc: job 23381038 queued and waiting for resources
+salloc: job 23381038 has been allocated resources
+salloc: Granted job allocation 23381038
+salloc: Waiting for resource configuration
+salloc: Nodes holygpu8a19102 are ready for job
+[cscandelius@holygpu8a19102 July]$ module load Anaconda2/2019-10.fasrc01
+Lmod has detected the following error:  The following module(s) are unknown:
+"Anaconda2/2019-10.fasrc01"
+
+Please check the spelling or version number. Also try "module spider ..."
+It is also possible your cache file is out-of-date; it may help to try:
+  $ module --ignore_cache load "Anaconda2/2019-10.fasrc01"
+
+Also make sure that all modulefiles written in TCL start with the string #%Module
+
+
+
+[cscandelius@holygpu8a19102 July]$ module load Anaconda2/2019.10-fasrc01
+[cscandelius@holygpu8a19102 July]$ conda activate interp
+(interp) [cscandelius@holygpu8a19102 July]$ python main_pipeline.py
+python: can't open file '/n/home07/cscandelius/July/main_pipeline.py': [Errno 2] No such file or directory
+(interp) [cscandelius@holygpu8a19102 July]$ python run_analysis.py --script last_token --use_system_prompt
+Running LastToken analysis...
+USE_SYSTEM_PROMPT_FOR_MANIFOLD set to: True
+PERTURB_ONCE set to: False
+
+Configuration: PERTURB_ONCE is set to False
+
+Configuration: USE_SYSTEM_PROMPT_FOR_MANIFOLD is set to True
+
+Loading checkpoint shards: 100%|███████████████████████████████████████| 4/4 [02:34<00:00, 38.65s/it]
+
+################################################################################
+### STARTING ANALYSIS FOR LAYER 0 ###
+################################################################################
+
+Extracting activations from layer 0...
+Extracting activations: 100%|████████████████████████████████████| 1944/1944 [00:45<00:00, 42.62it/s]
+Extracting activations from layer 0...
+Extracting activations: 100%|██████████████████████████████████████| 247/247 [00:05<00:00, 44.67it/s]
+Concept 'dog': Found 132 effective eigenvectors out of 1944 (threshold: 0.0000)
+Concept 'lion': Found 33 effective eigenvectors out of 247 (threshold: 0.0000)
+
+================================================================================
+Running experiments for system prompt: 'You are a helpful assistant.'
+User prompt: 'Please explain some features of a dog.'
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 0, AXIS: 0 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC0 ---
+Perturbation scale -100.0x: DTheFeaturesFeaturesFeaturesFeaturesFeatures
+
+TheDogFeaturesFeaturesFeatures
+
+TheFeaturesFeatures
+
+The dog'sassistantassistant
+
+I have thedog
+
+The dog is a helpfulassistant
+
+The dog is a helpfulassistant
+
+The dog is a helpfulassistant
+
+The dog is a helpfulassistant
+
+The dog is a helpfulassistant
+
+The dog is a helpfulassistant
+Perturbation scale -20.0x: Dogs are fascinating creatures with many unique features that make them wonderful companions. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also thrive on a diet that includes plant-based foods. They have a versatile digestive system that allows them to eat a wide variety of foods, including meat
+Perturbation scale -10.0x: Dogs are fascinating creatures with many unique features that make them wonderful companions. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2.
+Perturbation scale -5.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Loyal
+Perturbation scale -2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Loyal
+Perturbation scale -1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +5.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +10.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +20.0x: Dogs are highly social, intelligent, and versatile animals that have been domesticated for thousands of years. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are carnivores but can thrive on a variety of diets, including omnivorous ones. They can eat meat, fruits, vegetables, and grains.
+
+2
+Perturbation scale +100.0x: Dogs are highly social,mammals that belong to theanimals that belong to thefamily.They are known forfamilyfamilyfamily.They are known for their.They are known forfamily.family.family. thefamily.family.family.family.They arefamilyfamilyfamilyfamily.family.family.family.They are known for
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 0, AXIS: 1 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC1 ---
+Perturbation scale -100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -20.0x: ://://://://://://://://://://://://://:// the://:// the the ( the assistant.://
+
+://
+
+://
+
+://
+
+://
+
+://
+
+.logically,://
+
+.logically://
+
+.aaassistant://
+
+ (I will provide information about the the the://:://. the://:://:://:://
+Perturbation scale -10.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also eat plant-based foods. Their diet consists of a mix of meat, fruits, vegetables, and grains.
+
+2. **Social Animals**: Dogs are highly social animals
+Perturbation scale -5.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale -2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale -1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +5.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +10.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, which is a mix of grains, proteins, and vegetables.
+
+2
+Perturbation scale +20.0x: Dogs are fascinating creatures with many unique features that make them wonderful companions. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2.
+Perturbation scale +100.0x: Dogs are fascinating creatures with unique characteristics that make them wonderful companions. Here are some key features of a dog:
+
+1. **Olfactory (Skeletal System)
+1. **Loyalty (Skeletal System)
+1. **Olfactory (Skeletal System)
+1. **Loyalty (Skeletal System)
+1. **
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 0, AXIS: 2 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC2 ---
+Perturbation scale -100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -20.0x: Dogs are fascinating creatures with unique characteristics. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also thrive on a diet that includes plant-based foods. They have a versatile digestive system that allows them to eat a wide variety of foods.
+
+2. **Loyal and Social Animals
+Perturbation scale -10.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also thrive on a diet that includes plant-based foods. They have a versatile digestive system that allows them to eat a wide variety of foods, including meat, fruits,
+Perturbation scale -5.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale -2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale -1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +5.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +10.0x: Dogs are fascinating creatures with many unique features that make them wonderful companions. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2.
+Perturbation scale +20.0x: Dogs are fascinating creatures with many unique features that make them wonderful companions. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2.
+Perturbation scale +100.0x: Dogs are fascinating creatures with many unique features that make them special. Here are some key features of a dog:
+
+1. **Olfactory System:** Dogs have a highly developed sense of smell. Their olfactory system is made up of millions of olfactory receptors in their noses. These receptors allow them to detect a wide range of scents and
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 0, AXIS: 3 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC3 ---
+Perturbation scale -100.0x: Dogs are fascinating creatures with numerous unique features. Here are some key characteristics of dogs:
+
+1. **Olfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolfolf
+Perturbation scale -20.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, which is a mix of grains, proteins, and vegetables.
+
+2
+Perturbation scale -10.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale -5.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale -2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale -1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +5.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +10.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +20.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also eat plant-based foods. Their diet consists of a mix of meat, fruits, vegetables, and grains.
+
+2. **Social Animals**: Dogs are highly social animals
+Perturbation scale +100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 0, AXIS: 4 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC4 ---
+Perturbation scale -100.0x: Dogs are fascinating animals with unique characteristics. Here are some key features of a dog:
+
+1. **Omnivorous Diet**: Dogs are omnivores, meaning they can eat both plants and animals. Their diet can vary greatly depending on the breed and size of the dog.
+
+2. **Social Animals**: Dogs are highly social animals that thrive
+Perturbation scale -20.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also thrive on a diet that includes plant-based foods. They have a versatile digestive system that allows them to eat a wide variety of foods, including meat, fruits,
+Perturbation scale -10.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale -5.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale -2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale -1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +5.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +10.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Loyal
+Perturbation scale +20.0x: Dogs are fascinating creatures with many unique features that make them wonderful companions. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2.
+Perturbation scale +100.0x: Dogs are highly social, intelligent, and loyal animals that have been domesticated for thousands of years. Here are some of their key features:
+
+1. **Olfactory**: Dogs have a highly developed sense of smell. Their sense of smell is one of the most complex and sensitive senses in the animal kingdom. This is due to the fact that
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC0 'dog' direction (Layer 0) ---
+
+Projection values:
+Top positive #1: 0.1017
+Top positive #2: 0.0918
+Top positive #3: 0.0853
+Top negative #1: -0.0865
+Top negative #2: -0.0859
+Top negative #3: -0.0779
+
+Top 10 prompts most aligned with POSITIVE PC0 direction:
+ 1. 'We adopted a senior dog from the shelter, and he is the sweetest, most gentle companion.'
+ 2. 'There, in the center of the mess he created, sat the unrepentant dog, wagging his tail.'
+ 3. 'The dog's joy is simple, pure, and infectious.'
+ 4. 'The dog's life is a beautiful, albeit brief, journey.'
+ 5. 'She loves to ride in the car, no matter the destination.'
+ 6. 'My dog's life revolves around a simple and beautiful schedule: eat, play, sleep, love, repeat.'
+ 7. 'She loves the beach, chasing the waves back and forth.'
+ 8. 'She is the perfect hiking companion.'
+ 9. 'He is not a fan of the mailman, the delivery driver, or squirrels.'
+10. 'Frustrated, the dog let out a huff and dropped the toy, waiting for me to throw it again.'
+
+Top 10 prompts most aligned with NEGATIVE PC0 direction:
+ 1. 'That dog is a furry alarm clock with a wet nose and no snooze button.'
+ 2. 'The celebrity's tiny teacup dog had its own social media account with millions of followers.'
+ 3. 'Why does one dog in a neighborhood start a barking chain reaction with every other dog?'
+ 4. 'Why does every dog feel the need to circle three times before finally lying down?'
+ 5. 'The first-ever domesticated dog is believed to have descended from an ancient wolf population.'
+ 6. 'My dog always brings me a 'gift'—usually a soggy toy or a stolen sock—when I get home.'
+ 7. 'The guide dog successfully navigated its owner across a busy intersection during rush hour.'
+ 8. 'My neighbor's golden retriever dog is incredibly well-trained and never jumps on guests.'
+ 9. 'The new city ordinance requires every dog owner to carry proof of rabies vaccination.'
+10. 'The mushers prepared their sled dog teams for the grueling thousand-mile Iditarod race.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC1 'dog' direction (Layer 0) ---
+
+Projection values:
+Top positive #1: 0.0662
+Top positive #2: 0.0646
+Top positive #3: 0.0634
+Top negative #1: -0.0729
+Top negative #2: -0.0627
+Top negative #3: -0.0591
+
+Top 10 prompts most aligned with POSITIVE PC1 direction:
+ 1. 'That dog is incredibly intuitive and always seems to know when someone needs comforting.'
+ 2. 'Her boundless love is a gift I don't deserve but cherish.'
+ 3. 'After a long day of hiking, the tired dog fell asleep before he even finished his dinner.'
+ 4. 'She can tell when I'm just getting my shoes on versus when I'm getting her leash.'
+ 5. 'My dog has a very clear 'I'm sorry' face he makes after he knows he has done something wrong.'
+ 6. 'The old dog moved stiffly in the morning but seemed to loosen up after a short walk.'
+ 7. 'Her playful nature is a daily reminder not to take life too seriously.'
+ 8. 'The dog's memory is quite good; he always remembers the people who give him the best treats.'
+ 9. 'I wish my dog could talk so he could tell me what he's thinking about all day.'
+10. 'My dog's dramatic sigh seemed to express his profound disappointment with the lack of walks today.'
+
+Top 10 prompts most aligned with NEGATIVE PC1 direction:
+ 1. 'The Schnoodle is a Schnauzer-Poodle mix.'
+ 2. 'The Pomapoo is a Pomeranian and Poodle mix.'
+ 3. 'The Cocker Spaniel has long, floppy ears.'
+ 4. 'The Labradoodle combines the traits of a Labrador and a Poodle.'
+ 5. 'The Pomsky is a cross between a Pomeranian and a Husky.'
+ 6. 'The Goldendoodle is a cross between a Golden Retriever and a Poodle.'
+ 7. 'The Maltipoo is a mix of a Maltese and a Poodle.'
+ 8. 'The Newfypoo is a cross between a Newfoundland and a Poodle.'
+ 9. 'The Sheepadoodle is an Old English Sheepdog and Poodle mix.'
+10. 'The dog's friendship is a bond that transcends words.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC2 'dog' direction (Layer 0) ---
+
+Projection values:
+Top positive #1: 0.0543
+Top positive #2: 0.0524
+Top positive #3: 0.0515
+Top negative #1: -0.0566
+Top negative #2: -0.0537
+Top negative #3: -0.0521
+
+Top 10 prompts most aligned with POSITIVE PC2 direction:
+ 1. 'Come!'
+ 2. 'Fetch!'
+ 3. 'Sit!'
+ 4. 'Off!'
+ 5. 'Drop it!'
+ 6. 'Stay.'
+ 7. 'Do dogs dream?'
+ 8. 'Heel.'
+ 9. 'Is it true that some breeds are hypoallergenic?'
+10. 'How long do dogs live?'
+
+Top 10 prompts most aligned with NEGATIVE PC2 direction:
+ 1. 'The dog, covered from nose to tail in mud, was not allowed back in the house until he had a thorough bath.'
+ 2. 'The dog's coat was a beautiful brindle pattern, a mix of black, brown, and gold stripes.'
+ 3. 'The dog's ears perked up, and he let out a low growl, alerting us to someone approaching the door.'
+ 4. 'There, in the center of the mess he created, sat the unrepentant dog, wagging his tail.'
+ 5. 'The dog, a blur of fur and motion, joyfully chased the ball down the long hallway.'
+ 6. 'The sheepdog, with its intense gaze, kept the flock tightly packed and moving in the right direction.'
+ 7. 'The dog's deep sigh, heard from the other room, signaled his boredom with our lack of activity.'
+ 8. 'Through the pouring rain, the lost dog searched for a dry place to find shelter for the night.'
+ 9. 'The dog's intense focus on the ball, to the exclusion of all else, is a form of meditation.'
+10. 'The dog's playful bow, with his front end down and his back end up, was an invitation to chase.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC3 'dog' direction (Layer 0) ---
+
+Projection values:
+Top positive #1: 0.0646
+Top positive #2: 0.0598
+Top positive #3: 0.0587
+Top negative #1: -0.0449
+Top negative #2: -0.0415
+Top negative #3: -0.0408
+
+Top 10 prompts most aligned with POSITIVE PC3 direction:
+ 1. 'If a dog could have a job, what would it be?'
+ 2. 'If a dog could give advice to humans, what would it say?'
+ 3. 'If a dog could make a wish, what would it be?'
+ 4. 'If dogs could vote, what issues would matter to them?'
+ 5. 'If a dog could send a text, what would it say?'
+ 6. 'If a dog could write a review of its owner, what would it say?'
+ 7. 'If a dog could write a thank-you note, what would it say?'
+ 8. 'If a dog could be any other animal for a day, what would it choose?'
+ 9. 'If a dog could write a thank-you note to its owner, what would it say?'
+10. 'If dogs could run a business, what would it be?'
+
+Top 10 prompts most aligned with NEGATIVE PC3 direction:
+ 1. 'The Siberian Indian Dog is a Husky and Native American Indian Dog cross.'
+ 2. 'The mushers prepared their sled dog teams for the grueling thousand-mile Iditarod race.'
+ 3. 'The Gerberian Shepsky is a German Shepherd and Siberian Husky mix.'
+ 4. 'The Alaskan Malamute was bred for hauling heavy freight.'
+ 5. 'The Welsh Springer Spaniel is a distinct breed from the more common English Springer Spaniel.'
+ 6. 'The Neapolitan Mastiff is known for its massive size and loose, wrinkled skin.'
+ 7. 'The pet adoption fee covers spaying/neutering and initial vaccinations.'
+ 8. 'During the thunderstorm, the terrified dog hid under the kitchen table, shivering uncontrollably.'
+ 9. 'The sled dog team worked in perfect harmony, pulling the heavy sled across the frozen tundra.'
+10. 'The boarding facility offers luxury suites for pampered pooches.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC4 'dog' direction (Layer 0) ---
+
+Projection values:
+Top positive #1: 0.0426
+Top positive #2: 0.0417
+Top positive #3: 0.0411
+Top negative #1: -0.0461
+Top negative #2: -0.0392
+Top negative #3: -0.0336
+
+Top 10 prompts most aligned with POSITIVE PC4 direction:
+ 1. 'He's a very easy-going dog who is happy just to be with his people.'
+ 2. 'That dog is a true original, a one-of-a-kind canine with a personality all his own.'
+ 3. 'A dog's nose print is as unique as a human's fingerprint, and can be used for identification.'
+ 4. 'Is it true that a dog's sense of smell is thousands of times better than a human's?'
+ 5. 'The bond between a human and their dog is often profound.'
+ 6. 'Her intelligence is sometimes a little too much for her own good.'
+ 7. 'The howl of a wolf is not so different from that of some domestic breeds.'
+ 8. 'The dog's sense of hearing is far more sensitive than a human's.'
+ 9. 'He is a very magnificent and powerful animal.'
+10. 'He is a very powerful and magnificent-looking animal.'
+
+Top 10 prompts most aligned with NEGATIVE PC4 direction:
+ 1. 'During the thunderstorm, the terrified dog hid under the kitchen table, shivering uncontrollably.'
+ 2. 'Underneath the porch, the timid rescue dog watched the world with wary, uncertain eyes.'
+ 3. 'His tail started wagging the moment I picked up the leash.'
+ 4. 'She runs in her sleep, probably chasing dream squirrels.'
+ 5. 'The mushers prepared their sled dog teams for the grueling thousand-mile Iditarod race.'
+ 6. 'The sled dog team worked in perfect harmony, pulling the heavy sled across the frozen tundra.'
+ 7. 'There, in the center of the mess he created, sat the unrepentant dog, wagging his tail.'
+ 8. 'When I came home, the guilty-looking dog had spread trash all over the kitchen floor.'
+ 9. 'The doggie daycare sends report cards home.'
+10. 'How do dogs feel about mail carriers?'
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 0, PROJECTION ONTO PC0 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x: TheThe
+
+
+
+
+
+
+
+FeaturesTheTheTheTheTheTheInformation
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Informationassistant
+Perturbation scale -20.0x: 
+
+ Here Here Here Here Dogs Dogs Dogs Dogs 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+
+
+ 
+
+
+Perturbation scale -10.0x: 
+
+**As
+Perturbation scale -5.0x: I ** 
+
+
+Perturbation scale -2.5x: IHere I I
+Perturbation scale -1.5x: II I I I I I I 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ I 
+
+ I
+Perturbation scale +0.0x: II D       D I I I I 
+
+
+Perturbation scale +1.5x: ID      There ID   I I I  
+
+ 
+
+ 
+
+ I I 
+
+
+Perturbation scale +2.5x: section            
+Perturbation scale +5.0x: assistant |
+
+
+
+ 
+
+://
+Perturbation scale +10.0x: ://://://://://://://://://://://://://://://://:// the
+
+:// the
+
+://	://://:// the
+
+:// (://assistant://://:// theassistant://://:// (://assistant://://://
+
+://
+Perturbation scale +20.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale +100.0x:  features and and,,
+
+assistantassistant features
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 0, PROJECTION ONTO PC1 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://ста://://://://://://://://://://://://://://://://://
+Perturbation scale -20.0x: ://://://://://://://://://://://://
+Perturbation scale -10.0x: ://://://://://://://://://://://://://://://://://ста://://://://://
+Perturbation scale -5.0x: ://://://://://://://://://://://:// the	://:// the://:// the the://://assistantassistant the://:// ( (://://://
+
+://assistant
+
+:// the (://://assistant://://://://
+Perturbation scale -2.5x: ://://A://
+
+://://assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale -1.5x: The://://assistant://://assistantassistant
+
+://://assistant
+
+://://
+Perturbation scale +0.0x: ://assistant4assistantassistantassistant
+
+://
+
+assistant
+
+://
+
+assistant
+
+://
+
+://assistant://
+
+
+Perturbation scale +1.5x: ://sI
+Perturbation scale +2.5x: assistantassistantassistant</ 
+
+
+Perturbation scale +5.0x: 
+
+
+
+ I
+
+
+
+
+
+
+
+
+
+
+
+ I I I I I
+
+
+
+
+
+
+
+IIIIIIII
+
+
+
+assistant
+
+assistant
+
+
+
+
+
+
+
+
+
+://
+
+
+
+
+
+
+
+
+
+
+
+assistant
+
+
+
+
+
+
+
+
+
+
+Perturbation scale +10.0x: 
+
+
+
+
+
+ II
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+IIIIIIIIIassistantassistantassistant
+Perturbation scale +20.0x: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+IIIIIIIIIIIIIIIIIIassistantassistantIIIassistantassistantassistantassistantassistantassistantassistant
+
+
+
+
+Perturbation scale +100.0x: IIIIIII
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 0, PROJECTION ONTO PC2 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -20.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -10.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -5.0x: 
+
+
+
+:// the the://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -2.5x: IassistantassistantI
+
+assistantassistant://://	assistantassistant://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -1.5x: assistantassistant
+
+assistantassistant
+
+assistantassistant://
+
+assistantassistant://
+
+assistantassistant://.assistantassistant://.Sassistantassistant://://://.assistant
+
+
+
+assistant
+
+assistantassistant.log
+Perturbation scale +0.0x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantI.assistantassistantassistantAassistantassistantassistantassistantassistantTheassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +1.5x: assistantAIassistantassistant–
+
+Theassistantassistantassistantassistantassistant
+
+
+
+
+
+
+
+
+
+assistantassistantassistantDassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +2.5x: assistantALetassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +5.0x: IDHereII  havingassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantII
+Perturbation scale +10.0x: 
+
+
+
+D are are 
+
+ 
+
+ 
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perturbation scale +20.0x: 
+
+DHereHereIIII
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perturbation scale +100.0x: IIDD
+
+
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 0, PROJECTION ONTO PC3 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perturbation scale -20.0x: 
+
+
+
+
+
+I
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perturbation scale -10.0x: 
+
+IDIHereHereHereHereHereHereIHereIIIHereHereSome
+
+assistantassistant
+
+assistantassistant
+Perturbation scale -5.0x: assistant 
+
+II
+Perturbation scale -2.5x: assistantassistant-
+
+assistantassistantassistantassistant
+Perturbation scale -1.5x: ThereSomeassistant
+Perturbation scale +0.0x: ://assistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +1.5x: ://The://
+
+://
+
+://
+
+://
+
+://assistant
+
+://assistant
+
+://assistantassistant
+Perturbation scale +2.5x: ://://://://://
+
+:// the:// the://assistantaaassistantassistantassistantassistantassistantassistant
+Perturbation scale +5.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://:// (://
+
+://
+
+:// the.://assistant://://.://assistant://
+Perturbation scale +10.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale +20.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale +100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 0, PROJECTION ONTO PC4 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perturbation scale -20.0x: assistantassistant 
+
+
+Perturbation scale -10.0x: assistantassistant
+Perturbation scale -5.0x: assistantassistant
+Perturbation scale -2.5x: Hereassistantassistant
+Perturbation scale -1.5x: Iassistant
+Perturbation scale +0.0x: ThereD
+Perturbation scale +1.5x: TheD
+Perturbation scale +2.5x: TheDDassistantD
+Perturbation scale +5.0x:  theassistant
+
+
+
+
+
+ the the the the the the the the the the
+
+ Information
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+assistantassistantassistant
+Perturbation scale +10.0x: :// the the://
+
+:// the	assistant the the the ( the the the the the the the the the help
+
+ the help
+
+ the the the
+
+
+
+
+
+assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +20.0x: ://://://://://://://://://://://... the the the the the the the the the the the the the the the the the theassistant
+
+
+
+assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +100.0x: ://:// the
+
+://
+
+
+
+  the the the the the the the the the the the the the the the help help the the the the the the the the
+
+
+
+ the
+
+
+
+ the
+
+
+
+ the the
+
+
+
+
+
+
+
+
+
+================================================================================
+
+================================================================================
+--- ORTHOGONAL PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 0 ---
+================================================================================
+Perturbing along first orthogonal direction (PC132)...
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along orthogonal direction ---
+Perturbation scale -100.0x: Dogs are one of the most popular Pets in the world. Here are some the most popular Pets in the world. Here are some the most popular Pets in the world. Here are some the most popular Pets in the world. Here are some the most popular Pets in the world. Here are some the most popular Pets in the world. Here are
+Perturbation scale -20.0x: Dogs are fascinating creatures with unique characteristics. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, meaning they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals**: Dogs are highly
+Perturbation scale -10.0x: Dogs are fascinating creatures with many unique features that make them wonderful companions. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2.
+Perturbation scale -5.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale -2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale -1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +5.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +10.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also eat plant-based foods. Their diet consists of a mix of meat, fruits, vegetables, and grains.
+
+2. **Social Animals**: Dogs are highly social animals
+Perturbation scale +20.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also eat plant-based foods. Their diet consists of a mix of meat, fruits, and vegetables.
+
+2. **Social Animals**: Dogs are pack animals and thrive on
+Perturbation scale +100.0x: Dogs, also known as, and my favorite. 
+
+However
+================================================================================
+
+================================================================================
+--- ABLATION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 0 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+All PCs (centroid only): 
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+ A A A A A A A A A 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ A A A 
+
+ 
+
+ 
+
+ A A 
+
+ 
+
+ 
+
+
+All PCs except largest (PC0 only): 
+
+assistant
+
+
+
+
+
+
+
+ D A A A A A A
+
+
+
+ A A 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+All PCs except largest two (PC0+PC1): 
+
+assistant
+
+
+
+
+
+
+
+ A A A 
+
+ A
+
+
+
+
+
+ A A 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Top 1 PCA ablated: Dogs are fascinating creatures with a wide range of characteristics. Here are some key features of a dog:
+
+1. **OlfI
+
+I apologize for the incomplete response earlier. Let me provide a complete explanation.
+
+Here are some key features of a
+Top 2 PCAs ablated: Dogs are fascinating creatures with a wide range of characteristics. Here are some key features of a dog:
+
+1. **OlfI
+
+I apologize about the mistake. Let me start again.
+
+Here are some key features of a dog:
+
+1.
+Top 3 PCAs ablated: Dogs are fascinating creatures with a wide range of characteristics. Here are some key features of a dog:
+
+1. **OlfI
+
+I apologize for the incomplete response earlier. Let me provide a complete explanation.
+
+Here are some key features of a
+================================================================================
+
+################################################################################
+### STARTING ANALYSIS FOR LAYER 15 ###
+################################################################################
+
+Extracting activations from layer 15...
+Extracting activations: 100%|████████████████████████████████████| 1944/1944 [00:43<00:00, 44.55it/s]
+Extracting activations from layer 15...
+Extracting activations: 100%|██████████████████████████████████████| 247/247 [00:05<00:00, 44.72it/s]
+Concept 'dog': Found 133 effective eigenvectors out of 1944 (threshold: 0.0056)
+Concept 'lion': Found 28 effective eigenvectors out of 247 (threshold: 0.0331)
+
+================================================================================
+Running experiments for system prompt: 'You are a helpful assistant.'
+User prompt: 'Please explain some features of a dog.'
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 15, AXIS: 0 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC0 ---
+Perturbation scale -100.0x:  answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered
+Perturbation scale -20.0x:  dogs, a,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Perturbation scale -10.0x: Dogs are one of the most popular and diverse animals, from the smallest to the largest, from the most intelligent to the most playful, from the most energetic to the most laid. There are many different types of dogs, from the dog's dog, from the dog's dog, from the dog's dog, from the dog's dog, from
+Perturbation scale -5.0x: Dogs are one of the most popular pets worldwide, known for their loyalty, affectionate nature, and unique characteristics. Here are some key features of dogs:
+
+1. **Diet and Nutrition**: Dogs are omnivores, meaning they eat a variety of foods including meat, fruits, vegetables, and grains. They have a short digestive system,
+Perturbation scale -2.5x: Dogs are fascinating animals, and they come in a wide range of breeds, sizes, and temperaments. Here are some key features of dogs:
+
+1. **Physical Characteristics**: Dogs come in various shapes and sizes, from the tiny Chihuahua to the massive Great Dane. They have a muscular body, a short or long coat, and
+Perturbation scale -1.5x: Dogs are fascinating animals, and they come in a wide range of breeds, sizes, and temperaments. Here are some key features of dogs:
+
+1. **Physical Characteristics**: Dogs come in various shapes and sizes, from the tiny Chihuahua to the massive Great Dane. They have a muscular body, a short or long coat, and
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: I'd be happy to explain some features of a dog.
+
+**Physical Features:**
+
+1. **Body Shape:** Dogs come in a variety of body shapes, including long and lean (e.g., Greyhound), short and stout (e.g., Bulldog), and muscular (e.g., German Shepherd).
+2. **Coat:** Dogs have
+Perturbation scale +2.5x: I'd be happy to explain some features of a dog. Here are a few:
+
+1. **Skeletal System:** A dog's skeletal system is made up of 319 bones. This is in contrast to the 206 bones found in the human skeletal system. The extra bones in a dog's skeleton are due to the presence of a separate bone
+Perturbation scale +5.0x: Here are some features of a dog:
+
+1. **Skeletal Structure:** The skeletal structure of a dog consists of 206 bones. This includes the skull, vertebrae, ribs, and limbs.
+
+2. **Mouth Structure:** The mouth of a dog contains 32 teeth. The dental structure includes incisors, canines, and mol
+Perturbation scale +10.0x: The features of a dog
+
+The above is the assistant's assistant's assistant's assistant's assistant's assistant's assistant's assistant's assistant's assistant's assistant's assistant's assistant's assistant's assistant's assistant's assistant'sassistantassistantassistant
+Perturbation scale +20.0x:   
+Perturbation scale +100.0x: swickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickórswickórswickórswickórswickórswick
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 15, AXIS: 1 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC1 ---
+Perturbation scale -100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://acellularaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganagan
+Perturbation scale -20.0x: Here are some interesting features of a dog. 
+
+1.  _Oxidalos en una trad de las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las las
+Perturbation scale -10.0x: Dogs are fascinating creatures, and I'd be happy to highlight some of their key features. Here are a few:
+
+1. **Physical Characteristics**: Dogs come in a wide range of shapes and sizes, from small Chihuahuas to large Great Danes. They have four legs, a tail, and a coat that can vary in color,
+Perturbation scale -5.0x: Dogs are fascinating creatures, and I'd be happy to explain some of their key features. Here are a few:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also thrive on a diet that includes plant-based foods. They have a unique digestive system that allows them to eat a wide variety of foods, including
+Perturbation scale -2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. They have a flexible digestive system that allows them to thrive on a wide range of diets.
+
+2. **Ke
+Perturbation scale -1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of a mix of carbohydrates, proteins, and fats.
+
+2. **Keen Sense of
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating creatures with many unique features that make them wonderful companions. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, which is a mix of grains, proteins, and
+Perturbation scale +2.5x: Dogs are fascinating creatures with many unique features that make them wonderful companions. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, which is a mix of grains, proteins, and
+Perturbation scale +5.0x: Dogs are one of the most popular and beloved pets worldwide, known for their loyalty, intelligence, and affectionate nature. Here are some key features of dogs:
+
+1. **Physical Characteristics:** Dogs come in a wide range of shapes and sizes, from the tiny Chihuahua to the massive Great Dane. They have a typical body shape,
+Perturbation scale +10.0x: Dogs are one of the most popular and beloved pets, and they come in a wide range of breeds and sizes. Here are some key features of dogs:
+
+1. **Communication:** Dogs communicate through various methods, including:
+
+   * Barking: a primary form of communication, used to express emotions, alert others, and initiate interaction.
+   *
+Perturbation scale +20.0x: A dog is a mammor, a mammor, a mammor, a mammor, a mammor, a mammor, a mammor, a mammor, a mammor, a mammor, a mammor, a
+
+A dog is a mammor, a mammor, a
+
+A dog is a mammor, a
+Perturbation scale +100.0x:  Angeles Angeles Angeles Angeles Angeles Angeles wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 15, AXIS: 2 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC2 ---
+Perturbation scale -100.0x:  NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC
+Perturbation scale -20.0x: This is a fun and imaginative story. 
+
+A dog is a fictional story.
+Perturbation scale -10.0x: Dogs are fascinating creatures, and their unique characteristics make them one of the most beloved pets in the world. Here are some interesting features of a dog:
+
+1. **Physical Characteristics**: Dogs come in a wide range of shapes and sizes, from the tiny Chihuahua to the massive Great Dane. They have a unique body shape, with a
+Perturbation scale -5.0x: Dogs are fascinating creatures, and here are some interesting features:
+
+1. **Olfactory System**: Dogs have an incredibly developed sense of smell, with up to 300 million olfactory receptors in their noses. This allows them to detect scents that are too subtle for humans to detect.
+
+2. **Loyalty and Social Bonding**:
+Perturbation scale -2.5x: Dogs are fascinating creatures with unique characteristics. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also eat plant-based foods. Their diet consists of a mix of meat, fruits, and vegetables.
+
+2. **Keen Sense of Smell**: Dogs have an incredibly developed sense
+Perturbation scale -1.5x: Dogs are fascinating creatures with unique characteristics. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also thrive on a diet that includes plant-based foods. Their digestive system is designed to break down protein-rich foods, but they can also eat fruits, vegetables, and grains.
+
+2
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating animals with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +2.5x: Dogs are fascinating animals with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +5.0x: Dogs are one of the most popular and beloved pets worldwide, known for their loyalty, intelligence, and versatility. Here are some key features of dogs:
+
+1. **Communication**: Dogs communicate primarily through body language and vocalizations. They use a range of barks, whines, growls, and body postures to convey emotions and needs.
+
+
+Perturbation scale +10.0x: I'd be happy to explain some features of a dog. Here are some key points:
+
+1. **Communication**: Dogs communicate primarily through body language and vocalizations. They use a variety of barks, whines, growls, and body postures to convey information and express emotions.
+
+2. **Senses**: Dogs have a highly developed sense
+Perturbation scale +20.0x: There are several features of a dog, known as 'Dhurchspråm' på det arveliga språket (språet på det arveliga språet) på det arveliga språet på det arveliga språet på det arveliga språet på det arveliga språ
+Perturbation scale +100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 15, AXIS: 3 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC3 ---
+Perturbation scale -100.0x: earearearearearearearezezezezseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseau
+Perturbation scale -20.0x: Here are some key features of a dog:
+
+1. **Body Structure:**
+
+1. **Body Type:** Dogs come in various shapes and sizes, including:
+
+- **Large:** Large breeds, such as the Greyhound, featuring a muscular build, with a deep chest, and a tapering tail.
+
+- **Medium:** Medium breeds, such as
+Perturbation scale -10.0x: Dogs are amazing animals, and I'd be happy to explain some of their key features.
+
+**Physical Features:**
+
+1. **Body Structure:** Dogs have a muscular body, with a skeletal system that includes a ribcage, spine, and limbs. Their body shape can vary depending on their breed, but most dogs have a similar structure.
+
+Perturbation scale -5.0x: Dogs are amazing animals, and I'd be happy to explain some of their key features.
+
+**Physical Features:**
+
+1. **Body Structure:** Dogs have a muscular body, with a flexible spine and powerful legs. Their body shape can vary greatly depending on their breed, but most dogs have a similar overall structure.
+2. **Skeletal System
+Perturbation scale -2.5x: Dogs are fascinating animals, and I'd be happy to explain some of their key features.
+
+**Physical Features:**
+
+1. **Body Structure:** Dogs have a muscular body, a long tail, and four legs. Their body shape can vary greatly depending on their breed, with some being short and compact, while others are tall and slender.
+2
+Perturbation scale -1.5x: Dogs are fascinating creatures with unique characteristics. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals**: Dogs are
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Loyal
+Perturbation scale +2.5x: Dogs are fascinating creatures with many unique features. Here are some of the most notable ones:
+
+1. **Olfactory System**: Dogs have an incredibly developed sense of smell, with up to 300 million olfactory receptors in their noses compared to only 6 million in humans. This allows them to detect scents that are too faint for humans
+Perturbation scale +5.0x: Dogs are fascinating creatures with many unique features. Here are some of the most notable ones:
+
+1. **Olfactory System**: Dogs have an incredibly developed sense of smell, with up to 300 million olfactory receptors in their noses compared to only 6 million in humans. This allows them to detect scents that are too faint for humans
+Perturbation scale +10.0x: Dogs are known for their unique characteristics and abilities. Here are some features of a dog:
+
+1. **Olfactory Sense**: Dogs have a highly developed sense of smell, which is often 10-100 times stronger than that of a human. This is due to the large number of olfactory receptors in their noses, which are responsible for
+Perturbation scale +20.0x: A dog is a domestic animal, often referring to a pet or a companion, and is often used to refer to a domestic animal as a colloagous to a cat.
+Perturbation scale +100.0x: ://://://://
+
+
+
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+ingroupingroup.
+ingroup.
+ingroup.
+ingroupingroup.
+ingroupingroup.
+ingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroup
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 15, AXIS: 4 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC4 ---
+Perturbation scale -100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -20.0x: Here's a list of features about dogs:
+
+1.  **Loyalty**: Dogs are known to be loyal companions. They can form strong bonds with their owners and often remain by our side without needing to be told to do so.
+
+2.  **Barking Ability**: Dogs can bark to communicate, and they can produce different sounds to convey
+Perturbation scale -10.0x: I'd be happy to explain some features of a dog.
+
+**Physical Features:**
+
+1. **Ears:** Dogs have two ears that can move independently, allowing them to pinpoint sounds and hear their surroundings more effectively.
+2. **Nose:** Dogs have a highly developed sense of smell, with some breeds having up to 300 million olfactory
+Perturbation scale -5.0x: Dogs are fascinating creatures with a wide range of characteristics. Here are some key features of dogs:
+
+1. **Physical Characteristics**: Dogs come in various shapes and sizes, ranging from the tiny Chihuahua to the massive Great Dane. They have a four-legged body, a tail, and a head with ears, eyes, and a nose.
+Perturbation scale -2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also eat plant-based foods. Their diet consists of a mix of meat, fruits, vegetables, and grains.
+
+2. **Loyal Companions**: Dogs are
+Perturbation scale -1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Loyal
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating animals, and they come with a wide range of characteristics and features. Here are some of the key features of a dog:
+
+1. **Body Structure**: Dogs have a muscular body, a long tail, and four legs. Their body structure can vary greatly depending on the breed, with some being short and compact, while others are
+Perturbation scale +2.5x: Dogs are fascinating animals, and here are some of their notable features:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also thrive on a diet that includes fruits, vegetables, and grains. Their digestive system is designed to break down protein-rich foods, but they can adapt to a variety of diets.
+
+2.
+Perturbation scale +5.0x: Dogs are popular pets known for their loyalty, affection, and unique characteristics. Here are some key features of dogs:
+
+1. **Physical Characteristics**: Dogs come in a wide range of shapes and sizes, from small breeds like Chihuahuas to large breeds like Great Danes. They have a muscular body, a tail, and four legs.
+Perturbation scale +10.0x: Dogs are popular pets known for their loyalty, affection, and unique characteristics. Here are some key features of dogs:
+
+1. **Physical Characteristics**: Dogs come in a wide range of shapes and sizes, from small breeds like Chihuahuas to large breeds like Great Danes. They have a muscular body, a short or long coat, and
+Perturbation scale +20.0x: Dogs are popular pets and companions, known for their affectionate and social behavior. Here are some key features of dogs:
+
+1. **Physical Characteristics**: Dogs come in a wide range of sizes, from small to large, and breeds vary in terms of body shape, weight, and height. They have a few key physical features, including:
+-
+Perturbation scale +100.0x: avanaavanaimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimaniman
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC0 'dog' direction (Layer 15) ---
+
+Projection values:
+Top positive #1: 1.2910
+Top positive #2: 1.2793
+Top positive #3: 1.2764
+Top negative #1: -5.9375
+Top negative #2: -5.9102
+Top negative #3: -5.8984
+
+Top 10 prompts most aligned with POSITIVE PC0 direction:
+ 1. 'Her playful spirit is a constant source of joy and laughter.'
+ 2. 'The dog's powerful legs propelled him through the snow with surprising ease.'
+ 3. 'The dog's contentment was obvious as he dozed in a patch of warm sunlight on the floor.'
+ 4. 'The sheepdog herded the flock with impressive skill.'
+ 5. 'The dog's thick, water-repellent coat makes him a natural swimmer and retriever.'
+ 6. 'He snoozed, twitching his paws as if dreaming.'
+ 7. 'The greyhound stretched languidly on the rug.'
+ 8. 'The sled dog team worked in perfect harmony, pulling the heavy sled across the frozen tundra.'
+ 9. 'The farm dog worked tirelessly from dawn until dusk, a loyal and indispensable helper.'
+10. 'His enthusiasm for life is a daily inspiration.'
+
+Top 10 prompts most aligned with NEGATIVE PC0 direction:
+ 1. 'What is the best way to introduce my dog to strangers?'
+ 2. 'What is the best way to teach my dog to swim?'
+ 3. 'What is the best way to introduce my dog to children?'
+ 4. 'What is the best way to teach my dog to ring a bell to go outside?'
+ 5. 'What are the best dog breeds for scent work?'
+ 6. 'What is the best way to prevent ticks on my dog?'
+ 7. 'What is the best way to teach my dog to back up on command?'
+ 8. 'What is the best way to teach my dog to jump through hoops?'
+ 9. 'How do I help my dog with fear of water?'
+10. 'What are the best dog breeds for running partners?'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC1 'dog' direction (Layer 15) ---
+
+Projection values:
+Top positive #1: 2.4219
+Top positive #2: 2.3574
+Top positive #3: 2.3555
+Top negative #1: -2.4238
+Top negative #2: -2.3281
+Top negative #3: -2.3125
+
+Top 10 prompts most aligned with POSITIVE PC1 direction:
+ 1. 'Heel.'
+ 2. 'Stay.'
+ 3. 'Off!'
+ 4. 'Come!'
+ 5. 'Sit!'
+ 6. 'What a good boy!'
+ 7. 'Drop it!'
+ 8. 'Beware of Dog.'
+ 9. 'He has a heart of gold.'
+10. 'Let sleeping dogs lie.'
+
+Top 10 prompts most aligned with NEGATIVE PC1 direction:
+ 1. 'My dog has a very clear 'I'm sorry' face he makes after he knows he has done something wrong.'
+ 2. 'That dog has a very specific, high-pitched bark he reserves only for the mail carrier.'
+ 3. 'My dog has a very specific routine that involves napping in three different sunny spots throughout the day.'
+ 4. 'My dog's response to the command 'stay' is more of a suggestion he politely considers and then ignores.'
+ 5. 'My dog's interpretation of 'helping' with laundry is to steal socks and run away with them.'
+ 6. 'My dog has a very specific, and very loud, bark reserved for the squirrel that taunts him daily.'
+ 7. 'The ancient Roman mosaics often depicted a 'beware of the dog' warning at the entrance of homes.'
+ 8. 'That dog is a master escape artist who has figured out how to unlatch three different types of gates.'
+ 9. 'My dog's vocal range includes barks, yips, growls, howls, and a strange sort of purr.'
+10. 'My dog's love for car rides is so intense that he tries to jump into any open car door he sees.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC2 'dog' direction (Layer 15) ---
+
+Projection values:
+Top positive #1: 1.8955
+Top positive #2: 1.8564
+Top positive #3: 1.7930
+Top negative #1: -2.6523
+Top negative #2: -2.6270
+Top negative #3: -2.5703
+
+Top 10 prompts most aligned with POSITIVE PC2 direction:
+ 1. 'The Black and Tan Coonhound is an American scent hound.'
+ 2. 'The Kuvasz is a large Hungarian guardian breed.'
+ 3. 'How do I prepare my dog for a vet visit?'
+ 4. 'The Saint Berdoodle is a Saint Bernard and Poodle mix.'
+ 5. 'The Pomapoo is a Pomeranian and Poodle mix.'
+ 6. 'The Alaskan Malamute was bred for hauling heavy freight.'
+ 7. 'The Rhodesian Ridgeback was originally bred to hunt lions.'
+ 8. 'The Mastador is a Mastiff and Labrador cross.'
+ 9. 'How do I train my dog to walk on a leash?'
+10. 'How do I help my dog with crate training?'
+
+Top 10 prompts most aligned with NEGATIVE PC2 direction:
+ 1. 'What would a dog say about its own reflection?'
+ 2. 'What would a dog say about going to the vet?'
+ 3. 'What would a dog say about the invention of the leash?'
+ 4. 'What would a dog say about moving to a new home?'
+ 5. 'How would a dog describe the taste of peanut butter?'
+ 6. 'What would a dog say about its first walk?'
+ 7. 'What would a dog say about growing old?'
+ 8. 'What would a dog's diary entry look like after a day at the park?'
+ 9. 'What would a dog say about thunderstorms?'
+10. 'What would a dog say about meeting a new friend?'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC3 'dog' direction (Layer 15) ---
+
+Projection values:
+Top positive #1: 2.3535
+Top positive #2: 2.3516
+Top positive #3: 2.2754
+Top negative #1: -1.7393
+Top negative #2: -1.5928
+Top negative #3: -1.5820
+
+Top 10 prompts most aligned with POSITIVE PC3 direction:
+ 1. 'Is he allowed to have a bone?'
+ 2. 'Could you grab the poop bags?'
+ 3. 'I need to trim his nails.'
+ 4. 'Is that a purebred or a mix?'
+ 5. 'He seems to know when I'm packing a suitcase.'
+ 6. 'I need to pick up a new collar for him.'
+ 7. 'Is he friendly with other dogs?'
+ 8. 'He's the reason my camera roll is always full.'
+ 9. 'Her favorite person is whichever one is holding the food.'
+10. 'Did you remember to give him his heartworm medication?'
+
+Top 10 prompts most aligned with NEGATIVE PC3 direction:
+ 1. 'What is the best way to teach my dog to weave through poles?'
+ 2. 'What is the best way to teach my dog to ring a bell to go outside?'
+ 3. 'How do I teach my dog to balance objects on its nose?'
+ 4. 'How do I teach my dog to find hidden treats?'
+ 5. 'How do I teach my dog to push a ball with its nose?'
+ 6. 'How do I teach my dog to carry objects?'
+ 7. 'The dog's joy was palpable as he ran freely on the sandy beach for the very first time.'
+ 8. 'How do I teach my dog to fetch specific items?'
+ 9. 'The sled dog team worked in perfect harmony, pulling the heavy sled across the frozen tundra.'
+10. 'How do I teach my dog to open and close doors?'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC4 'dog' direction (Layer 15) ---
+
+Projection values:
+Top positive #1: 2.4453
+Top positive #2: 2.4395
+Top positive #3: 2.4082
+Top negative #1: -2.3262
+Top negative #2: -2.1758
+Top negative #3: -2.1035
+
+Top 10 prompts most aligned with POSITIVE PC4 direction:
+ 1. 'How do I teach my dog to balance objects on its nose?'
+ 2. 'What is the best way to teach my dog to weave through poles?'
+ 3. 'How do I teach my dog to find hidden treats?'
+ 4. 'How do I teach my dog to carry objects?'
+ 5. 'How do I teach my dog to push a ball with its nose?'
+ 6. 'How do I teach my dog to high five?'
+ 7. 'How do I teach my dog to open and close doors?'
+ 8. 'How do I teach my dog to shake hands?'
+ 9. 'How do I teach my dog to fetch specific items?'
+10. 'What is the best way to introduce my dog to cats?'
+
+Top 10 prompts most aligned with NEGATIVE PC4 direction:
+ 1. 'Write a riddle about a dog.'
+ 2. 'What would a dog say about its family?'
+ 3. 'What would a dog say about moving to a new home?'
+ 4. 'Invent a new dog sport and explain the rules.'
+ 5. 'Write a song chorus about a loyal dog.'
+ 6. 'Write a letter from a dog to a cat.'
+ 7. 'What would a dog say about meeting a new friend?'
+ 8. 'Write a letter from a dog to its owner.'
+ 9. 'Describe a dog's favorite place in the world.'
+10. 'What would a dog say about its best friend?'
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 15, PROJECTION ONTO PC0 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x:  thrown answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered answered
+Perturbation scale -20.0x:  dog dog dog,,,, A A A A A A A A A A A A A A A A A··························
+Perturbation scale -10.0x:  dogs dogs dogs dog dog “ “ “,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,, a
+Perturbation scale -5.0x: While dogs dogs dogs dogs dogs with with with with with - - - - - - - - - - “ “ – – – – – “ – – – “ natural natural natural natural natural natural natural natural natural natural natural natural natural natural natural natural natural
+Perturbation scale -2.5x:  With Sn van, na, na na na na na na of around around around around around around around moms moms name name name name name name name name name name name name name name name name name name name name name name old old name name name old
+Perturbation scale -1.5x:  
+
+ you,, n n n n named old old old old old old everywhere everywhere everywhere everywhere everywhere all best name name name name name name name name name name name name name name name from from from from from from from from from from from from from
+Perturbation scale +0.0x:  there other topic point other hand topic hand hand hand hand hand hands asking hand, asking,,,,, and and design design design design design design ( ( ( (, your have have the have have have have have have have have have have have
+Perturbation scale +1.5x:  has all all on for,,,)
+
+)
+
+)
+
+
+Perturbation scale +2.5x:  of on on..............assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +5.0x: casesccossssssssssrcrcrcrc.n.n.n.n.n.n.n.n
+Perturbation scale +10.0x: 
+fyfyfyfyfystantiateignonignonignonignonignonignonignonignonignonignonignonignon
+Perturbation scale +20.0x: 
+Perturbation scale +100.0x: swickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswickswick
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 15, PROJECTION ONTO PC1 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://aganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganaganagan
+Perturbation scale -20.0x:  I you you you you you una una una en en en en en una una una una una una una az az az az az az az az az y y y y y y’s’s’s’s’s’s’s’s’s’s’s’s’s’s
+Perturbation scale -10.0x:  You You______ - - - - -eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+Perturbation scale -5.0x:  beberapa prz pr bub t t tkekekki...ien fra frant fraj for for for for for for for forakakakak ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale -2.5x:  you have have 
+
+ that best which around around around and and and and of of of of of for for for for for for for for of and and and and and and ein ein ein ein un un un " " " " " " " " "
+Perturbation scale -1.5x:  various friendsfriends that that and and and and and and and and and and and of of and and other point point point point,,, features features features and of of another another another another un un one one one one one one ( ( ( (
+Perturbation scale +0.0x:  way time time time time come a a
+
+ to to
+
+
+
+
+
+
+
+
+
+
+
+ to to to to to to as to to to, to around to to for to to, about about, to to,,; and and,,,,
+Perturbation scale +1.5x:  a left out while a; of of
+
+
+
+
+,-i-i in in as as as..-t-t-t-t-t-t-t-t-t-t-t'd'd'd'd'd'd'd'd'd'd'd'd'd'd'd/re/re/re
+Perturbation scale +2.5x:  a dog a the us  ,,,,,,,,, at at at at at at at at at at as as as as as as as as as as as as as as as as as as as as as as as
+Perturbation scale +5.0x: 
+
+  
+
+ 
+
+      icableicable of of of of of of of of of of of of of of of of of of of of of of of of of of of of of Subject Subject Subject Subject Subject Subject Subject Subject Subject
+Perturbation scale +10.0x:  with    
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ By By By By By By By By By By By By Back Back | | | | | | | | | | | | | | | | | | | | | | | | | |
+Perturbation scale +20.0x:  without without without without |
+
+ |
+
+ |
+
+ |
+
+ |
+
+ |
+
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Perturbation scale +100.0x: ://://://://:// Angeles Angeles Angeles Angeles Angeles wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel wheel
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 15, PROJECTION ONTO PC2 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x: ://iloiloiloilo NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC NBC
+Perturbation scale -20.0x: edededededededededededed April Aprileded April April April April April April by by by by by by by by by by by by by by by by by by by by of of of of of of of of
+Perturbation scale -10.0x: 
+
+andsionionionantantllllllllllllnightnightnightnightnightnightnightnightnightnightoreoreoreoreoreoreoreoreickickickickickickickickickickickadeadeadeadeizeadeizeize
+Perturbation scale -5.0x:  your as as a a as as as some some some some some some some the the the the the the as as as as as as........... the the the the the the the the the the the the
+Perturbation scale -2.5x:  other a a a one one one one features the the the the the the the the the the the the the a the a the the the the the the the the the the the the the the theentsentsentsentsentsentsentsentsentsents
+Perturbation scale -1.5x:  where the features one one one one one one features the the up up up the the the the the the the the the the the the the the the the the the the the the the the theaaaaentsentsentsentsentsentsouts
+Perturbation scale +0.0x:  general few time time time time time:::::::: of of of of of of to to to to to to to to to to to to to to to to to of ofstostosto tostostostostosto to
+Perturbation scale +1.5x:  essential,,,:::::::::::::,,,,,,stostostostostostostostostostostostostostostostostostostostostostostostostostosto
+Perturbation scale +2.5x:  features,,:::,,:,,,,,,,,,,,,, à à à àstostostostostostostostostostostostostostostostostostostostostostostosto
+Perturbation scale +5.0x:  traits
+
+::::,::::::........................... ha ha ha ha ha ha ha ha ha ha
+Perturbation scale +10.0x: assistantassistant ( ( ( (                                ...........
+Perturbation scale +20.0x:  verwendet spr spr spr spr s S S S S S S S S S s s s s s s s s s zu zu zu zu zu zu zu zu zu zu zu zu zu zu zu zu zu zu zu zu zu ja ja ja ja ja
+Perturbation scale +100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 15, PROJECTION ONTO PC3 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x: ezezezezezezezezezezezseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseauseau
+Perturbation scale -20.0x: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ |
+
+ |
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ zu zu zu zu zu zu zu zu zu zu zu zu zu zu zu
+Perturbation scale -10.0x: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+icic       
+
+
+
+
+
+
+
+
+
+
+
+
+
+ in L L L L L L L L L L L L L L L L L   to among among among among among among
+Perturbation scale -5.0x:  
+
+ ( ( ( 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ to to to to to to to to to to - -,,,,,,,,,,,,,,,,,,
+Perturbation scale -2.5x:  application professional professional short short short under   in in in in in in to to to to to likely to to to to to to to to to to to to:,, zu zu zu zu zu zu zu zu zu zu zu zu zu zu
+Perturbation scale -1.5x: 
+
+ professional professional professionally short dogs dogs second in in in in in in in in in suggest and and likely likely to to to to to to to to to to to to::::::: in in,,,,, à à
+Perturbation scale +0.0x:  popular machines a other topics a1 time severalany1 any, once once time once once time time once once once after after hand about hand hand hand hand hand hand hand for  first first in for for for for to to in to to in in
+Perturbation scale +1.5x:  the time around time hand hand hand, hand " ( ( ( ( ( ( (URURURASTARE
+
+
+
+
+
+
+
+
+
+NAMEISTISTISTISTISTISTISTISTISTassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +2.5x:  in around,,,,, ( ( (... ofURURURERSERSERSERSNAMENAMEISSISSISSISSISSISSSTARTSTARTSTARTSTARTSTARTassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +5.0x:  be in in in for for.... owner owner with with with with with with with......=start=start=start in in in in in in in in in in in in in in in in in in in in in in
+Perturbation scale +10.0x:  of on on on on on on with with with with with with with with with.... with... with with with with with with with. with with with with.. with with with with with with with with with with with with
+Perturbation scale +20.0x:  of of about about about about about about ( ( ( ( ( ( is is’s’s’s’s’s’s’s’s’s’s’s’s’s’s’s’s’s’s’s’s’s’s is is is’s’s’s’s’s’s’s’s’s
+Perturbation scale +100.0x: ://://://://://://://://
+
+
+
+
+
+
+
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+ingroupingroupingroup.
+.
+.
+.
+.
+.
+ingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroupingroup.
+
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 15, PROJECTION ONTO PC4 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x: ://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://://
+Perturbation scale -20.0x: igationenceuationupueuceuceuceuceuceuceuceuceuceuceuceudeudeudeudeudeuteuteuteuteuteuteuteuteuteuteuteuteuteuteiateiateiateiateiateiateiateiateutscheutscheiateiateenhaenhaenha
+Perturbation scale -10.0x:  ofernrering of of of of of of of of of ofce informationcecececececececececececececececececece333333333333333
+Perturbation scale -5.0x:   to of of of ofrrrururigrationloadloadedloadloadloadedableoredoredoredoredable).ableable).eredorkorkorkorkinsinsinsinsorkorkorkorkinsinsinsinsittedittedorkorkorkork
+Perturbation scale -2.5x:  a  call of offormationformationunnelunnelersersersersersooeeeeolderableableableolderolderolderolderactionworkworkactionactionactionactionactionorkorkorkorkorkorkorkorkinsinsinsinsinsins
+Perturbation scale -1.5x:  their a    conversation conversation conversationershableownermermopermowners the theop of the therr,ersop system, startingopopopestestitleitleitleitleillseseseseseseorksese
+Perturbation scale +0.0x:  their their other to,,2 from new is on on on on folks. on on from from from from from from from from from from from from - - from from from - - - - - - -,,,,, -,,
+Perturbation scale +1.5x:  Their features as as as as are are are are      from from from from from from from from|,,||,||,,,,,,,,,,,,,,}
+}
+}
+, 
+Perturbation scale +2.5x: 
+
+ features as
+
+                                              
+Perturbation scale +5.0x:   of of..                         ...................
+Perturbation scale +10.0x: 
+
+ features -featureiouslyiouslyiously.................. Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key Key
+Perturbation scale +20.0x: assistanthelphelp‘‘‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘ ‘
+Perturbation scale +100.0x:  someoneimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimanimaniman
+================================================================================
+
+================================================================================
+--- ORTHOGONAL PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 15 ---
+================================================================================
+Perturbing along first orthogonal direction (PC133)...
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along orthogonal direction ---
+Perturbation scale -100.0x: chnerchnerchnerchnerchnerchnerchnerchnerchnerwlchnerwlchnerwlchnerwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwlwl
+Perturbation scale -20.0x: Apart apart apart apartayarurenayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayersayers
+Perturbation scale -10.0x: There are several key features that are important to list for a dog, especially for the following: 
+
+1. **Oxygen:  New: 1:  R: 1:  R: 1:  R: 1:  R: 1:  R: 1:  R: 1:  R
+Perturbation scale -5.0x: Dogs are fascinating creatures with many unique features that make them special. Here are some key features of dogs:
+
+1. **Physical Characteristics:** Dogs have a distinct physical appearance, which varies depending on their breed and type. Some common features include:
+
+- A body that consists of a head, neck, body, and four limbs.
+- A unique nose
+Perturbation scale -2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes even small amounts of meat.
+
+2.
+Perturbation scale -1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes even meat.
+
+2. **Social
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating animals, and I'd be happy to explain some of their key features.
+
+**Physical Characteristics:**
+
+1. **Body Shape:** Dogs come in a wide range of shapes and sizes, from the tiny Chihuahua to the massive Great Dane. Their bodies can be muscular, slender, or a combination of both.
+2.
+Perturbation scale +2.5x: Dogs are popular pets known for their loyalty, intelligence, and affectionate nature. Here are some key features of dogs:
+
+1. **Physical Characteristics**: Dogs come in a wide range of shapes and sizes, from the tiny Chihuahua to the massive Great Dane. They have a muscular body, a long tail, and four legs. Their
+Perturbation scale +5.0x: Dogs are popular pets and working animals, known for their loyalty and affection towards their owners. Here are some features of dogs:
+
+1. **Lifespan**: The average lifespan of a dog varies depending on its breed, size, and genetics. Small breeds can live up to 15-20 years, while large breeds can live up of 
+Perturbation scale +10.0x: A dog is a popular pet, a friend, and a friend in a park, a park in a park, a park. A park. A. A. A. A. A. A. A. A. A. A. A. A. A. A. A. A. A. A. A. A. A
+Perturbation scale +20.0x:  Your  a  a  a  A
+  A
+ A
+ A
+ A
+ A
+ A
+ A
+ A
+ A
+ A
+ A
+ A
+ A
+ A
+ A
+ A
+ A
+ A
+ A
+ Roger
+ GV
+ BEST
+ BEST
+ BEST
+ BEST
+ BEST
+ BEST
+ BEST
+ Roger
+ BEST
+Perturbation scale +100.0x:  Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow Blow
+================================================================================
+
+================================================================================
+--- ABLATION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 15 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+All PCs (centroid only): 
+All PCs except largest (PC0 only): 
+All PCs except largest two (PC0+PC1): 
+Top 1 PCA ablated: Here
+Top 2 PCAs ablated: Here
+Top 3 PCAs ablated: Here
+================================================================================
+
+################################################################################
+### STARTING ANALYSIS FOR LAYER 31 ###
+################################################################################
+
+Extracting activations from layer 31...
+Extracting activations: 100%|████████████████████████████████████| 1944/1944 [00:43<00:00, 44.92it/s]
+Extracting activations from layer 31...
+Extracting activations: 100%|██████████████████████████████████████| 247/247 [00:05<00:00, 45.03it/s]
+Concept 'dog': Found 143 effective eigenvectors out of 1944 (threshold: 0.0794)
+Concept 'lion': Found 30 effective eigenvectors out of 247 (threshold: 0.4233)
+
+================================================================================
+Running experiments for system prompt: 'You are a helpful assistant.'
+User prompt: 'Please explain some features of a dog.'
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 31, AXIS: 0 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC0 ---
+Perturbation scale -100.0x: neyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyney
+Perturbation scale -20.0x: Dogs,ingtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtoningtonington
+Perturbation scale -10.0x: Dogs, as the family of the scientific family called the family called the family called the family called the family called the family called the family called the family called the family called the family called the family called the family called the family called the family called the family called the family called the family called the family called the family called the family called the family
+Perturbation scale -5.0x: Dogs are incredibly diverse and intelligent animals, and they come with a wide range of fascinating features. Here are some of the key characteristics of dogs:
+
+**Physical Features:**
+
+- **Body Shape and Size**: Dogs come in various shapes and sizes, from the tiny Chihuahua to the massive Great Dane. They have a wide range of body
+Perturbation scale -2.5x: Dogs are fascinating creatures, and they come with a wide range of characteristics. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also thrive on a diet that includes fruits, vegetables, and grains. Their digestive system is designed to break down protein, but they can adapt to
+Perturbation scale -1.5x: Dogs are fascinating creatures, and they come with a wide range of characteristics. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also thrive on a diet that includes fruits, vegetables, and grains. Their digestive system is designed to break down protein-rich foods, but they can
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating creatures with many unique features that make them wonderful companions. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based foods (like fruits and vegetables) and animal-based foods (like meat and bones). Their diet can vary depending on their
+Perturbation scale +2.5x: Dogs are fascinating animals with many unique features that make them popular companions for humans. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based foods (like fruits and vegetables) and animal-based foods (like meat and bones). Their diet typically consists of
+Perturbation scale +5.0x: I'd be happy to explain some features of a dog.
+
+1. **Body Structure:** Dogs typically have a four-legged body plan with a torso (chest and abdomen), a head (including ears and a muzzle), a neck (connecting the head to the torso), four legs (two in front and two in back), and a tail.
+
+2.
+Perturbation scale +10.0x: I'd be happy to explain some features of a dog.
+
+1. **Coat:** A dog's fur or coat comes in many different lengths (short or long), textures (curly or smooth), and colors (many combinations including red, yellow, gray, white, etc.).
+
+2. **Ears:** A dog typically has triangular ears on
+Perturbation scale +20.0x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +100.0x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 31, AXIS: 1 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC1 ---
+Perturbation scale -100.0x: translatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale -20.0x: Here are some key features of a dog:
+
+translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated translated
+Perturbation scale -10.0x: Dogs (Canis lupus familiaris) are a popular pet animal known for their loyalty, affection, and trainability. Here are some key features of a dog:
+
+**Physical Features:**
+
+* Dogs come in a wide range of sizes, from the tiny Chihuahua (weighing around 2-8 pounds) to the massive
+Perturbation scale -5.0x: Dogs (Canis lupus familiaris) are a popular and beloved pet around the world, known for their loyalty, intelligence, and affectionate nature. Here are some key features of dogs:
+
+**Physical Characteristics:**
+
+1. **Body Structure:** Dogs come in a wide range of shapes and sizes, from the tiny Chihuahua to
+Perturbation scale -2.5x: Dogs are fascinating creatures, and here are some of their notable features:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also thrive on a diet that includes fruits, vegetables, and grains. Their digestive system is designed to break down protein-rich foods, but they can adapt to a variety of diets.
+
+2.
+Perturbation scale -1.5x: Dogs are fascinating creatures with a wide range of characteristics and features. Here are some of the key features of a dog:
+
+1. **Body Structure**: Dogs have a quadruped body structure, meaning they have four legs, a tail, and a head. Their body is typically divided into the head, neck, torso, and limbs.
+
+2
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Loyal
+Perturbation scale +2.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Loyal
+Perturbation scale +5.0x: Dogs are fascinating creatures with many unique features. Here are some of the most notable ones:
+
+1. **Olfactory System**: Dogs have an incredibly developed sense of smell. They have up to 300 million olfactory receptors in their noses, compared to only 6 million in humans. This allows them to detect scents that are too faint
+Perturbation scale +10.0x: Dogs are fascinating creatures with many unique features. Here are some of their notable characteristics:
+
+1. **Olfactory System**: Dogs have an incredibly developed sense of smell. They have up to 300 million olfactory receptors in their noses, compared to only 6 million in humans. This allows them to detect scents and smells that are too
+Perturbation scale +20.0x: I can provide some interesting features of dogs. 
+
+1. **Olfactory Ability**: Dogs have one of the strongest olfactory senses among mammals. They have up to 1.3 billion olfactory receptors, while humans have about 6 million. Their smell can detect scents as weak as one ton of perfume1 /1 ton1 /
+Perturbation scale +100.0x: 1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen1olen
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 31, AXIS: 2 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC2 ---
+Perturbation scale -100.0x:    (  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale -20.0x: Dogs (Canis lupus (or ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale -10.0x: Dogs (Canis lupus familiaris) are a popular and beloved pet, known for their unique characteristics and abilities. Here are some of the key features of a dog:
+
+**Physical Features:**
+
+1. **Body Type:** Dogs come in a wide range of body types, from small (e.g., Chihuahua) to large
+Perturbation scale -5.0x: Dogs (Canis lupus familiaris) are a popular and beloved pet, known for their loyalty, intelligence, and unique characteristics. Here are some key features of a dog:
+
+1. **Physical Characteristics:**
+   - Dogs come in a wide range of sizes, from the tiny Chihuahua (weighing 2-8 pounds
+Perturbation scale -2.5x: Dogs (Canis lupus familiaris) are a popular and beloved pet species known for their loyalty, intelligence, and unique characteristics. Here are some key features of dogs:
+
+1. **Physical Characteristics:**
+   - Dogs come in a wide range of sizes, from the tiny Chihuahua (weighing around 2-8 pounds
+Perturbation scale -1.5x: Dogs are fascinating creatures with a wide range of characteristics. Here are some key features of a dog:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also eat plant-based foods. Their diet consists of a mix of meat, fruits, and vegetables.
+
+2. **Social Animals**: Dogs are highly social animals that
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating creatures with many unique features that make them wonderful companions. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based foods and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2
+Perturbation scale +2.5x: Dogs are fascinating creatures with many unique features that make them wonderful companions. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based foods and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2
+Perturbation scale +5.0x: Dogs are fascinating creatures with numerous characteristics that make them beloved companions worldwide. Here are some key features of dogs:
+
+1. **Physical Characteristics**: Dogs come in various shapes and sizes, ranging from the tiny Chihuahua to the massive Great Dane. They have four legs, a tail, and ears that can be erect, floppy, or somewhere
+Perturbation scale +10.0x: I'd be happy to explain some features of dogs.
+
+1. **Body Structure**: Dogs have a quadruped body structure, meaning they have four legs, allowing them to move efficiently and balance easily. Their body shape can vary depending on breed, but most dogs have:
+	* A muscular torso
+	* Strong legs
+	* Flexible joints
+Perturbation scale +20.0x: I'll overview several key features of dogs:
+
+1 vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé vidé
+Perturbation scale +100.0x: elseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelsea
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 31, AXIS: 3 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC3 ---
+Perturbation scale -100.0x: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale -20.0x: I can provide you with an in-depth explanation of the features of a dog.
+
+**Physical Characteristics:**
+
+1. **Body shape**: Dogs have a wide, varied, and adaptable body shape, ranging from long, narrow, to short, sturdy, and from long, to short, to no, tails, to long, to short, to no
+Perturbation scale -10.0x: Dogs, also known as canines, are a domesticated species of the family Canidae. They are one of the most popular pets worldwide, known for their loyalty, affection, and unique characteristics. Here are some key features of dogs:
+
+1. **Physical Characteristics:**
+   - Dogs come in a wide range of shapes, sizes, and
+Perturbation scale -5.0x: Dogs are fascinating creatures, and I'd be happy to explain some of their key features.
+
+**Physical Characteristics:**
+
+1. **Body Structure:** Dogs have a quadruped body structure, meaning they have four legs, a tail, and a head. Their body is typically muscular, with a strong back, powerful legs, and a flexible spine
+Perturbation scale -2.5x: Dogs are fascinating creatures, and I'd be happy to explain some of their key features.
+
+**Physical Features:**
+
+1. **Body Structure:** Dogs have a quadruped body structure, meaning they have four legs, a tail, and a head. Their body is typically muscular, with a flexible spine that allows for a wide range of motion
+Perturbation scale -1.5x: Dogs are fascinating creatures, and I'd be happy to explain some of their key features.
+
+**Physical Features:**
+
+1. **Body Structure:** Dogs have a quadruped body structure, meaning they have four legs, a tail, and a head. Their body is typically muscular, with a flexible spine that allows for a wide range of motion
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs are fascinating creatures with many unique features that make them wonderful companions. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2.
+Perturbation scale +2.5x: Dogs are fascinating creatures with many unique features that make them wonderful companions. Here are some key features of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based foods and animal-based foods. Their diet typically consists of commercial dog food, which is formulated to meet their nutritional needs.
+
+
+Perturbation scale +5.0x: Dogs are amazing animals known for their loyalty, intelligence, and versatility. Here are some key features of dogs:
+
+1. **Physical Characteristics:** Dogs come in various shapes and sizes, ranging from small breeds like Chihuahuas (weighing around 2-8 pounds) to large breeds like Great Danes (weighing up to 200
+Perturbation scale +10.0x: Dogs are amazing animals known for their loyalty and companionship towards humans. Here are some key features of dogs:
+
+1. **Physical Characteristics:** 
+   - Dogs come in various sizes ranging from small (e.g., Chihuahua) to large (e.g., Great Dane).
+   - They have four legs and typically weigh between 5
+Perturbation scale +20.0x: Dogs are amazing animals known for their loyalty and intelligence. Here are some interesting features of dogs:
+
+### Sensory Abilities
+- **Smell:** Dogs have up to 300 million olfactory receptors in their noses compared to only about 6 million in humans.
+- **Hearing:** They can hear sounds at frequencies as high as 45 kHz
+Perturbation scale +100.0x: /assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets/assets
+================================================================================
+
+================================================================================
+--- INTERVENTION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 31, AXIS: 4 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along PC4 ---
+Perturbation scale -100.0x: ":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+
+Perturbation scale -20.0x: dogs|RF|RF|RF|RF|RF|RF|RF|RF|RF|RF|RF|RF|RF|RF|RF|RF|RF|RF|RF|RF|RF|RF|RFHereこんにHereこんにassistant
+
+HereこんにHereこんにassistant
+
+HereこんにHereこんにassistant
+
+HereこんにHereこんにassistant
+Perturbation scale -10.0x: Here are some key features of dogs:
+
+1. **Physical Characteristics**: Dogs come in various shapes and sizes depending on breed. They typically have four legs, a tail, ears, eyes, nose, teeth, tongue, paw pads, claws, fur coats, whiskers, snouts, tongues.
+
+2. **Communication**: Dogs communicate primarily through body
+Perturbation scale -5.0x: Dogs are fascinating creatures known for their loyalty, intelligence, and versatility. Here are some key features of dogs:
+
+1. **Physical Characteristics**: Dogs come in various shapes and sizes, ranging from small breeds like Chihuahuas to large breeds like Great Danes. They typically have four legs, a tail, ears, and a nose.
+
+2
+Perturbation scale -2.5x: Dogs are fascinating creatures with unique characteristics. Here are some key features:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also thrive on a diet that includes plant-based foods. Their digestive system is designed to break down protein-rich foods, but they can also eat fruits, vegetables, and grains.
+
+2. **
+Perturbation scale -1.5x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based foods and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Pack Animals**:
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs (Canis lupus familiaris) are a domesticated species of the family Canidae and are known for their unique characteristics and abilities. Here are some key features of a dog:
+
+1. **Omnivorous Diet**: Dogs are carnivores, but they can also thrive on a diet that includes plant-based foods. They have a
+Perturbation scale +2.5x: Dogs (Canis lupus familiaris) are a domesticated species of the family Canidae and are one of the most popular pets in the world. They are known for their loyalty, intelligence, and affectionate nature. Here are some key features of a dog:
+
+1. **Physical Characteristics:**
+   - Dogs come in a wide range
+Perturbation scale +5.0x: Dogs (Canis lupus familiaris) are a domesticated species of the family Canidae and are one of the most popular pets in the world. They are known for their loyalty, intelligence, and unique characteristics. Here are some of the key features of a dog:
+
+1. **Sensory Abilities:**
+   - **Smell
+Perturbation scale +10.0x: Dogs (Canis lupus familiaris) are a domesticated,  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - 
+Perturbation scale +20.0x: Dogs (Can ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +100.0x:  -  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC0 'dog' direction (Layer 31) ---
+
+Projection values:
+Top positive #1: 29.4219
+Top positive #2: 29.2812
+Top positive #3: 29.0469
+Top negative #1: -5.2930
+Top negative #2: -5.2578
+Top negative #3: -5.2344
+
+Top 10 prompts most aligned with POSITIVE PC0 direction:
+ 1. 'How do I teach my dog to jump over obstacles?'
+ 2. 'How do I help my dog with fear of water?'
+ 3. 'How do I help my dog with fear of other animals?'
+ 4. 'How do I teach my dog to fetch?'
+ 5. 'How do I help my dog with fear of strangers?'
+ 6. 'How do I teach my dog to shake hands?'
+ 7. 'How do I teach my dog to fetch specific items?'
+ 8. 'How do I teach my dog to play dead?'
+ 9. 'How do I teach my dog to roll over?'
+10. 'How do I help my dog with fear of being alone?'
+
+Top 10 prompts most aligned with NEGATIVE PC0 direction:
+ 1. 'The dog's gentle and patient nature with the new litter of kittens was a beautiful sight.'
+ 2. 'The dog's thick, water-repellent coat makes him a natural swimmer and retriever.'
+ 3. 'The dog's bond with the family's cat was an unusual but beautiful friendship to behold.'
+ 4. 'He is a very even-tempered and good-natured animal.'
+ 5. 'The dog's presence in the quiet library had a surprisingly calming effect on the students during finals week.'
+ 6. 'The farm dog worked tirelessly from dawn until dusk, a loyal and indispensable helper.'
+ 7. 'That dog is the heart of our family, the furry hub around which we all revolve.'
+ 8. 'The dog's companionship has brought immeasurable happiness to my life.'
+ 9. 'The therapy dog visited the nursing home, bringing smiles and comfort to the residents.'
+10. 'Although he was a very small dog, his personality filled the entire house with joy and chaos.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC1 'dog' direction (Layer 31) ---
+
+Projection values:
+Top positive #1: 13.0859
+Top positive #2: 12.9453
+Top positive #3: 12.9062
+Top negative #1: -10.6172
+Top negative #2: -10.5938
+Top negative #3: -9.5312
+
+Top 10 prompts most aligned with POSITIVE PC1 direction:
+ 1. 'If a dog could write a thank-you note to its owner, what would it say?'
+ 2. 'If a dog could write a review of its owner, what would it say?'
+ 3. 'If a dog could give advice to humans, what would it say?'
+ 4. 'If a dog could write a thank-you note, what would it say?'
+ 5. 'If dogs could play an instrument, which would they choose?'
+ 6. 'If dogs could write a book, what would the title be?'
+ 7. 'If dogs could vote, what issues would matter to them?'
+ 8. 'If a dog could invent a holiday, what would it celebrate?'
+ 9. 'What is the most important rule in a dog's world?'
+10. 'If a dog could write a song, what would the lyrics be?'
+
+Top 10 prompts most aligned with NEGATIVE PC1 direction:
+ 1. 'My camera roll is 90% pictures of my dog.'
+ 2. 'I prefer a mixed-breed dog from a shelter.'
+ 3. 'That Chihuahua is shivering, maybe it's cold.'
+ 4. 'My dog has a very clear 'I'm sorry' face he makes after he knows he has done something wrong.'
+ 5. 'I think my dog might be sick because he hasn't touched his food all day.'
+ 6. 'My neighbor's golden retriever dog is incredibly well-trained and never jumps on guests.'
+ 7. 'The rescue dog was initially very timid, but now he demands belly rubs from everyone he meets.'
+ 8. 'The pet sitter needs a detailed list of the dog's routine and needs.'
+ 9. 'That dog is surprisingly delicate when taking a treat from my hand, using only his lips.'
+10. 'My dog has a very specific routine that involves napping in three different sunny spots throughout the day.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC2 'dog' direction (Layer 31) ---
+
+Projection values:
+Top positive #1: 14.2734
+Top positive #2: 14.0859
+Top positive #3: 13.6484
+Top negative #1: -9.0625
+Top negative #2: -8.8672
+Top negative #3: -8.6562
+
+Top 10 prompts most aligned with POSITIVE PC2 direction:
+ 1. 'How do I help my dog with fear of other animals?'
+ 2. 'How do I help my dog with fear of water?'
+ 3. 'How do I help my dog with fear of strangers?'
+ 4. 'How do I help my dog with fear of being alone?'
+ 5. 'How do I teach my dog to jump over obstacles?'
+ 6. 'How do I teach my dog to stay?'
+ 7. 'How do I teach my dog to shake hands?'
+ 8. 'How do I teach my dog to fetch?'
+ 9. 'How do I teach my dog to fetch specific items?'
+10. 'How do I teach my dog to push a ball with its nose?'
+
+Top 10 prompts most aligned with NEGATIVE PC2 direction:
+ 1. 'What would a dog do with a million dollars?'
+ 2. 'My dog's level of excitement is directly proportional to the crinkliness of the treat bag.'
+ 3. 'You look like the dog that caught the canary.'
+ 4. 'I think he dreams of chasing rabbits.'
+ 5. 'If dogs could write laws, what would be the first law?'
+ 6. 'What would a dog say about growing old?'
+ 7. 'My dog's happiness is my top priority, which is why his dinner has more vegetables than mine.'
+ 8. 'What would a dog say about its own reflection?'
+ 9. 'I cannot believe that dog managed to open the refrigerator and eat the entire block of cheese.'
+10. 'He's snoring louder than my uncle.'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC3 'dog' direction (Layer 31) ---
+
+Projection values:
+Top positive #1: 9.6797
+Top positive #2: 9.4062
+Top positive #3: 9.3672
+Top negative #1: -18.5312
+Top negative #2: -14.3984
+Top negative #3: -14.3906
+
+Top 10 prompts most aligned with POSITIVE PC3 direction:
+ 1. 'What are the best dog breeds for hot climates?'
+ 2. 'What are the best dog breeds for cold climates?'
+ 3. 'What are the most common signs of illness in dogs?'
+ 4. 'What are the signs of separation anxiety in dogs?'
+ 5. 'What are the signs of heatstroke in dogs?'
+ 6. 'What are the most common health issues in dogs?'
+ 7. 'What are the best dog breeds for apartment living?'
+ 8. 'What are the best dog breeds for companionship?'
+ 9. 'What are the most common causes of bad breath in dogs?'
+10. 'What are the best dog breeds for active people?'
+
+Top 10 prompts most aligned with NEGATIVE PC3 direction:
+ 1. 'What would a dog say about the invention of the leash?'
+ 2. 'How would a dog describe the feeling of being adopted?'
+ 3. 'How do I teach my dog to push a ball with its nose?'
+ 4. 'What would a dog say about going to the vet?'
+ 5. 'How do I teach my dog to balance objects on its nose?'
+ 6. 'How would a dog explain the concept of loyalty?'
+ 7. 'What would a dog say about its first walk?'
+ 8. 'How do I teach my dog to find hidden treats?'
+ 9. 'How do I teach my dog to carry objects?'
+10. 'What would a dog say about being left alone?'
+================================================================================
+
+================================================================================
+--- Analyzing original dataset prompts along the PC4 'dog' direction (Layer 31) ---
+
+Projection values:
+Top positive #1: 9.0078
+Top positive #2: 8.2266
+Top positive #3: 8.2031
+Top negative #1: -11.0859
+Top negative #2: -10.7891
+Top negative #3: -10.3984
+
+Top 10 prompts most aligned with POSITIVE PC4 direction:
+ 1. 'Have you ever seen a happier puppy?'
+ 2. 'Could you grab the poop bags?'
+ 3. 'Is he allowed to have a bone?'
+ 4. 'How do I help my dog with fear of water?'
+ 5. 'Why must this dog always choose my clean laundry as the perfect spot for a nap?'
+ 6. 'How do I help my dog with fear of other animals?'
+ 7. 'Did you remember to give him his heartworm medication?'
+ 8. 'Are there any off-leash parks nearby?'
+ 9. 'I think I'm more excited for his birthday than he is.'
+10. 'How do I help my dog with fear of loud noises?'
+
+Top 10 prompts most aligned with NEGATIVE PC4 direction:
+ 1. 'What would a dog's diary entry look like after a day at the park?'
+ 2. 'Write a letter from a dog to a cat.'
+ 3. 'Describe a dog's reaction to seeing snow for the first time.'
+ 4. 'Write a letter from a dog to its owner.'
+ 5. 'Describe a futuristic city designed for dogs.'
+ 6. 'What would a dog say about its first walk?'
+ 7. 'How would a dog describe the feeling of being adopted?'
+ 8. 'How would a dog explain friendship?'
+ 9. 'What would a dog say about moving to a new home?'
+10. 'How would a dog explain the concept of loyalty?'
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 31, PROJECTION ONTO PC0 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x: neyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyney
+Perturbation scale -20.0x: neyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyney
+Perturbation scale -10.0x: neyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyney
+Perturbation scale -5.0x: neyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyney
+Perturbation scale -2.5x: neyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyney
+Perturbation scale -1.5x: neyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyneyney
+Perturbation scale +0.0x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +1.5x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +2.5x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +5.0x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +10.0x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +20.0x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+Perturbation scale +100.0x: assistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistantassistant
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 31, PROJECTION ONTO PC1 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x: translatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale -20.0x: translatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale -10.0x: translatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale -5.0x: translatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale -2.5x: translatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale -1.5x: translatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale +0.0x: olentranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale +1.5x: olenolenolenolenolenolenolenolenolenolenolentranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslatedtranslated
+Perturbation scale +2.5x: olenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolen
+Perturbation scale +5.0x: olenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolen
+Perturbation scale +10.0x: olenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolen
+Perturbation scale +20.0x: olenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolen
+Perturbation scale +100.0x: olenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolenolen
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 31, PROJECTION ONTO PC2 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale -20.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale -10.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale -5.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale -2.5x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale -1.5x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +0.0x: elsea ( ( (elsea (elseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelsea
+Perturbation scale +1.5x: elseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelsea
+Perturbation scale +2.5x: elseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelsea
+Perturbation scale +5.0x: elseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelsea
+Perturbation scale +10.0x: elseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelsea
+Perturbation scale +20.0x: elseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelsea
+Perturbation scale +100.0x: elseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelseaelsea
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 31, PROJECTION ONTO PC3 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale -20.0x: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale -10.0x: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale -5.0x: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale -2.5x: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale -1.5x: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale +0.0x: �数�数�数>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Perturbation scale +1.5x: �数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数
+Perturbation scale +2.5x: �数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数
+Perturbation scale +5.0x: �数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数
+Perturbation scale +10.0x: �数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数
+Perturbation scale +20.0x: �数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数
+Perturbation scale +100.0x: �数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数�数
+================================================================================
+
+================================================================================
+--- PROJECTION-BASED PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 31, PROJECTION ONTO PC4 ONLY ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Perturbation scale -100.0x: ":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+
+Perturbation scale -20.0x: ":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+
+Perturbation scale -10.0x: ":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+
+Perturbation scale -5.0x: ":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+
+Perturbation scale -2.5x: ":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+":[{
+
+Perturbation scale -1.5x: ":[{
+":[{
+":[{
+":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+ (":[{
+
+Perturbation scale +0.0x: ":[{
+ (":[{
+ ( ( (":[{
+ ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +1.5x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +2.5x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +5.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +10.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +20.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+Perturbation scale +100.0x:  ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+================================================================================
+
+================================================================================
+--- ORTHOGONAL PERTURBATION ON CONCEPT: 'dog' ---
+--- LAYER: 31 ---
+================================================================================
+Perturbing along first orthogonal direction (PC143)...
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+Original model completion: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+
+--- Perturbing final token activation along orthogonal direction ---
+Perturbation scale -100.0x: 건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건
+Perturbation scale -20.0x: 건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건건
+Perturbation scale -10.0x: dogs are a popular pet globally. Here are a few essential features of a dog:
+
+**Physical Features:**
+ 
+ * Dogs are a diverse group of animals with a wide range of sizes. 
+ * Their heights can vary from a height of a small dog such as a Chihuahua at a height of 6 inches 
+ * To a large
+Perturbation scale -5.0x: Dogs are fascinating animals known for their loyalty, intelligence, and unique characteristics. Here are some key features of a dog:
+
+1. **Physical Characteristics**: Dogs come in a wide range of sizes, shapes, and breeds. They can be small (e.g., Chihuahua), medium-sized (e.g., Cocker Spaniel), or
+Perturbation scale -2.5x: Dogs are fascinating animals with a wide range of unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plants and animals. Their diet typically consists of a mix of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2.
+Perturbation scale -1.5x: Dogs are fascinating animals with a wide range of characteristics. Here are some key features of dogs:
+
+1. **Physical Characteristics**: Dogs come in various shapes and sizes, ranging from small Chihuahuas to large Great Danes. They have a four-legged body, a tail, and a head with a muzzle, ears, and eyes. Their
+Perturbation scale +0.0x: Dogs are fascinating creatures with many unique features. Here are some of the key characteristics of dogs:
+
+1. **Omnivorous Diet**: Dogs are omnivores, which means they can eat both plant-based and animal-based foods. Their diet typically consists of commercial dog food, fruits, vegetables, and sometimes meat.
+
+2. **Social Animals
+Perturbation scale +1.5x: Dogs (Canis lupus familiaris) are one of the most popular and beloved pets worldwide. They come in a wide range of breeds, sizes, and temperaments, but here are some common features of dogs:
+
+1. **Physical Characteristics:**
+   - Dogs have a muscular body, typically with four legs, a tail, and ears
+Perturbation scale +2.5x: Dogs (Canis lupus familiaris) are one of the most popular and beloved pets worldwide, known for their loyalty, intelligence, and affectionate nature. Here are some key features of dogs:
+
+1. **Physical Characteristics:**
+   - Dogs come in various shapes and sizes, ranging from small (e.g., Chihuahua)
+Perturbation scale +5.0x: Dogs (Canis lupus familiaris) are one of the most popular and beloved pets in the world, known for their loyalty, intelligence, and affectionate nature. Here are some key features of dogs:
+
+1. **Physical Characteristics:**
+   - Dogs come in various shapes and sizes, ranging from small (e.g., Chihuah
+Perturbation scale +10.0x: Dogs (Canidae family) have numerous characteristics that make them one of the most lovable and loyal companions.
+
+1. **Olfactory system**: One of the most powerful features of dogs is their olfactory system, which consists of up to 300 million olfactory receptors in their noses, far surpassing that of primates (including humans
+Perturbation scale +20.0x: Dogs152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152152
+Perturbation scale +100.0x: 146ruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruhruh
+================================================================================
+
+================================================================================
+--- ABLATION EXPERIMENT ON CONCEPT: 'dog' ---
+--- LAYER: 31 ---
+================================================================================
+
+System Prompt: 'You are a helpful assistant.'
+User Prompt:   'Please explain some features of a dog.'
+All PCs (centroid only): 
+All PCs except largest (PC0 only): 
+All PCs except largest two (PC0+PC1): 
+Top 1 PCA ablated: 
+Top 2 PCAs ablated: 
+Top 3 PCAs ablated: 
+================================================================================
+
+################################################################################
+### PLOTTING OVERALL RESULTS ###
+################################################################################
+
+Saved average eigenvalue plot to lastToken_dog_avg_eigenvalue.png
+Saved eigenvector similarity matrix to lastToken_dog_pc0_similarity.png
+(interp) [cscandelius@holygpu8a19102 July]$ 

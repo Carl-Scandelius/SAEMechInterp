@@ -28,6 +28,8 @@ from helpers import (
     plot_avg_eigenvalues,
     plot_similarity_matrix,
     run_perturbation_experiment,
+    run_projection_based_perturbation,
+    run_ablation_experiment,
     MODEL_NAME,
     DEVICE,
 )
@@ -36,6 +38,8 @@ logging.set_verbosity(40)
 
 USE_SYSTEM_PROMPT_FOR_MANIFOLD = True
 PERTURB_ONCE = False
+USE_NORMALIZED_PROJECTION = True  # If True, use (projection magnitude / vector magnitude) ratio
+RUN_GLOBAL_PC_ANALYSIS = True  # If True, also run analysis using global PCs from all data
 
 def get_final_token_activations(model, tokenizer, prompts, layer_idx, system_prompt=""):
     activations = []
@@ -67,12 +71,182 @@ def get_final_token_activations(model, tokenizer, prompts, layer_idx, system_pro
     hook_handle.remove()
     return torch.cat(activations, dim=0)
 
+def get_global_activations(model, tokenizer, concept_prompts, layer_idx, system_prompt=""):
+    """
+    Extract activations from all prompts across all concepts to compute global PCs.
+    
+    Args:
+        model: The language model
+        tokenizer: The tokenizer
+        concept_prompts: Dictionary mapping concept names to lists of prompts
+        layer_idx: Layer index to extract activations from
+        system_prompt: System prompt to use (if any)
+    
+    Returns:
+        Tuple of (all_activations_tensor, prompt_to_concept_mapping, all_prompts_list)
+    """
+    all_prompts = []
+    prompt_to_concept = []
+    
+    # Collect all prompts from all concepts
+    for concept, prompts in concept_prompts.items():
+        for prompt in prompts:
+            all_prompts.append(prompt)
+            prompt_to_concept.append(concept)
+    
+    print(f"Extracting global activations from {len(all_prompts)} prompts across {len(concept_prompts)} concepts...")
+    
+    # Extract activations for all prompts
+    global_activations = get_final_token_activations(
+        model, tokenizer, all_prompts, layer_idx, system_prompt
+    )
+    
+    return global_activations, prompt_to_concept, all_prompts
+
+def analyse_global_manifolds(global_activations):
+    """
+    Compute global PCs from all activations combined.
+    
+    Args:
+        global_activations: Tensor of shape (n_prompts, hidden_dim) containing all activations
+    
+    Returns:
+        Dictionary containing global analysis results similar to analyse_manifolds output
+    """
+    print(f"Computing global PCs from {global_activations.shape[0]} activations...")
+    
+    # Center the activations
+    mean_activation = global_activations.mean(dim=0)
+    centered_activations = global_activations - mean_activation
+    
+    # Compute SVD to get principal components
+    U, S, Vt = torch.svd(centered_activations)
+    
+    # Extract eigenvalues and eigenvectors
+    eigenvalues = S ** 2 / (global_activations.shape[0] - 1)
+    eigenvectors = Vt.T  # Each column is an eigenvector
+    
+    global_analysis = {
+        "eigenvalues": eigenvalues,
+        "eigenvectors": eigenvectors.T,  # Each row is an eigenvector (consistent with analyse_manifolds)
+        "centered_acts": centered_activations,
+        "mean": mean_activation
+    }
+    
+    print(f"Global PCA completed. Top 5 eigenvalues: {eigenvalues[:5].tolist()}")
+    
+    return global_analysis
+
+def find_top_prompts_global(all_prompts, global_centered_acts, pc_direction, n=10, use_normalized_projection=True):
+    """
+    Find top prompts aligned with a global PC direction.
+    
+    Args:
+        all_prompts: List of all prompts
+        global_centered_acts: Centered activations for all prompts
+        pc_direction: Principal component direction vector
+        n: Number of top prompts to return
+        use_normalized_projection: Whether to normalize projections by vector magnitude
+    
+    Returns:
+        Dictionary with 'positive' and 'negative' lists of top prompts
+    """
+    if use_normalized_projection:
+        # Normalize projections by vector magnitude
+        vector_magnitudes = torch.norm(global_centered_acts, dim=1)
+        projections = torch.matmul(global_centered_acts, pc_direction) / (vector_magnitudes + 1e-8)
+    else:
+        projections = torch.matmul(global_centered_acts, pc_direction)
+    
+    # Get indices for top positive and negative projections
+    sorted_indices = torch.argsort(projections)
+    
+    # Top negative (most negative projections)
+    top_negative_indices = sorted_indices[:n]
+    # Top positive (most positive projections) 
+    top_positive_indices = sorted_indices[-n:]
+    top_positive_indices = torch.flip(top_positive_indices, dims=[0])  # Reverse to get highest first
+    
+    top_prompts = {
+        'positive': [all_prompts[i.item()] for i in top_positive_indices],
+        'negative': [all_prompts[i.item()] for i in top_negative_indices]
+    }
+    
+    return top_prompts
+
+def compute_pc_cosine_similarity(concept_analysis, global_analysis, concept_name, layer_idx, top_k=5):
+    """
+    Compute and display cosine similarity matrix between top concept-specific and global PCs.
+    
+    Args:
+        concept_analysis: Analysis results for the specific concept
+        global_analysis: Global analysis results 
+        concept_name: Name of the concept being analyzed
+        layer_idx: Layer index
+        top_k: Number of top PCs to compare (default: 5)
+    """
+    # Extract top k eigenvectors (already sorted by eigenvalue in descending order)
+    concept_pcs = concept_analysis["eigenvectors"][:top_k]  # Shape: (top_k, hidden_dim)
+    global_pcs = global_analysis["eigenvectors"][:top_k]    # Shape: (top_k, hidden_dim)
+    
+    # Compute cosine similarity matrix
+    # Normalize vectors for cosine similarity
+    concept_pcs_norm = concept_pcs / torch.norm(concept_pcs, dim=1, keepdim=True)
+    global_pcs_norm = global_pcs / torch.norm(global_pcs, dim=1, keepdim=True)
+    
+    # Cosine similarity matrix: concept_pcs @ global_pcs.T
+    cosine_sim_matrix = torch.matmul(concept_pcs_norm, global_pcs_norm.T)
+    
+    print("\n" + "*"*80)
+    print(f"### COSINE SIMILARITY: {concept_name.upper()} PCs vs GLOBAL PCs (Layer {layer_idx}) ###")
+    print("*"*80)
+    print(f"Matrix: {concept_name} PCs (rows) vs Global PCs (columns)")
+    print(f"Each PC ordered by eigenvalue (largest first)")
+    print()
+    
+    # Print header
+    header = f"{'':>12}"
+    for j in range(top_k):
+        header += f"{'Global-PC' + str(j):>12}"
+    print(header)
+    print("-" * (12 + 12 * top_k))
+    
+    # Print matrix rows
+    for i in range(top_k):
+        row = f"{concept_name + '-PC' + str(i):>12}"
+        for j in range(top_k):
+            similarity = cosine_sim_matrix[i, j].item()
+            row += f"{similarity:>12.4f}"
+        print(row)
+    
+    print()
+    
+    # Find and report highest similarities
+    max_similarity = torch.max(torch.abs(cosine_sim_matrix)).item()
+    max_pos = torch.unravel_index(torch.argmax(torch.abs(cosine_sim_matrix)), cosine_sim_matrix.shape)
+    max_i, max_j = max_pos[0].item(), max_pos[1].item()
+    actual_similarity = cosine_sim_matrix[max_i, max_j].item()
+    
+    print(f"Highest absolute similarity: {abs(actual_similarity):.4f}")
+    print(f"Between {concept_name}-PC{max_i} and Global-PC{max_j} (similarity = {actual_similarity:.4f})")
+    
+    # Report average similarities
+    avg_similarity = torch.mean(torch.abs(cosine_sim_matrix)).item()
+    print(f"Average absolute similarity: {avg_similarity:.4f}")
+    
+    print("*"*80 + "\n")
+    
+    return cosine_sim_matrix
+
 def main():
     print(f"\nConfiguration: PERTURB_ONCE is set to {PERTURB_ONCE}\n")
     print(f"Configuration: USE_SYSTEM_PROMPT_FOR_MANIFOLD is set to {USE_SYSTEM_PROMPT_FOR_MANIFOLD}\n")
+    print(f"Configuration: USE_NORMALIZED_PROJECTION is set to {USE_NORMALIZED_PROJECTION}\n")
+    print(f"Configuration: RUN_GLOBAL_PC_ANALYSIS is set to {RUN_GLOBAL_PC_ANALYSIS}\n")
 
     dog_avg_eigenvalues = {}
     dog_top_eigenvectors = {}
+    global_analysis_cache = {}  # Cache global analysis results by layer
     model_name_str = MODEL_NAME.split('/')[-1]
 
     model, tokenizer = get_model_and_tokenizer(MODEL_NAME)
@@ -83,49 +257,111 @@ def main():
     TARGET_LAYERS = [0, 15, 31] # Llama-3.1-8B has 32 layers (0-31)
     AXES_TO_ANALYZE = range(5)
 
-    # Define multiple (system_prompt, user_prompt) pairs for testing
-    prompt_pairs = [
-        (
-            "You are a helpful assistant. Please translate the following text accurately from English into German:",
-            "The dog was running around the park. It was a labrador."
-        ),
-        (
-            "You are a helpful assistant.",
-            "Please describe two different dog breeds."
-        )
+    # Define concept-prompt pairings
+    concept_prompt_pairs = [
+        {
+            "concept": "lion",
+            "system_prompt": "You are a helpful assistant.",
+            "user_prompt": "Please write a sentence about lions."
+        },
+        {
+            "concept": "dog",
+            "system_prompt": "You are a helpful assistant.",
+            "user_prompt": "Please write a sentence about dogs."
+        }
     ]
 
-    for target_layer in TARGET_LAYERS:
-        print("\n" + "#"*80)
-        print(f"### STARTING ANALYSIS FOR LAYER {target_layer} ###")
-        print("#"*80 + "\n")
+    # For each concept-prompt pairing, run through all layers
+    for pair_idx, pair in enumerate(concept_prompt_pairs):
+        concept = pair["concept"]
+        system_prompt = pair["system_prompt"]
+        user_prompt = pair["user_prompt"]
+        
+        print("\n" + "#"*100)
+        print(f"### STARTING ANALYSIS FOR CONCEPT-PROMPT PAIR {pair_idx + 1}/{len(concept_prompt_pairs)} ###")
+        print(f"### CONCEPT: '{concept}' ###")
+        print(f"### SYSTEM PROMPT: '{system_prompt}' ###")
+        print(f"### USER PROMPT: '{user_prompt}' ###")
+        print("#"*100 + "\n")
+        
+        # Check if concept exists in the dataset
+        if concept not in concept_prompts:
+            print(f"Concept '{concept}' not found in prompts.json. Available concepts: {list(concept_prompts.keys())}")
+            print("Skipping this concept-prompt pair.\n")
+            continue
 
-        all_activations = {}
-        system_prompt = "You are a language model assistant. Please translate the following text accurately from English into German:"
-        system_prompt_for_manifold = system_prompt if USE_SYSTEM_PROMPT_FOR_MANIFOLD else ""
+        for target_layer in TARGET_LAYERS:
+            print("\n" + "="*80)
+            print(f"### ANALYZING LAYER {target_layer} for concept '{concept}' ###")
+            print("="*80 + "\n")
 
-        for concept, prompts in concept_prompts.items():
-            all_activations[concept] = get_final_token_activations(model, tokenizer, prompts, target_layer, system_prompt=system_prompt_for_manifold)
+            # Extract activations for this specific concept at this layer
+            system_prompt_for_manifold = "You are a language model assistant. Please translate the following text accurately from English into German:" if USE_SYSTEM_PROMPT_FOR_MANIFOLD else ""
+            
+            concept_activations = get_final_token_activations(
+                model, tokenizer, concept_prompts[concept], target_layer, 
+                system_prompt=system_prompt_for_manifold
+            )
             gc.collect()
             torch.cuda.empty_cache()
 
-        analysis_results = analyse_manifolds(all_activations)
+            # Analyze manifold for this concept
+            all_activations = {concept: concept_activations}
+            analysis_results = analyse_manifolds(all_activations)
+            
+            if concept not in analysis_results:
+                print(f"Analysis for concept '{concept}' failed for layer {target_layer}. Skipping to next layer.")
+                continue
 
-        if "dog" in analysis_results:
-            dog_analysis = analysis_results["dog"]
-            dog_avg_eigenvalues[target_layer] = dog_analysis["eigenvalues"].mean().item()
-            dog_top_eigenvectors[target_layer] = dog_analysis["eigenvectors"][0]
-        
-        test_concept = "dog"
+            # Store dog analysis for overall plotting (if concept is dog)
+            if concept == "dog":
+                dog_analysis = analysis_results[concept]
+                dog_avg_eigenvalues[target_layer] = dog_analysis["eigenvalues"].mean().item()
+                dog_top_eigenvectors[target_layer] = dog_analysis["eigenvectors"][0]
 
-        if test_concept not in analysis_results:
-            print(f"Analysis for concept '{test_concept}' not available for layer {target_layer}. Skipping to next layer.")
-            continue
+            # GLOBAL PC ANALYSIS - Extract and compute global PCs if not already cached
+            if RUN_GLOBAL_PC_ANALYSIS and target_layer not in global_analysis_cache:
+                print("\n" + "~"*80)
+                print(f"### COMPUTING GLOBAL PCs FOR LAYER {target_layer} ###")
+                print("~"*80 + "\n")
+                
+                global_activations, prompt_to_concept, all_prompts = get_global_activations(
+                    model, tokenizer, concept_prompts, target_layer, 
+                    system_prompt=system_prompt_for_manifold
+                )
+                
+                global_analysis = analyse_global_manifolds(global_activations)
+                global_analysis_cache[target_layer] = {
+                    'analysis': global_analysis,
+                    'all_prompts': all_prompts,
+                    'prompt_to_concept': prompt_to_concept
+                }
+                
+                gc.collect()
+                torch.cuda.empty_cache()
+                
+                print(f"Global PC analysis cached for layer {target_layer}")
+                print("~"*80 + "\n")
 
-        for (system_prompt, user_prompt) in prompt_pairs:
-            print("\n" + "="*80)
-            print(f"Running experiments for system prompt: '{system_prompt}'\nUser prompt: '{user_prompt}'")
-            print("="*80)
+            # COSINE SIMILARITY ANALYSIS - Compare concept PCs with global PCs
+            if RUN_GLOBAL_PC_ANALYSIS and target_layer in global_analysis_cache:
+                global_data = global_analysis_cache[target_layer]
+                global_analysis = global_data['analysis']
+                
+                # Compute and display cosine similarity matrix
+                cosine_sim_matrix = compute_pc_cosine_similarity(
+                    analysis_results[concept], 
+                    global_analysis, 
+                    concept, 
+                    target_layer, 
+                    top_k=5
+                )
+
+            print(f"\nRunning experiments for:")
+            print(f"System prompt: '{system_prompt}'")
+            print(f"User prompt: '{user_prompt}'")
+            print(f"Concept: '{concept}'")
+            print(f"Layer: {target_layer}")
 
             messages_to_test = [
                 {"role": "system", "content": system_prompt},
@@ -134,25 +370,30 @@ def main():
 
             run_perturbation_experiment(
                 model, tokenizer, messages_to_test, target_layer, 
-                analysis_results[test_concept], test_concept, AXES_TO_ANALYZE, 
+                analysis_results[concept], concept, AXES_TO_ANALYZE, 
                 target_token_idx=None, perturb_once=PERTURB_ONCE, 
                 orthogonal_mode=False, use_largest_eigenvalue=True  # actual orthogonal eigenval too small
             )
             
             # Display top prompts aligned with the PC direction
             for axis in AXES_TO_ANALYZE:
-                if axis >= len(analysis_results[test_concept]["eigenvectors"]):
+                if axis >= len(analysis_results[concept]["eigenvectors"]):
                     break
                     
-                pc_direction = analysis_results[test_concept]["eigenvectors"][axis]
+                pc_direction = analysis_results[concept]["eigenvectors"][axis]
                 
                 print("\n" + "="*80)
-                print(f"--- Analyzing original dataset prompts along the PC{axis} '{test_concept}' direction (Layer {target_layer}) ---")
+                print(f"--- Analyzing original dataset prompts along the PC{axis} '{concept}' direction (Layer {target_layer}) ---")
+                if USE_NORMALIZED_PROJECTION:
+                    print("Using normalized projections (projection magnitude / vector magnitude)")
+                else:
+                    print("Using raw projections")
                 top_prompts = find_top_prompts(
-                    concept_prompts[test_concept],
-                    analysis_results[test_concept]["centered_acts"],
+                    concept_prompts[concept],
+                    analysis_results[concept]["centered_acts"],
                     pc_direction,
-                    n=10
+                    n=10,
+                    use_normalized_projection=USE_NORMALIZED_PROJECTION
                 )
 
                 print(f"\nTop 10 prompts most aligned with POSITIVE PC{axis} direction:")
@@ -164,35 +405,103 @@ def main():
                     print(f"{i:2d}. '{prompt}'")
                 print("="*80)
             
-            # --- PROJECTION-BASED PERTURBATION ---
+            # --- PROJECTION-BASED PERTURBATION (COMMENTED OUT) ---
             # For each PC, run a projection-based perturbation that zeroes out all other PCs
-            from helpers import run_projection_based_perturbation
-            for axis in AXES_TO_ANALYZE:
-                if axis >= len(analysis_results[test_concept]["eigenvectors"]):
-                    break
-                    
-                # Run projection-based perturbation for this PC
-                run_projection_based_perturbation(
-                    model, tokenizer, messages_to_test, target_layer,
-                    analysis_results[test_concept], test_concept, axis,
-                    target_token_idx=None, perturb_once=PERTURB_ONCE
-                )
+            # for axis in AXES_TO_ANALYZE:
+            #     if axis >= len(analysis_results[concept]["eigenvectors"]):
+            #         break
+            #         
+            #     # Run projection-based perturbation for this PC
+            #     run_projection_based_perturbation(
+            #         model, tokenizer, messages_to_test, target_layer,
+            #         analysis_results[concept], concept, axis,
+            #         target_token_idx=None, perturb_once=PERTURB_ONCE
+            #     )
 
             # --- ORTHOGONAL PERTURBATION ---
             run_perturbation_experiment(
                 model, tokenizer, messages_to_test, target_layer,
-                analysis_results[test_concept], test_concept,
+                analysis_results[concept], concept,
                 target_token_idx=None, perturb_once=PERTURB_ONCE,
                 orthogonal_mode=True, use_largest_eigenvalue=True
             )
 
             # --- ABLATION EXPERIMENT ---
-            from helpers import run_ablation_experiment
             run_ablation_experiment(
                 model, tokenizer, messages_to_test, target_layer,
-                analysis_results[test_concept], test_concept,
+                analysis_results[concept], concept,
                 target_token_idx=None, perturb_once=PERTURB_ONCE
             )
+
+            # GLOBAL PC ANALYSIS - Run perturbation experiments using global PCs
+            if RUN_GLOBAL_PC_ANALYSIS and target_layer in global_analysis_cache:
+                global_data = global_analysis_cache[target_layer]
+                global_analysis = global_data['analysis']
+                all_prompts = global_data['all_prompts']
+                
+                print("\n" + "@"*80)
+                print(f"### GLOBAL PC PERTURBATION EXPERIMENTS FOR LAYER {target_layer} ###")
+                print(f"### Using Global PCs computed from all {len(all_prompts)} prompts ###")
+                print("@"*80 + "\n")
+                
+                # Run perturbation experiment using global PCs
+                print(f"Running GLOBAL PC perturbation experiments for concept '{concept}'...")
+                run_perturbation_experiment(
+                    model, tokenizer, messages_to_test, target_layer, 
+                    global_analysis, f"GLOBAL-{concept}", AXES_TO_ANALYZE, 
+                    target_token_idx=None, perturb_once=PERTURB_ONCE, 
+                    orthogonal_mode=False, use_largest_eigenvalue=True
+                )
+                
+                # Display top prompts aligned with the global PC directions
+                for axis in AXES_TO_ANALYZE:
+                    if axis >= len(global_analysis["eigenvectors"]):
+                        break
+                        
+                    global_pc_direction = global_analysis["eigenvectors"][axis]
+                    
+                    print("\n" + "="*80)
+                    print(f"--- Analyzing ALL dataset prompts along the GLOBAL PC{axis} direction (Layer {target_layer}) ---")
+                    if USE_NORMALIZED_PROJECTION:
+                        print("Using normalized projections (projection magnitude / vector magnitude)")
+                    else:
+                        print("Using raw projections")
+                    
+                    top_prompts_global = find_top_prompts_global(
+                        all_prompts,
+                        global_analysis["centered_acts"],
+                        global_pc_direction,
+                        n=10,
+                        use_normalized_projection=USE_NORMALIZED_PROJECTION
+                    )
+
+                    print(f"\nTop 10 prompts most aligned with POSITIVE GLOBAL PC{axis} direction:")
+                    for i, prompt in enumerate(top_prompts_global['positive'], 1):
+                        print(f"{i:2d}. '{prompt}'")
+                        
+                    print(f"\nTop 10 prompts most aligned with NEGATIVE GLOBAL PC{axis} direction:")
+                    for i, prompt in enumerate(top_prompts_global['negative'], 1):
+                        print(f"{i:2d}. '{prompt}'")
+                    print("="*80)
+                
+                # --- GLOBAL PC ORTHOGONAL PERTURBATION ---
+                print(f"\nRunning GLOBAL PC orthogonal perturbation for concept '{concept}'...")
+                run_perturbation_experiment(
+                    model, tokenizer, messages_to_test, target_layer,
+                    global_analysis, f"GLOBAL-{concept}",
+                    target_token_idx=None, perturb_once=PERTURB_ONCE,
+                    orthogonal_mode=True, use_largest_eigenvalue=True
+                )
+
+                # --- GLOBAL PC ABLATION EXPERIMENT ---
+                print(f"\nRunning GLOBAL PC ablation experiment for concept '{concept}'...")
+                run_ablation_experiment(
+                    model, tokenizer, messages_to_test, target_layer,
+                    global_analysis, f"GLOBAL-{concept}",
+                    target_token_idx=None, perturb_once=PERTURB_ONCE
+                )
+                
+                print("@"*80 + "\n")
 
     print("\n" + "#"*80)
     print("### PLOTTING OVERALL RESULTS ###")

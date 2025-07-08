@@ -110,6 +110,7 @@ def find_top_prompts(
     centered_acts: torch.Tensor,
     direction: torch.Tensor,
     n: int = 10,
+    use_normalized_projection: bool = False,
 )-> dict[str, list[str]]:
     """Return the n prompts furthest in positive/negative direction of a particular eigenvector.
     
@@ -118,6 +119,7 @@ def find_top_prompts(
         centered_acts: Centered activation vectors [num_prompts, hidden_dim]
         direction: Direction vector to project onto [hidden_dim]
         n: Number of top prompts to return in each direction
+        use_normalized_projection: If True, use (projection magnitude / vector magnitude) instead of raw projection
         
     Returns:
         Dictionary with keys 'positive' and 'negative', each containing lists of prompts
@@ -129,19 +131,41 @@ def find_top_prompts(
     # Calculate projection values for each activation onto the direction
     projections = centered_acts @ direction
     
+    if use_normalized_projection:
+        # Calculate the magnitude of each centered activation vector
+        vector_magnitudes = torch.norm(centered_acts, dim=1)
+        
+        # Avoid division by zero by adding a small epsilon
+        epsilon = 1e-8
+        vector_magnitudes = torch.clamp(vector_magnitudes, min=epsilon)
+        
+        # Normalize projections by vector magnitude
+        normalized_projections = projections / vector_magnitudes
+        values_to_sort = normalized_projections
+        value_name = "normalized projection"
+    else:
+        values_to_sort = projections
+        value_name = "projection"
+    
     # Sort indices by projection value (ascending)
-    _, sorted_idx = torch.sort(projections, descending=False)
+    _, sorted_idx = torch.sort(values_to_sort, descending=False)
     
     # Get indices for most negative and most positive projections
     neg_idx = sorted_idx[:min(n, len(sorted_idx))]
     pos_idx = sorted_idx[-min(n, len(sorted_idx)):].flip(dims=[0])
     
     # Debug print for transparency
-    print(f"\nProjection values:")
+    print(f"\n{value_name.capitalize()} values:")
     for i in range(min(3, len(pos_idx))):
-        print(f"Top positive #{i+1}: {projections[pos_idx[i]]:.4f}")
+        if use_normalized_projection:
+            print(f"Top positive #{i+1}: {values_to_sort[pos_idx[i]]:.4f} (raw projection: {projections[pos_idx[i]]:.4f})")
+        else:
+            print(f"Top positive #{i+1}: {values_to_sort[pos_idx[i]]:.4f}")
     for i in range(min(3, len(neg_idx))):
-        print(f"Top negative #{i+1}: {projections[neg_idx[i]]:.4f}")
+        if use_normalized_projection:
+            print(f"Top negative #{i+1}: {values_to_sort[neg_idx[i]]:.4f} (raw projection: {projections[neg_idx[i]]:.4f})")
+        else:
+            print(f"Top negative #{i+1}: {values_to_sort[neg_idx[i]]:.4f}")
     
     # Get corresponding prompts
     return {
@@ -571,6 +595,9 @@ def run_ablation_experiment(
         ("All PCs (centroid only)", []),  # Remove all PCs
         ("All PCs except largest (PC0 only)", [0]),  # Keep only PC0
         ("All PCs except largest two (PC0+PC1)", [0, 1]),  # Keep PC0 and PC1
+        ("Top 1 PCA ablated", list(range(1, len(all_eigenvectors)))),  # Remove PC0, keep PC1, PC2, PC3, etc.
+        ("Top 2 PCAs ablated", list(range(2, len(all_eigenvectors)))),  # Remove PC0, PC1, keep PC2, PC3, etc.
+        ("Top 3 PCAs ablated", list(range(3, len(all_eigenvectors)))),  # Remove PC0, PC1, PC2, keep PC3, etc.
     ]
     
     for scenario_name, keep_pcs in ablation_scenarios:
@@ -615,7 +642,7 @@ def run_ablation_experiment(
         
         with torch.no_grad():
             output_ids = model.generate(
-                inputs, max_new_tokens=50, temperature=0.7, top_p=0.9, 
+                inputs, max_new_tokens=30, temperature=0.7, top_p=0.9, 
                 do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
             )
         
