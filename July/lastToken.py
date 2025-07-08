@@ -181,8 +181,11 @@ def analyse_global_manifolds(global_activations):
     print(f"Computing global PCs from {global_activations.shape[0]} activations...")
     print(f"Tensor device: {global_activations.device}, dtype: {global_activations.dtype}")
     
-    # Convert to float32 if in half precision (required for SVD)
+    # Store original dtype and device for later compatibility
     original_dtype = global_activations.dtype
+    original_device = global_activations.device
+    
+    # Convert to float32 if in half precision (required for SVD)
     if global_activations.dtype == torch.float16:
         print("Converting from float16 to float32 for SVD computation...")
         global_activations = global_activations.float()
@@ -225,12 +228,16 @@ def analyse_global_manifolds(global_activations):
     eigenvalues = S ** 2 / (global_activations.shape[0] - 1)
     eigenvectors = Vt.T  # Each column is an eigenvector
     
-    # Keep results on the same device as input for consistency
+    # Keep results on the same device as input but ensure compatibility with helpers.py
+    # Store in float32 for internal use, will convert when needed for helpers.py
     global_analysis = {
         "eigenvalues": eigenvalues,
         "eigenvectors": eigenvectors.T,  # Each row is an eigenvector (consistent with analyse_manifolds)
         "centered_acts": centered_activations,
-        "mean": mean_activation
+        "mean": mean_activation,
+        # Add metadata for compatibility
+        "_original_dtype": original_dtype,
+        "_original_device": original_device
     }
     
     print(f"Global PCA completed on {device}. Top 5 eigenvalues: {eigenvalues[:5].tolist()}")
@@ -252,10 +259,13 @@ def find_top_prompts_global(all_prompts, global_centered_acts, pc_direction, n=1
     Returns:
         Dictionary with 'positive' and 'negative' lists of top prompts (and sources if provided)
     """
-    # Ensure tensors are on the same device
-    device = global_centered_acts.device
-    if pc_direction.device != device:
-        pc_direction = pc_direction.to(device)
+    # Ensure tensors are on the same device and dtype
+    target_device = global_centered_acts.device
+    target_dtype = torch.float32  # Use float32 for numerical stability
+    
+    # Convert both tensors to same device and dtype
+    global_centered_acts = global_centered_acts.to(device=target_device, dtype=target_dtype)
+    pc_direction = pc_direction.to(device=target_device, dtype=target_dtype)
     
     if use_normalized_projection:
         # Normalize projections by vector magnitude
@@ -302,12 +312,20 @@ def compute_pc_cosine_similarity(concept_analysis, global_analysis, concept_name
     concept_pcs = concept_analysis["eigenvectors"][:top_k]  # Shape: (top_k, hidden_dim)
     global_pcs = global_analysis["eigenvectors"][:top_k]    # Shape: (top_k, hidden_dim)
     
-    # Ensure both tensors are on the same device
-    device = concept_pcs.device
-    if global_pcs.device != device:
-        global_pcs = global_pcs.to(device)
+    print(f"Before alignment - Concept PCs: device={concept_pcs.device}, dtype={concept_pcs.dtype}")
+    print(f"Before alignment - Global PCs: device={global_pcs.device}, dtype={global_pcs.dtype}")
     
-    print(f"Computing cosine similarity on {device} with tensors dtype: {concept_pcs.dtype}, {global_pcs.dtype}")
+    # Choose target device (prefer GPU if available)
+    target_device = global_pcs.device if global_pcs.device.type == 'cuda' else concept_pcs.device
+    
+    # Choose target dtype (use float32 for numerical stability)
+    target_dtype = torch.float32
+    
+    # Ensure both tensors are on same device and dtype
+    concept_pcs = concept_pcs.to(device=target_device, dtype=target_dtype)
+    global_pcs = global_pcs.to(device=target_device, dtype=target_dtype)
+    
+    print(f"After alignment - Computing cosine similarity on {target_device} with dtype {target_dtype}")
     
     # Ensure tensors have the same shape in the hidden dimension
     min_hidden_dim = min(concept_pcs.shape[1], global_pcs.shape[1])
@@ -472,24 +490,33 @@ def main():
                 print(f"### (prompts.json + STSB dataset for broader representation) ###")
                 print("~"*80 + "\n")
                 
-                global_activations, prompt_to_source, all_prompts = get_enhanced_global_activations(
-                    model, tokenizer, concept_prompts, target_layer, 
-                    system_prompt=system_prompt_for_manifold
-                )
+                try:
+                    global_activations, prompt_to_source, all_prompts = get_enhanced_global_activations(
+                        model, tokenizer, concept_prompts, target_layer, 
+                        system_prompt=system_prompt_for_manifold
+                    )
+                    
+                    global_analysis = analyse_global_manifolds(global_activations)
+                    global_analysis_cache[target_layer] = {
+                        'analysis': global_analysis,
+                        'all_prompts': all_prompts,
+                        'prompt_to_source': prompt_to_source
+                    }
+                    
+                    # Memory cleanup
+                    gc.collect()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    
+                    print(f"Global PC analysis cached for layer {target_layer}")
+                    
+                except Exception as e:
+                    print(f"ERROR: Failed to compute global PC analysis for layer {target_layer}: {e}")
+                    print("Skipping global PC analysis for this layer.")
+                    import traceback
+                    traceback.print_exc()
+                    continue
                 
-                global_analysis = analyse_global_manifolds(global_activations)
-                global_analysis_cache[target_layer] = {
-                    'analysis': global_analysis,
-                    'all_prompts': all_prompts,
-                    'prompt_to_source': prompt_to_source
-                }
-                
-                # Memory cleanup
-                gc.collect()
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-                
-                print(f"Global PC analysis cached for layer {target_layer}")
                 print("~"*80 + "\n")
 
             # COSINE SIMILARITY ANALYSIS - Compare concept PCs with global PCs
@@ -497,14 +524,20 @@ def main():
                 global_data = global_analysis_cache[target_layer]
                 global_analysis = global_data['analysis']
                 
-                # Compute and display cosine similarity matrix
-                cosine_sim_matrix = compute_pc_cosine_similarity(
-                    analysis_results[concept], 
-                    global_analysis, 
-                    concept, 
-                    target_layer, 
-                    top_k=5
-                )
+                try:
+                    # Compute and display cosine similarity matrix
+                    cosine_sim_matrix = compute_pc_cosine_similarity(
+                        analysis_results[concept], 
+                        global_analysis, 
+                        concept, 
+                        target_layer, 
+                        top_k=5
+                    )
+                except Exception as e:
+                    print(f"ERROR: Failed to compute cosine similarity for {concept} at layer {target_layer}: {e}")
+                    print("Skipping cosine similarity analysis for this concept-layer combination.")
+                    import traceback
+                    traceback.print_exc()
 
             print(f"\nRunning experiments for:")
             print(f"System prompt: '{system_prompt}'")
@@ -588,6 +621,15 @@ def main():
                 global_analysis = global_data['analysis']
                 all_prompts = global_data['all_prompts']
                 
+                # Ensure global analysis is compatible with helpers.py functions (CPU, appropriate dtype)
+                global_analysis_for_helpers = {}
+                for key, tensor in global_analysis.items():
+                    if torch.is_tensor(tensor):
+                        # Convert to CPU and float16 to match helpers.py expectations
+                        global_analysis_for_helpers[key] = tensor.cpu().to(dtype=torch.float16)
+                    else:
+                        global_analysis_for_helpers[key] = tensor
+                
                 print("\n" + "@"*80)
                 print(f"### GLOBAL PC PERTURBATION EXPERIMENTS FOR LAYER {target_layer} ###")
                 print(f"### Using Global PCs computed from {len(all_prompts)} sentences ###")
@@ -596,12 +638,16 @@ def main():
                 
                 # Run perturbation experiment using global PCs
                 print(f"Running GLOBAL PC perturbation experiments for concept '{concept}'...")
-                run_perturbation_experiment(
-                    model, tokenizer, messages_to_test, target_layer, 
-                    global_analysis, f"GLOBAL-{concept}", AXES_TO_ANALYZE, 
-                    target_token_idx=None, perturb_once=PERTURB_ONCE, 
-                    orthogonal_mode=False, use_largest_eigenvalue=True
-                )
+                try:
+                    run_perturbation_experiment(
+                        model, tokenizer, messages_to_test, target_layer, 
+                        global_analysis_for_helpers, f"GLOBAL-{concept}", AXES_TO_ANALYZE, 
+                        target_token_idx=None, perturb_once=PERTURB_ONCE, 
+                        orthogonal_mode=False, use_largest_eigenvalue=True
+                    )
+                except Exception as e:
+                    print(f"ERROR in global PC perturbation experiment: {e}")
+                    print("Continuing with other analyses...")
                 
                 # Display top prompts aligned with the global PC directions
                 for axis in AXES_TO_ANALYZE:
@@ -620,50 +666,64 @@ def main():
                     # Get prompt sources from cached data
                     prompt_sources = global_data.get('prompt_to_source', None)
                     
-                    top_prompts_global = find_top_prompts_global(
-                        all_prompts,
-                        global_analysis["centered_acts"],
-                        global_pc_direction,
-                        n=10,
-                        use_normalized_projection=USE_NORMALIZED_PROJECTION,
-                        prompt_sources=prompt_sources
-                    )
+                    try:
+                        top_prompts_global = find_top_prompts_global(
+                            all_prompts,
+                            global_analysis["centered_acts"],
+                            global_pc_direction,
+                            n=10,
+                            use_normalized_projection=USE_NORMALIZED_PROJECTION,
+                            prompt_sources=prompt_sources
+                        )
 
-                    print(f"\nTop 10 sentences most aligned with POSITIVE GLOBAL PC{axis} direction:")
-                    for i, item in enumerate(top_prompts_global['positive'], 1):
-                        if isinstance(item, tuple):
-                            prompt, source = item
-                            source_display = source.replace('concept_', '').replace('stsb_dataset', 'STSB')
-                            print(f"{i:2d}. [{source_display}] '{prompt}'")
-                        else:
-                            print(f"{i:2d}. '{item}'")
+                        print(f"\nTop 10 sentences most aligned with POSITIVE GLOBAL PC{axis} direction:")
+                        for i, item in enumerate(top_prompts_global['positive'], 1):
+                            if isinstance(item, tuple):
+                                prompt, source = item
+                                source_display = source.replace('concept_', '').replace('stsb_dataset', 'STSB')
+                                print(f"{i:2d}. [{source_display}] '{prompt}'")
+                            else:
+                                print(f"{i:2d}. '{item}'")
+                            
+                        print(f"\nTop 10 sentences most aligned with NEGATIVE GLOBAL PC{axis} direction:")
+                        for i, item in enumerate(top_prompts_global['negative'], 1):
+                            if isinstance(item, tuple):
+                                prompt, source = item
+                                source_display = source.replace('concept_', '').replace('stsb_dataset', 'STSB')
+                                print(f"{i:2d}. [{source_display}] '{prompt}'")
+                            else:
+                                print(f"{i:2d}. '{item}'")
+                                
+                    except Exception as e:
+                        print(f"ERROR in global PC prompt analysis for axis {axis}: {e}")
+                        print("Continuing with next axis...")
                         
-                    print(f"\nTop 10 sentences most aligned with NEGATIVE GLOBAL PC{axis} direction:")
-                    for i, item in enumerate(top_prompts_global['negative'], 1):
-                        if isinstance(item, tuple):
-                            prompt, source = item
-                            source_display = source.replace('concept_', '').replace('stsb_dataset', 'STSB')
-                            print(f"{i:2d}. [{source_display}] '{prompt}'")
-                        else:
-                            print(f"{i:2d}. '{item}'")
                     print("="*80)
                 
                 # --- GLOBAL PC ORTHOGONAL PERTURBATION ---
                 print(f"\nRunning GLOBAL PC orthogonal perturbation for concept '{concept}'...")
-                run_perturbation_experiment(
-                    model, tokenizer, messages_to_test, target_layer,
-                    global_analysis, f"GLOBAL-{concept}",
-                    target_token_idx=None, perturb_once=PERTURB_ONCE,
-                    orthogonal_mode=True, use_largest_eigenvalue=True
-                )
+                try:
+                    run_perturbation_experiment(
+                        model, tokenizer, messages_to_test, target_layer,
+                        global_analysis_for_helpers, f"GLOBAL-{concept}",
+                        target_token_idx=None, perturb_once=PERTURB_ONCE,
+                        orthogonal_mode=True, use_largest_eigenvalue=True
+                    )
+                except Exception as e:
+                    print(f"ERROR in global PC orthogonal perturbation: {e}")
+                    print("Continuing with other analyses...")
 
                 # --- GLOBAL PC ABLATION EXPERIMENT ---
                 print(f"\nRunning GLOBAL PC ablation experiment for concept '{concept}'...")
-                run_ablation_experiment(
-                    model, tokenizer, messages_to_test, target_layer,
-                    global_analysis, f"GLOBAL-{concept}",
-                    target_token_idx=None, perturb_once=PERTURB_ONCE
-                )
+                try:
+                    run_ablation_experiment(
+                        model, tokenizer, messages_to_test, target_layer,
+                        global_analysis_for_helpers, f"GLOBAL-{concept}",
+                        target_token_idx=None, perturb_once=PERTURB_ONCE
+                    )
+                except Exception as e:
+                    print(f"ERROR in global PC ablation experiment: {e}")
+                    print("Continuing with other analyses...")
                 
                 print("@"*80 + "\n")
 
