@@ -179,18 +179,53 @@ def analyse_global_manifolds(global_activations):
         Dictionary containing global analysis results similar to analyse_manifolds output
     """
     print(f"Computing global PCs from {global_activations.shape[0]} activations...")
+    print(f"Tensor device: {global_activations.device}, dtype: {global_activations.dtype}")
+    
+    # Convert to float32 if in half precision (required for SVD)
+    original_dtype = global_activations.dtype
+    if global_activations.dtype == torch.float16:
+        print("Converting from float16 to float32 for SVD computation...")
+        global_activations = global_activations.float()
+    
+    # Keep on original device (likely GPU) for better performance
+    device = global_activations.device
     
     # Center the activations
     mean_activation = global_activations.mean(dim=0)
     centered_activations = global_activations - mean_activation
     
     # Compute SVD to get principal components
-    U, S, Vt = torch.svd(centered_activations)
+    try:
+        U, S, Vt = torch.svd(centered_activations)
+        print(f"SVD completed successfully on {device}")
+    except RuntimeError as e:
+        print(f"SVD failed on {device}: {e}")
+        if device.type == 'cuda':
+            print("Trying SVD on CPU as fallback...")
+            centered_activations_cpu = centered_activations.cpu()
+            try:
+                U, S, Vt = torch.svd(centered_activations_cpu)
+                # Move results back to original device
+                U, S, Vt = U.to(device), S.to(device), Vt.to(device)
+                centered_activations = centered_activations_cpu.to(device)
+                print("SVD completed successfully on CPU, results moved back to GPU")
+            except RuntimeError as e2:
+                print(f"SVD also failed on CPU: {e2}")
+                print("Trying with double precision...")
+                centered_activations_double = centered_activations_cpu.double()
+                U, S, Vt = torch.svd(centered_activations_double)
+                # Convert back to float32 and move to original device
+                U, S, Vt = U.float().to(device), S.float().to(device), Vt.float().to(device)
+                centered_activations = centered_activations_double.float().to(device)
+                print("SVD completed with double precision, results converted back to float32")
+        else:
+            raise e
     
     # Extract eigenvalues and eigenvectors
     eigenvalues = S ** 2 / (global_activations.shape[0] - 1)
     eigenvectors = Vt.T  # Each column is an eigenvector
     
+    # Keep results on the same device as input for consistency
     global_analysis = {
         "eigenvalues": eigenvalues,
         "eigenvectors": eigenvectors.T,  # Each row is an eigenvector (consistent with analyse_manifolds)
@@ -198,7 +233,7 @@ def analyse_global_manifolds(global_activations):
         "mean": mean_activation
     }
     
-    print(f"Global PCA completed. Top 5 eigenvalues: {eigenvalues[:5].tolist()}")
+    print(f"Global PCA completed on {device}. Top 5 eigenvalues: {eigenvalues[:5].tolist()}")
     
     return global_analysis
 
@@ -217,9 +252,15 @@ def find_top_prompts_global(all_prompts, global_centered_acts, pc_direction, n=1
     Returns:
         Dictionary with 'positive' and 'negative' lists of top prompts (and sources if provided)
     """
+    # Ensure tensors are on the same device
+    device = global_centered_acts.device
+    if pc_direction.device != device:
+        pc_direction = pc_direction.to(device)
+    
     if use_normalized_projection:
         # Normalize projections by vector magnitude
         vector_magnitudes = torch.norm(global_centered_acts, dim=1)
+        # Add small epsilon to avoid division by zero
         projections = torch.matmul(global_centered_acts, pc_direction) / (vector_magnitudes + 1e-8)
     else:
         projections = torch.matmul(global_centered_acts, pc_direction)
@@ -261,10 +302,36 @@ def compute_pc_cosine_similarity(concept_analysis, global_analysis, concept_name
     concept_pcs = concept_analysis["eigenvectors"][:top_k]  # Shape: (top_k, hidden_dim)
     global_pcs = global_analysis["eigenvectors"][:top_k]    # Shape: (top_k, hidden_dim)
     
+    # Ensure both tensors are on the same device
+    device = concept_pcs.device
+    if global_pcs.device != device:
+        global_pcs = global_pcs.to(device)
+    
+    print(f"Computing cosine similarity on {device} with tensors dtype: {concept_pcs.dtype}, {global_pcs.dtype}")
+    
+    # Ensure tensors have the same shape in the hidden dimension
+    min_hidden_dim = min(concept_pcs.shape[1], global_pcs.shape[1])
+    if concept_pcs.shape[1] != global_pcs.shape[1]:
+        print(f"Warning: Dimension mismatch - concept PCs: {concept_pcs.shape[1]}, global PCs: {global_pcs.shape[1]}")
+        print(f"Truncating to minimum dimension: {min_hidden_dim}")
+        concept_pcs = concept_pcs[:, :min_hidden_dim]
+        global_pcs = global_pcs[:, :min_hidden_dim]
+    
+    # Ensure we don't have more PCs than available
+    actual_top_k = min(top_k, concept_pcs.shape[0], global_pcs.shape[0])
+    if actual_top_k < top_k:
+        print(f"Warning: Requested {top_k} PCs but only {actual_top_k} available. Using {actual_top_k}.")
+        concept_pcs = concept_pcs[:actual_top_k]
+        global_pcs = global_pcs[:actual_top_k]
+        top_k = actual_top_k
+    
     # Compute cosine similarity matrix
-    # Normalize vectors for cosine similarity
-    concept_pcs_norm = concept_pcs / torch.norm(concept_pcs, dim=1, keepdim=True)
-    global_pcs_norm = global_pcs / torch.norm(global_pcs, dim=1, keepdim=True)
+    # Normalize vectors for cosine similarity (add epsilon to avoid division by zero)
+    concept_norms = torch.norm(concept_pcs, dim=1, keepdim=True)
+    global_norms = torch.norm(global_pcs, dim=1, keepdim=True)
+    
+    concept_pcs_norm = concept_pcs / (concept_norms + 1e-8)
+    global_pcs_norm = global_pcs / (global_norms + 1e-8)
     
     # Cosine similarity matrix: concept_pcs @ global_pcs.T
     cosine_sim_matrix = torch.matmul(concept_pcs_norm, global_pcs_norm.T)
@@ -379,8 +446,10 @@ def main():
                 model, tokenizer, concept_prompts[concept], target_layer, 
                 system_prompt=system_prompt_for_manifold
             )
+            # Memory cleanup
             gc.collect()
-            torch.cuda.empty_cache()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
             # Analyze manifold for this concept
             all_activations = {concept: concept_activations}
@@ -415,8 +484,10 @@ def main():
                     'prompt_to_source': prompt_to_source
                 }
                 
+                # Memory cleanup
                 gc.collect()
-                torch.cuda.empty_cache()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
                 
                 print(f"Global PC analysis cached for layer {target_layer}")
                 print("~"*80 + "\n")
