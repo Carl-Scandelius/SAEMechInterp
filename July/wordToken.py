@@ -1,16 +1,10 @@
-"""
-Word manifold exploration based on specific concept words.
-
-This script adapts the approach from lastToken.py. Instead of using the final
-token's embedding, it identifies the token/s corresponding to a specific concept
-word within each prompt. It then uses the embedding of the last
-token of that word (cf. causal attention) for manifold analysis.
-"""
+"""Concept-specific word token manifold analysis."""
 
 import torch
 from tqdm import tqdm
 import gc
 import json
+from typing import Dict, List, Tuple, Optional, Union, Any
 from helpers import (
     get_model_and_tokenizer,
     analyse_manifolds,
@@ -18,12 +12,13 @@ from helpers import (
     plot_avg_eigenvalues,
     plot_similarity_matrix,
     run_perturbation_experiment,
+    run_projection_based_perturbation,
+    run_ablation_experiment,
     MODEL_NAME,
     DEVICE,
 )
 from transformers import logging
 logging.set_verbosity(40)
-
 
 USE_SYSTEM_PROMPT_FOR_MANIFOLD = False 
 concept_keywords = {
@@ -31,8 +26,10 @@ concept_keywords = {
     "lion": ["lion", "lions", "lion's", "lioness", "lionesses", "lioness's", "lioness'"]
 }
 
-def find_word_token_index(prompt, concept, tokenizer, add_generation_prompt):
-    """Finds the index of the last token of the last occurrence of a concept word in a prompt."""
+def find_word_token_index(
+    prompt: str, concept: str, tokenizer, add_generation_prompt: bool
+) -> Tuple[int, Optional[Dict[str, torch.Tensor]]]:
+    """Find last token index of concept word in prompt."""
     variations = concept_keywords.get(concept, [concept])
 
     lower_prompt = prompt.lower()
@@ -75,7 +72,11 @@ def find_word_token_index(prompt, concept, tokenizer, add_generation_prompt):
     inputs.to(DEVICE)
     return target_token_idx, inputs
 
-def get_word_token_activations(model, tokenizer, prompt_keyword_pairs, layer_idx, concept, system_prompt=""):
+def get_word_token_activations(
+    model, tokenizer, prompt_keyword_pairs: List[Tuple[str, str]], 
+    layer_idx: int, concept: str, system_prompt: str = ""
+) -> torch.Tensor:
+    """Extract activations for concept word tokens from specified layer."""
     activations = []
     print(f"Extracting activations from layer {layer_idx} for concept '{concept}'...")
 
@@ -150,7 +151,7 @@ def main():
         
         print(f"  - Concept '{concept}': Found {len(filtered_prompts[concept])} matching prompts out of {len(prompts)}.")
 
-    TARGET_LAYERS = [0, 15, 31] # Llama-3.1-8B has 32 layers (0-31)
+    TARGET_LAYERS = [0, 15, 31]
     AXES_TO_ANALYZE = range(5)
 
     for target_layer in TARGET_LAYERS:
@@ -160,10 +161,12 @@ def main():
 
         all_activations = {}
         system_prompt_for_manifold = "You are a language model assistant. Please translate the following text accurately from English into German:" if USE_SYSTEM_PROMPT_FOR_MANIFOLD else ""
+        
         for concept, prompts in filtered_prompts.items():
             if not prompts:
                 print(f"No prompts for concept '{concept}' after filtering. Skipping.")
                 continue
+        
         for concept, prompt_keyword_pairs in filtered_prompts.items():
             all_activations[concept] = get_word_token_activations(
                 model, tokenizer, prompt_keyword_pairs, target_layer, concept, system_prompt=system_prompt_for_manifold
@@ -175,7 +178,6 @@ def main():
 
         if "dog" in analysis_results:
             dog_analysis = analysis_results["dog"]
-            # Store data for plotting
             dog_avg_eigenvalues[target_layer] = dog_analysis["eigenvalues"].mean().item()
             dog_top_eigenvectors[target_layer] = dog_analysis["eigenvectors"][0]
         
@@ -187,13 +189,13 @@ def main():
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
-        inputs_for_gen = tokenizer.apply_chat_template(  # type: ignore
+        inputs_for_gen = tokenizer.apply_chat_template(
             messages_to_test,
             return_tensors="pt",
             add_generation_prompt=True
         ).to(DEVICE)
 
-        decoded_input = tokenizer.decode(inputs_for_gen[0], skip_special_tokens=False)  # type: ignore
+        decoded_input = tokenizer.decode(inputs_for_gen[0], skip_special_tokens=False)
         decoded_input_lower = decoded_input.lower()
         variations = concept_keywords.get(test_concept, [test_concept])
         
@@ -210,26 +212,25 @@ def main():
             target_token_idx = -1
         else:
             input_ids = inputs_for_gen[0].tolist()
-            keyword_end_pos = last_pos + len(matched_variation)  # type: ignore
+            keyword_end_pos = last_pos + len(matched_variation)
             token_indices = []
             
             for i, token_id in enumerate(input_ids):
-                # Get the text for this token
+                token_text = tokenizer.decode([token_id])
                 for var in variations:
-                    if var.lower() in token_text:  # type: ignore
+                    if var.lower() in token_text.lower():
                         token_indices.append(i)
             
             if token_indices:
                 target_token_idx = max(token_indices)
             else:
-                # Fallback: try the original exact token matching approach
-                concept_ids = tokenizer.encode(test_concept, add_special_tokens=False)  # type: ignore
+                concept_ids = tokenizer.encode(test_concept, add_special_tokens=False)
                 for i in range(len(input_ids) - len(concept_ids) + 1):
                     if input_ids[i:i+len(concept_ids)] == concept_ids:
                         target_token_idx = i + len(concept_ids) - 1
         
         if target_token_idx == -1:
-            print(f"Warning: Concept '{test_concept}' not found in the tokenized test prompt. Skipping perturbation tests for layer {target_layer}.")
+            print(f"Warning: Concept '{test_concept}' not found in tokenized test prompt. Skipping perturbation tests for layer {target_layer}.")
             continue
 
         if test_concept not in analysis_results:
@@ -239,17 +240,14 @@ def main():
         run_perturbation_experiment(
             model, tokenizer, inputs_for_gen, target_layer,
             analysis_results[test_concept], test_concept, AXES_TO_ANALYZE,
-            target_token_idx=target_token_idx, perturb_once=True  # Always perturb once for word tokens
+            target_token_idx=target_token_idx, perturb_once=True
         )
         
-        # --- PROJECTION-BASED PERTURBATION ---
-        # For each PC, run a projection-based perturbation that zeroes out all other PCs
+        # Projection-based perturbation
         for axis in AXES_TO_ANALYZE:
             if axis >= len(analysis_results[test_concept]["eigenvectors"]):
                 break
                 
-            # Run projection-based perturbation for this PC
-            from helpers import run_projection_based_perturbation
             run_projection_based_perturbation(
                 model, tokenizer, inputs_for_gen, target_layer,
                 analysis_results[test_concept], test_concept, axis,
@@ -263,7 +261,7 @@ def main():
             pc_direction = analysis_results[test_concept]["eigenvectors"][axis]
             
             print("\n" + "="*80)
-            print(f"--- Analyzing original dataset prompts along the PC{axis} '{test_concept}' direction (Layer {target_layer}) ---")
+            print(f"--- Analyzing original dataset prompts along PC{axis} '{test_concept}' direction (Layer {target_layer}) ---")
             prompts_for_concept = [p for p, k in filtered_prompts[test_concept]]
             top_prompts_dict = find_top_prompts(
                 prompts_for_concept,
@@ -281,32 +279,31 @@ def main():
                 print(f"{i:2d}. '{prompt}'")
             print("="*80)
 
-        # --- ORTHOGONAL PERTURBATION ---
+        # Orthogonal perturbation
         if test_concept in analysis_results:
             run_perturbation_experiment(
                 model, tokenizer, inputs_for_gen, target_layer,
                 analysis_results[test_concept], test_concept,
-                target_token_idx=target_token_idx, perturb_once=True,  # Always perturb once for word tokens
-                orthogonal_mode=True, use_largest_eigenvalue=True  # actual orthogonal eigenval too small
+                target_token_idx=target_token_idx, perturb_once=True,
+                orthogonal_mode=True, use_largest_eigenvalue=True
             )
         else:
             print("\n" + "="*80)
-            print(f"--- ORTHOGONAL PERTURBATION ON CONCEPT: '{test_concept}' ---")
+            print(f"--- ORTHOGONAL PERTURBATION: '{test_concept}' ---")
             print(f"--- LAYER: {target_layer} ---")
             print("="*80)
             print(f"No analysis results for concept '{test_concept}', skipping orthogonal perturbation.")
 
-        # --- ABLATION EXPERIMENT ---
+        # Ablation experiment
         if test_concept in analysis_results:
-            from helpers import run_ablation_experiment
             run_ablation_experiment(
                 model, tokenizer, inputs_for_gen, target_layer,
                 analysis_results[test_concept], test_concept,
-                target_token_idx=target_token_idx, perturb_once=True  # Always perturb once for word tokens
+                target_token_idx=target_token_idx, perturb_once=True
             )
         else:
             print("\n" + "="*80)
-            print(f"--- ABLATION EXPERIMENT ON CONCEPT: '{test_concept}' ---")
+            print(f"--- ABLATION EXPERIMENT: '{test_concept}' ---")
             print(f"--- LAYER: {target_layer} ---")
             print("="*80)
             print(f"No analysis results for concept '{test_concept}', skipping ablation experiment.")

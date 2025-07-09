@@ -1,52 +1,44 @@
 #!/usr/bin/env python3
-"""
-Runner script for SAE Mechanism Interpretability analysis.
-
-This script allows you to run either WordToken.py or LastToken.py with configurable parameters.
-
-Examples:
-    # Run LastToken.py with default settings
-    python run_analysis.py --script last_token
-    
-    # Run WordToken.py with system prompt for manifold
-    python run_analysis.py --script word_token --use_system_prompt
-    
-    # Run LastToken.py with system prompt and applying the perturbation only to final token of the user's prompt (note default is false)
-    python run_analysis.py --script last_token --use_system_prompt --perturb_once
-"""
+"""SAE mechanism interpretability analysis runner."""
 
 import argparse
 import sys
+from typing import Optional
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
+    """Parse command line arguments for analysis configuration."""
     parser = argparse.ArgumentParser(description="Run token analysis with configurable parameters")
     parser.add_argument(
         "--script", 
         type=str, 
         choices=["word_token", "last_token"], 
         required=True,
+        help="Analysis script to run"
     )
     parser.add_argument(
         "--use_system_prompt", 
         action="store_true",
+        help="Use system prompt for manifold analysis"
     )
     parser.add_argument(
         "--perturb_once", 
         action="store_true",
+        help="Apply perturbation only to final token (last_token only)"
     )
     return parser.parse_args()
 
-def main():
+def main() -> None:
+    """Execute the specified analysis script with configured parameters."""
     args = parse_arguments()
     
     if args.script == "word_token":
         print("Running WordToken analysis...")
         if args.perturb_once:
-            print("Warning: --perturb_once is only applicable for LastToken.py and will be ignored")
+            print("Warning: --perturb_once only applicable for LastToken.py")
             
         import wordToken
         wordToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD = args.use_system_prompt
-        print(f"USE_SYSTEM_PROMPT_FOR_MANIFOLD set to: {wordToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD}")
+        print(f"USE_SYSTEM_PROMPT_FOR_MANIFOLD: {wordToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD}")
         
         wordToken.main()
         
@@ -55,14 +47,13 @@ def main():
         
         import lastToken
         lastToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD = args.use_system_prompt
-        print(f"USE_SYSTEM_PROMPT_FOR_MANIFOLD set to: {lastToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD}")
+        print(f"USE_SYSTEM_PROMPT_FOR_MANIFOLD: {lastToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD}")
         
         original_main = lastToken.main
         
         def modified_main():
-
             lastToken.PERTURB_ONCE = args.perturb_once
-            print(f"PERTURB_ONCE set to: {lastToken.PERTURB_ONCE}")
+            print(f"PERTURB_ONCE: {lastToken.PERTURB_ONCE}")
             original_main()
             
         lastToken.main = modified_main

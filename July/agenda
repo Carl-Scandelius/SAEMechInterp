@@ -3,8 +3,9 @@ Have: substantial results for prompts from dataset tending most to positive and 
 
 ####
 Next orders of business:
--Repeat for multiple concepts
--Repeat last token work with interpolation between manifold centroids and same for word manifolds
+-Better QA dataset--with user prompt and response and then look at final token
+-Repeat for multiple concepts/multi-word perturbations
+-Repeat last token work with interpolation between manifold centroids and same for word manifolds + try other tokens?
 
 
 ####
