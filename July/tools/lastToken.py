@@ -505,9 +505,7 @@ def main():
         available_concepts = list(concept_prompts.keys())
         print(f"Available concepts in manifold dataset: {available_concepts}")
         
-        # Select up to 4 concepts for analysis (to keep runtime reasonable)
-        # Prioritize common concepts if they exist, otherwise select first few
-        preferred_concepts = ['animals', 'food', 'vehicles', 'furniture', 'sports', 'colors', 'tools', 'clothing']
+        preferred_concepts = ['animals', 'food', 'colors', 'clothing']
         selected_concepts = []
         for concept in preferred_concepts:
             if concept in available_concepts:
