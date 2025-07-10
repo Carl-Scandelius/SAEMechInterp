@@ -19,7 +19,7 @@ Papers: train meta-meta-SAE on same data as Nanda paper; see if you keep getting
 Speculative: What happens when you prompt an LLM during inference to learn a new language of your syntactical design? How are the components of this synthetic simple language represented? Or, simpler, how differently are languages represented? Is it just some orthogonal vector indicating language or does syntax mess up more?
 
 
-#####
+####
 Concerns about current experiments:
 -artificial labelling of concepts pre-constrain shwo we interpret representations
 -the user prompt is two sentences but all prompts.json are one.

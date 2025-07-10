@@ -23,12 +23,17 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--perturb_once", 
         action="store_true",
-        help="Apply perturbation only to final token (last_token only)"
+        help="Apply perturbation only to final token of user prompt (last_token only)"
     )
     parser.add_argument(
         "--cross_concept_only", 
         action="store_true",
         help="Skip standard perturbation experiments and only run cross-concept perturbations (last_token only)"
+    )
+    parser.add_argument(
+        "--use_pranav_sentences",
+        action="store_true", 
+        help="Use manifold_sentences_hard_exactword_1000.json instead of prompts.json (last_token only)"
     )
     return parser.parse_args()
 
@@ -61,8 +66,10 @@ def main() -> None:
         def modified_main():
             lastToken.PERTURB_ONCE = args.perturb_once
             lastToken.CROSS_CONCEPT_ONLY = args.cross_concept_only
+            lastToken.USE_PRANAV_SENTENCES = args.use_pranav_sentences
             print(f"PERTURB_ONCE: {lastToken.PERTURB_ONCE}")
             print(f"CROSS_CONCEPT_ONLY: {lastToken.CROSS_CONCEPT_ONLY}")
+            print(f"USE_PRANAV_SENTENCES: {lastToken.USE_PRANAV_SENTENCES}")
             original_main()
             
         lastToken.main = modified_main

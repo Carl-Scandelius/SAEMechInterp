@@ -26,6 +26,7 @@ PERTURB_ONCE = False
 USE_NORMALIZED_PROJECTION = True
 RUN_GLOBAL_PC_ANALYSIS = True
 CROSS_CONCEPT_ONLY = False
+USE_PRANAV_SENTENCES = False
 
 def get_final_token_activations(
     model, tokenizer, prompts: List[str], layer_idx: int, system_prompt: str = ""
@@ -412,7 +413,7 @@ def run_cross_concept_perturbation(
     
     with torch.no_grad():
         output_ids = model.generate(
-            inputs, max_new_tokens=70, do_sample=False, 
+            inputs, max_new_tokens=50, do_sample=False, 
             pad_token_id=tokenizer.eos_token_id
         )
     
@@ -471,7 +472,8 @@ def main():
     print(f"Configuration: USE_SYSTEM_PROMPT_FOR_MANIFOLD={USE_SYSTEM_PROMPT_FOR_MANIFOLD}")
     print(f"Configuration: USE_NORMALIZED_PROJECTION={USE_NORMALIZED_PROJECTION}")
     print(f"Configuration: RUN_GLOBAL_PC_ANALYSIS={RUN_GLOBAL_PC_ANALYSIS}")
-    print(f"Configuration: CROSS_CONCEPT_ONLY={CROSS_CONCEPT_ONLY}\n")
+    print(f"Configuration: CROSS_CONCEPT_ONLY={CROSS_CONCEPT_ONLY}")
+    print(f"Configuration: USE_PRANAV_SENTENCES={USE_PRANAV_SENTENCES}\n")
 
     dog_avg_eigenvalues = {}
     dog_top_eigenvectors = {}
@@ -482,24 +484,67 @@ def main():
 
     model, tokenizer = get_model_and_tokenizer(MODEL_NAME)
 
-    with open('prompts.json', 'r', encoding='utf-8') as f:
-        concept_prompts = json.load(f)
+    # Load appropriate dataset based on flag
+    if USE_PRANAV_SENTENCES:
+        print("Loading manifold_sentences_hard_exactword_1000.json...")
+        with open('manifold_sentences_hard_exactword_1000.json', 'r', encoding='utf-8') as f:
+            concept_prompts = json.load(f)
+        print(f"Loaded {len(concept_prompts)} concepts from manifold sentences dataset")
+    else:
+        print("Loading prompts.json...")
+        with open('prompts.json', 'r', encoding='utf-8') as f:
+            concept_prompts = json.load(f)
+        print(f"Loaded {len(concept_prompts)} concepts from prompts dataset")
     
     TARGET_LAYERS = [0, 15, 31]
     AXES_TO_ANALYZE = range(5)
 
-    concept_prompt_pairs = [
-        {
-            "concept": "lion",
-            "system_prompt": "You are a helpful assistant.",
-            "user_prompt": "Please write a sentence about lions."
-        },
-        {
-            "concept": "dog",
-            "system_prompt": "You are a helpful assistant.",
-            "user_prompt": "Please write a sentence about dogs."
-        }
-    ]
+    # Set up concept-prompt pairs based on the dataset being used
+    if USE_PRANAV_SENTENCES:
+        # For manifold sentences, select a few representative concepts
+        available_concepts = list(concept_prompts.keys())
+        print(f"Available concepts in manifold dataset: {available_concepts}")
+        
+        # Select up to 4 concepts for analysis (to keep runtime reasonable)
+        # Prioritize common concepts if they exist, otherwise select first few
+        preferred_concepts = ['animals', 'food', 'vehicles', 'furniture', 'sports', 'colors', 'tools', 'clothing']
+        selected_concepts = []
+        for concept in preferred_concepts:
+            if concept in available_concepts:
+                selected_concepts.append(concept)
+            if len(selected_concepts) >= 4:
+                break
+        
+        # If we didn't find enough preferred concepts, fill with first available ones
+        for concept in available_concepts:
+            if concept not in selected_concepts:
+                selected_concepts.append(concept)
+            if len(selected_concepts) >= 4:
+                break
+        
+        concept_prompt_pairs = []
+        for concept in selected_concepts:
+            concept_prompt_pairs.append({
+                "concept": concept,
+                "system_prompt": "You are a helpful assistant.",
+                "user_prompt": f"Please write a sentence about {concept}."
+            })
+        
+        print(f"Selected concepts for analysis: {[pair['concept'] for pair in concept_prompt_pairs]}")
+    else:
+        # Original prompts.json logic
+        concept_prompt_pairs = [
+            {
+                "concept": "lion",
+                "system_prompt": "You are a helpful assistant.",
+                "user_prompt": "Please write a sentence about lions."
+            },
+            {
+                "concept": "dog",
+                "system_prompt": "You are a helpful assistant.",
+                "user_prompt": "Please write a sentence about dogs."
+            }
+        ]
 
     for pair_idx, pair in enumerate(concept_prompt_pairs):
         concept = pair["concept"]
@@ -669,7 +714,7 @@ def main():
                     target_token_idx=None, perturb_once=PERTURB_ONCE
                 )
             else:
-                print(f"\n🚀 CROSS_CONCEPT_ONLY mode enabled - skipping standard PC perturbations, top prompts analysis, orthogonal perturbations, and ablation experiments for '{concept}' at layer {target_layer}")
+                print(f"\n CROSS_CONCEPT_ONLY mode enabled - skipping standard PC perturbations, top prompts analysis, orthogonal perturbations, and ablation experiments for '{concept}' at layer {target_layer}")
 
             # Global PC experiments - COMMENTED OUT
             # if RUN_GLOBAL_PC_ANALYSIS and target_layer in global_analysis_cache:
@@ -789,57 +834,60 @@ def main():
             continue
             
         layer_analyses = all_concept_analyses[target_layer]
+        available_concepts = list(layer_analyses.keys())
         
-        # Check if we have both dog and lion analyses for this layer
-        if "dog" in layer_analyses and "lion" in layer_analyses:
-            print(f"\n" + ">"*80)
-            print(f"### CROSS-CONCEPT PERTURBATION FOR LAYER {target_layer} ###")
-            print(">"*80 + "\n")
+        if len(available_concepts) < 2:
+            print(f"Skipping cross-concept perturbation for layer {target_layer}: need at least 2 concepts, found {len(available_concepts)}")
+            continue
             
-            # Test messages for cross-concept perturbation
-            dog_messages = [
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Please write a sentence about dogs."}
-            ]
-            lion_messages = [
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Please write a sentence about lions."}
-            ]
+        print(f"\n" + ">"*80)
+        print(f"### CROSS-CONCEPT PERTURBATION FOR LAYER {target_layer} ###")
+        print(f"### Available concepts: {available_concepts} ###")
+        print(">"*80 + "\n")
+        
+        # For each concept, select up to 3 other concepts as targets
+        for source_concept in available_concepts:
+            # Get other concepts (excluding the source)
+            other_concepts = [c for c in available_concepts if c != source_concept]
             
-            # Dog → Lion perturbation
-            print(f"Running cross-concept perturbation: DOG → LION")
-            try:
-                run_cross_concept_perturbation(
-                    model, tokenizer, dog_messages, target_layer,
-                    layer_analyses["dog"], layer_analyses["lion"],
-                    "dog", "lion", target_token_idx=None, perturb_once=PERTURB_ONCE
-                )
-            except Exception as e:
-                print(f"ERROR in dog → lion cross-concept perturbation: {e}")
-                import traceback
-                traceback.print_exc()
+            # Select up to 3 target concepts
+            target_concepts = other_concepts[:3]  # Take first 3 other concepts
             
-            # Lion → Dog perturbation
-            print(f"\nRunning cross-concept perturbation: LION → DOG")
-            try:
-                run_cross_concept_perturbation(
-                    model, tokenizer, lion_messages, target_layer,
-                    layer_analyses["lion"], layer_analyses["dog"],
-                    "lion", "dog", target_token_idx=None, perturb_once=PERTURB_ONCE
-                )
-            except Exception as e:
-                print(f"ERROR in lion → dog cross-concept perturbation: {e}")
-                import traceback
-                traceback.print_exc()
+            print(f"\n--- Cross-concept perturbations FROM '{source_concept.upper()}' ---")
+            print(f"Target concepts: {target_concepts}")
             
-            print(">"*80 + "\n")
-        else:
-            missing_concepts = []
-            if "dog" not in layer_analyses:
-                missing_concepts.append("dog")
-            if "lion" not in layer_analyses:
-                missing_concepts.append("lion")
-            print(f"Skipping cross-concept perturbation for layer {target_layer}: missing analyses for {missing_concepts}")
+            # Create messages for the source concept
+            source_messages = []
+            for pair in concept_prompt_pairs:
+                if pair["concept"] == source_concept:
+                    source_messages = [
+                        {"role": "system", "content": pair["system_prompt"]},
+                        {"role": "user", "content": pair["user_prompt"]}
+                    ]
+                    break
+            
+            if not source_messages:
+                print(f"ERROR: Could not find messages for source concept '{source_concept}', skipping...")
+                continue
+            
+            # Run perturbations to each target concept
+            for target_concept in target_concepts:
+                print(f"\nRunning cross-concept perturbation: {source_concept.upper()} → {target_concept.upper()}")
+                try:
+                    run_cross_concept_perturbation(
+                        model, tokenizer, source_messages, target_layer,
+                        layer_analyses[source_concept], layer_analyses[target_concept],
+                        source_concept, target_concept, 
+                        target_token_idx=None, perturb_once=PERTURB_ONCE
+                    )
+                except Exception as e:
+                    print(f"ERROR in {source_concept} → {target_concept} cross-concept perturbation: {e}")
+                    import traceback
+                    traceback.print_exc()
+            
+            print(f"--- End of '{source_concept.upper()}' perturbations ---")
+        
+        print(">"*80 + "\n")
 
     # Plotting removed per user request
     # print("\n" + "#"*80)
