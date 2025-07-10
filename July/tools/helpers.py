@@ -240,75 +240,6 @@ def generate_with_perturbation(
     decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
     return decoded_text
 
-def run_projection_based_perturbation(
-    model: AutoModelForCausalLM,
-    tokenizer: AutoTokenizer,
-    messages: Union[List[Dict[str, str]], torch.Tensor],
-    layer_idx: int,
-    concept_analysis: Dict[str, Any],
-    target_concept: str,
-    projection_axis: int,
-    target_token_idx: Optional[int] = None,
-    perturb_once: bool = False
-) -> None:
-    """Run perturbation with projection onto single PC axis."""
-    perturbation_scales = [-100.0, -20.0, -10.0, -5.0, -2.5, -1.5, 0.0, 1.5, 2.5, 5.0, 10.0, 20.0, 100.0]
-    
-    system_prompt = messages[0]['content'] if isinstance(messages, list) and messages[0].get('role') == 'system' else ""
-    user_prompt = next((msg['content'] for msg in messages if isinstance(messages, list) and msg.get('role') == 'user'), "") if isinstance(messages, list) else ""
-    
-    if not isinstance(messages, torch.Tensor):
-        inputs = tokenizer.apply_chat_template(
-            messages, return_tensors="pt", add_generation_prompt=True
-        ).to(model.device)
-    else:
-        inputs = messages
-    
-    all_eigenvectors = [evec.to(DEVICE) for evec in concept_analysis["eigenvectors"]]
-    target_eigenvector = concept_analysis["eigenvectors"][projection_axis].to(DEVICE)
-    eigenvalue = concept_analysis["eigenvalues"][projection_axis]
-    
-    print("\n" + "="*80)
-    print(f"--- PROJECTION-BASED PERTURBATION: '{target_concept}' ---")
-    print(f"--- LAYER: {layer_idx}, PC{projection_axis} ONLY ---")
-    print("="*80)
-    
-    print(f"\nSystem: '{system_prompt}'")
-    print(f"User: '{user_prompt}'")
-    
-    for scale in perturbation_scales:
-        def create_projection_hook(scale_val: float):
-            def projection_hook(module: torch.nn.Module, input_tensor: Any, output: Any) -> Any:
-                hidden_states = output[0]
-                token_idx = target_token_idx if target_token_idx is not None else -1
-                token_activation = hidden_states[0, token_idx].detach()
-                
-                coefficients = [torch.dot(token_activation, evec) for evec in all_eigenvectors]
-                projected_activation = coefficients[projection_axis] * target_eigenvector
-                perturbation = scale_val * torch.sqrt(eigenvalue) * target_eigenvector
-                modified_activation = projected_activation + perturbation
-                
-                modified_hidden_states = hidden_states.clone()
-                modified_hidden_states[0, token_idx] = modified_activation
-                return (modified_hidden_states,) + output[1:]
-            
-            return projection_hook
-        
-        hook_handle = model.model.layers[layer_idx].register_forward_hook(create_projection_hook(scale))
-        
-        with torch.no_grad():
-            output_ids = model.generate(
-                inputs, max_new_tokens=50, temperature=0.7, top_p=0.9, 
-                do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
-            )
-        
-        hook_handle.remove()
-        prompt_length = inputs.shape[1]
-        decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
-        print(f"Scale {scale:+.1f}x: {decoded_text}")
-    
-    print("="*80)
-
 def run_perturbation_experiment(
     model: AutoModelForCausalLM,
     tokenizer: AutoTokenizer,
@@ -316,13 +247,12 @@ def run_perturbation_experiment(
     layer_idx: int,
     concept_analysis: Dict[str, Any],
     target_concept: str,
-    test_axes: Optional[Sequence[int]] = None,
     target_token_idx: Optional[int] = None,
     perturb_once: bool = False,
     orthogonal_mode: bool = False,
     use_largest_eigenvalue: bool = True
 ) -> str:
-    """Execute perturbation experiments across PC axes or orthogonal directions."""
+    """Execute perturbation experiment on first PC axis or orthogonal direction."""
     perturbation_scales = [-100.0, -20.0, -10.0, -5.0, -2.5, -1.5, 0.0, 1.5, 2.5, 5.0, 10.0, 20.0, 100.0]
     
     system_prompt = messages[0]['content'] if messages[0]['role'] == 'system' else ""
@@ -349,44 +279,40 @@ def run_perturbation_experiment(
         
         print(f"Using PC with lowest eigenvalue: PC{orthogonal_pc_index}")
         print(f"Eigenvalue: {concept_analysis['eigenvalues'][orthogonal_pc_index].item():.6f}")
-        axes_to_test = [0]
         
     else:
-        test_axes = test_axes or range(5)
-        axes_to_test = test_axes
-    
-    for i, axis in enumerate(axes_to_test):
-        if not orthogonal_mode:
-            print("\n" + "="*80)
-            print(f"--- INTERVENTION: '{target_concept}' ---")
-            print(f"--- LAYER: {layer_idx}, AXIS: {axis} ---")
-            print("="*80)
-            
-            direction = concept_analysis["eigenvectors"][axis].to(DEVICE)
-            eigenvalue = concept_analysis["eigenvalues"][axis]
-        
-        print(f"\nSystem: '{system_prompt}'")
-        print(f"User: '{user_prompt}'")
-
-        original_output = generate_with_perturbation(
-            model, tokenizer, inputs, layer_idx, direction, 0, 
-            eigenvalue, target_token_idx, perturb_once
-        )
-        print(f"Original: {original_output}")
-        
-        perturbation_type = 'orthogonal direction' if orthogonal_mode else f"PC{axis}"
-        token_type = 'final token' if target_token_idx is None else 'concept token'
-        print(f"\n--- Perturbing {token_type} along {perturbation_type} ---")
-        
-        for scale in perturbation_scales:
-            perturbed_output = generate_with_perturbation(
-                model, tokenizer, inputs, layer_idx, 
-                direction, scale, eigenvalue,
-                target_token_idx, perturb_once
-            )
-            print(f"Scale {scale:+.1f}x: {perturbed_output}")
-            
+        # Only use the first principal component (PC0)
+        axis = 0
+        print("\n" + "="*80)
+        print(f"--- INTERVENTION: '{target_concept}' ---")
+        print(f"--- LAYER: {layer_idx}, AXIS: {axis} ---")
         print("="*80)
+        
+        direction = concept_analysis["eigenvectors"][axis].to(DEVICE)
+        eigenvalue = concept_analysis["eigenvalues"][axis]
+    
+    print(f"\nSystem: '{system_prompt}'")
+    print(f"User: '{user_prompt}'")
+
+    original_output = generate_with_perturbation(
+        model, tokenizer, inputs, layer_idx, direction, 0, 
+        eigenvalue, target_token_idx, perturb_once
+    )
+    print(f"Original: {original_output}")
+    
+    perturbation_type = 'orthogonal direction' if orthogonal_mode else f"PC0"
+    token_type = 'final token' if target_token_idx is None else 'concept token'
+    print(f"\n--- Perturbing {token_type} along {perturbation_type} ---")
+    
+    for scale in perturbation_scales:
+        perturbed_output = generate_with_perturbation(
+            model, tokenizer, inputs, layer_idx, 
+            direction, scale, eigenvalue,
+            target_token_idx, perturb_once
+        )
+        print(f"Scale {scale:+.1f}x: {perturbed_output}")
+        
+    print("="*80)
         
     return original_output
 

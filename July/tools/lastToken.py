@@ -14,7 +14,6 @@ from helpers import (
     plot_avg_eigenvalues,
     plot_similarity_matrix,
     run_perturbation_experiment,
-    run_projection_based_perturbation,
     run_ablation_experiment,
     generate_with_perturbation,
     MODEL_NAME,
@@ -506,7 +505,6 @@ def main():
         print(f"Loaded {len(concept_prompts)} concepts from prompts dataset")
     
     TARGET_LAYERS = [0, 15, 31]
-    AXES_TO_ANALYZE = range(5)
 
     # Set up concept-prompt pairs based on the dataset being used
     if USE_PRANAV_SENTENCES:
@@ -671,16 +669,14 @@ def main():
             if not CROSS_CONCEPT_ONLY:
                 run_perturbation_experiment(
                     model, tokenizer, messages_to_test, target_layer, 
-                    analysis_results[concept], concept, AXES_TO_ANALYZE, 
+                    analysis_results[concept], concept, 
                     target_token_idx=None, perturb_once=PERTURB_ONCE, 
                     orthogonal_mode=False, use_largest_eigenvalue=True
                 )
                 
-                # Top prompts analysis
-                for axis in AXES_TO_ANALYZE:
-                    if axis >= len(analysis_results[concept]["eigenvectors"]):
-                        break
-                        
+                # Top prompts analysis - only first PC (PC0)
+                axis = 0
+                if axis < len(analysis_results[concept]["eigenvectors"]):
                     pc_direction = analysis_results[concept]["eigenvectors"][axis]
                     
                     print("\n" + "="*80)
@@ -746,7 +742,7 @@ def main():
             #     try:
             #         run_perturbation_experiment(
             #             model, tokenizer, messages_to_test, target_layer, 
-            #             global_analysis_for_helpers, f"GLOBAL-{concept}", AXES_TO_ANALYZE, 
+            #             global_analysis_for_helpers, f"GLOBAL-{concept}", 
             #             target_token_idx=None, perturb_once=PERTURB_ONCE, 
             #             orthogonal_mode=False, use_largest_eigenvalue=True
             #         )
@@ -754,10 +750,9 @@ def main():
             #         print(f"ERROR in global PC perturbation experiment: {e}")
             #         print("Continuing with other analyses...")
             #     
-            #     # Global PC prompt analysis
-            #     for axis in AXES_TO_ANALYZE:
-            #         if axis >= len(global_analysis["eigenvectors"]):
-            #             break
+            #     # Global PC prompt analysis - only first PC (PC0)
+            #     axis = 0
+            #     if axis < len(global_analysis["eigenvectors"]):
             #             
             #         global_pc_direction = global_analysis["eigenvectors"][axis]
             #         

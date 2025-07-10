@@ -14,7 +14,6 @@ from helpers import (
     plot_avg_eigenvalues,
     plot_similarity_matrix,
     run_perturbation_experiment,
-    run_projection_based_perturbation,
     run_ablation_experiment,
     MODEL_NAME,
     DEVICE,
@@ -154,7 +153,6 @@ def main():
         print("  - Concept '{}': Found {} matching prompts out of {}.".format(concept, len(filtered_prompts[concept]), len(prompts)))
 
     TARGET_LAYERS = [0, 15, 31]
-    AXES_TO_ANALYZE = range(5)
 
     for target_layer in TARGET_LAYERS:
         print("\n" + "#"*80)
@@ -241,25 +239,15 @@ def main():
         
         run_perturbation_experiment(
             model, tokenizer, inputs_for_gen, target_layer,
-            analysis_results[test_concept], test_concept, AXES_TO_ANALYZE,
+            analysis_results[test_concept], test_concept,
             target_token_idx=target_token_idx, perturb_once=True
         )
         
-        # Projection-based perturbation
-        for axis in AXES_TO_ANALYZE:
-            if axis >= len(analysis_results[test_concept]["eigenvectors"]):
-                break
-                
-            run_projection_based_perturbation(
-                model, tokenizer, inputs_for_gen, target_layer,
-                analysis_results[test_concept], test_concept, axis,
-                target_token_idx=target_token_idx, perturb_once=True
-            )
+        # Projection-based perturbation removed - feature disabled
         
-        for axis in AXES_TO_ANALYZE:
-            if axis >= len(analysis_results[test_concept]["eigenvectors"]):
-                break
-                
+        # Top prompts analysis - only first PC (PC0)
+        axis = 0
+        if axis < len(analysis_results[test_concept]["eigenvectors"]):
             pc_direction = analysis_results[test_concept]["eigenvectors"][axis]
             
             print("\n" + "="*80)
