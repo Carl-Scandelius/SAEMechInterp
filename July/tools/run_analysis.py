@@ -25,6 +25,11 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="Apply perturbation only to final token (last_token only)"
     )
+    parser.add_argument(
+        "--cross_concept_only", 
+        action="store_true",
+        help="Skip standard perturbation experiments and only run cross-concept perturbations (last_token only)"
+    )
     return parser.parse_args()
 
 def main() -> None:
@@ -35,6 +40,8 @@ def main() -> None:
         print("Running WordToken analysis...")
         if args.perturb_once:
             print("Warning: --perturb_once only applicable for LastToken.py")
+        if args.cross_concept_only:
+            print("Warning: --cross_concept_only only applicable for LastToken.py")
             
         import wordToken
         wordToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD = args.use_system_prompt
@@ -53,7 +60,9 @@ def main() -> None:
         
         def modified_main():
             lastToken.PERTURB_ONCE = args.perturb_once
+            lastToken.CROSS_CONCEPT_ONLY = args.cross_concept_only
             print(f"PERTURB_ONCE: {lastToken.PERTURB_ONCE}")
+            print(f"CROSS_CONCEPT_ONLY: {lastToken.CROSS_CONCEPT_ONLY}")
             original_main()
             
         lastToken.main = modified_main

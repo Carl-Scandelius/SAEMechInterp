@@ -25,6 +25,7 @@ USE_SYSTEM_PROMPT_FOR_MANIFOLD = True
 PERTURB_ONCE = False
 USE_NORMALIZED_PROJECTION = True
 RUN_GLOBAL_PC_ANALYSIS = True
+CROSS_CONCEPT_ONLY = False
 
 def get_final_token_activations(
     model, tokenizer, prompts: List[str], layer_idx: int, system_prompt: str = ""
@@ -469,7 +470,8 @@ def main():
     print(f"\nConfiguration: PERTURB_ONCE={PERTURB_ONCE}")
     print(f"Configuration: USE_SYSTEM_PROMPT_FOR_MANIFOLD={USE_SYSTEM_PROMPT_FOR_MANIFOLD}")
     print(f"Configuration: USE_NORMALIZED_PROJECTION={USE_NORMALIZED_PROJECTION}")
-    print(f"Configuration: RUN_GLOBAL_PC_ANALYSIS={RUN_GLOBAL_PC_ANALYSIS}\n")
+    print(f"Configuration: RUN_GLOBAL_PC_ANALYSIS={RUN_GLOBAL_PC_ANALYSIS}")
+    print(f"Configuration: CROSS_CONCEPT_ONLY={CROSS_CONCEPT_ONLY}\n")
 
     dog_avg_eigenvalues = {}
     dog_top_eigenvectors = {}
@@ -613,57 +615,61 @@ def main():
                 {"role": "user", "content": user_prompt}
             ]
 
-            run_perturbation_experiment(
-                model, tokenizer, messages_to_test, target_layer, 
-                analysis_results[concept], concept, AXES_TO_ANALYZE, 
-                target_token_idx=None, perturb_once=PERTURB_ONCE, 
-                orthogonal_mode=False, use_largest_eigenvalue=True
-            )
-            
-            # Top prompts analysis
-            for axis in AXES_TO_ANALYZE:
-                if axis >= len(analysis_results[concept]["eigenvectors"]):
-                    break
-                    
-                pc_direction = analysis_results[concept]["eigenvectors"][axis]
+            # Skip standard experiments if CROSS_CONCEPT_ONLY is enabled
+            if not CROSS_CONCEPT_ONLY:
+                run_perturbation_experiment(
+                    model, tokenizer, messages_to_test, target_layer, 
+                    analysis_results[concept], concept, AXES_TO_ANALYZE, 
+                    target_token_idx=None, perturb_once=PERTURB_ONCE, 
+                    orthogonal_mode=False, use_largest_eigenvalue=True
+                )
                 
-                print("\n" + "="*80)
-                print(f"--- Analyzing original dataset prompts along PC{axis} '{concept}' direction (Layer {target_layer}) ---")
-                if USE_NORMALIZED_PROJECTION:
-                    print("Using normalized projections (projection magnitude / vector magnitude)")
-                else:
-                    print("Using raw projections")
-                top_prompts = find_top_prompts(
-                    concept_prompts[concept],
-                    analysis_results[concept]["centered_acts"],
-                    pc_direction,
-                    n=10,
-                    use_normalized_projection=USE_NORMALIZED_PROJECTION
+                # Top prompts analysis
+                for axis in AXES_TO_ANALYZE:
+                    if axis >= len(analysis_results[concept]["eigenvectors"]):
+                        break
+                        
+                    pc_direction = analysis_results[concept]["eigenvectors"][axis]
+                    
+                    print("\n" + "="*80)
+                    print(f"--- Analyzing original dataset prompts along PC{axis} '{concept}' direction (Layer {target_layer}) ---")
+                    if USE_NORMALIZED_PROJECTION:
+                        print("Using normalized projections (projection magnitude / vector magnitude)")
+                    else:
+                        print("Using raw projections")
+                    top_prompts = find_top_prompts(
+                        concept_prompts[concept],
+                        analysis_results[concept]["centered_acts"],
+                        pc_direction,
+                        n=10,
+                        use_normalized_projection=USE_NORMALIZED_PROJECTION
+                    )
+
+                    print(f"\nTop 10 prompts most aligned with POSITIVE PC{axis} direction:")
+                    for i, prompt in enumerate(top_prompts['positive'], 1):
+                        print(f"{i:2d}. '{prompt}'")
+                        
+                    print(f"\nTop 10 prompts most aligned with NEGATIVE PC{axis} direction:")
+                    for i, prompt in enumerate(top_prompts['negative'], 1):
+                        print(f"{i:2d}. '{prompt}'")
+                    print("="*80)
+                
+                # Orthogonal perturbation
+                run_perturbation_experiment(
+                    model, tokenizer, messages_to_test, target_layer,
+                    analysis_results[concept], concept,
+                    target_token_idx=None, perturb_once=PERTURB_ONCE,
+                    orthogonal_mode=True, use_largest_eigenvalue=True
                 )
 
-                print(f"\nTop 10 prompts most aligned with POSITIVE PC{axis} direction:")
-                for i, prompt in enumerate(top_prompts['positive'], 1):
-                    print(f"{i:2d}. '{prompt}'")
-                    
-                print(f"\nTop 10 prompts most aligned with NEGATIVE PC{axis} direction:")
-                for i, prompt in enumerate(top_prompts['negative'], 1):
-                    print(f"{i:2d}. '{prompt}'")
-                print("="*80)
-            
-            # Orthogonal perturbation
-            run_perturbation_experiment(
-                model, tokenizer, messages_to_test, target_layer,
-                analysis_results[concept], concept,
-                target_token_idx=None, perturb_once=PERTURB_ONCE,
-                orthogonal_mode=True, use_largest_eigenvalue=True
-            )
-
-            # Ablation experiment
-            run_ablation_experiment(
-                model, tokenizer, messages_to_test, target_layer,
-                analysis_results[concept], concept,
-                target_token_idx=None, perturb_once=PERTURB_ONCE
-            )
+                # Ablation experiment
+                run_ablation_experiment(
+                    model, tokenizer, messages_to_test, target_layer,
+                    analysis_results[concept], concept,
+                    target_token_idx=None, perturb_once=PERTURB_ONCE
+                )
+            else:
+                print(f"\n🚀 CROSS_CONCEPT_ONLY mode enabled - skipping standard PC perturbations, top prompts analysis, orthogonal perturbations, and ablation experiments for '{concept}' at layer {target_layer}")
 
             # Global PC experiments - COMMENTED OUT
             # if RUN_GLOBAL_PC_ANALYSIS and target_layer in global_analysis_cache:
