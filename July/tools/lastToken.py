@@ -353,12 +353,11 @@ def run_cross_concept_perturbation(
     )
     print(f"Original (0%): {original_output}")
     
-    # Perturb in steps of 0.2 from 0.2 to 1.0
+    # Perturb in steps of 0.2 from 0.2 to 2.0 (twice the vector magnitude)
     print(f"\n--- Perturbing along {source_concept_name} → {target_concept_name} direction ---")
-    for step in range(1, 6):  # 1, 2, 3, 4, 5 corresponding to 0.2, 0.4, 0.6, 0.8, 1.0
+    for step in range(1, 11):  # 1, 2, 3, ..., 10 corresponding to 0.2, 0.4, 0.6, ..., 2.0
         percentage = step * 0.2
         
-        # Perturbation magnitude: step * 0.2 * cross_concept_distance
         perturbation_magnitude = percentage * cross_concept_distance
         
         perturbed_output = generate_with_perturbation(
@@ -367,7 +366,97 @@ def run_cross_concept_perturbation(
             target_token_idx, perturb_once
         )
         
-        print(f"Step {step} ({percentage*100:.0f}%): {perturbed_output}")
+        print(f"({percentage*100:.0f}% of mag): {perturbed_output}")
+    
+    # Project 100% centroid perturbation onto target manifold
+    print(f"\n--- Projecting 100% {source_concept_name} → {target_concept_name} perturbation onto {target_concept_name} manifold ---")
+    
+    # Get the 100% perturbation vector
+    full_perturbation_magnitude = cross_concept_distance
+    
+    # Project onto target concept manifold using its PCs
+    target_eigenvectors = target_concept_analysis["eigenvectors"].to(DEVICE)
+    target_centroid_device = target_concept_analysis["centroid"].to(DEVICE)
+    
+    # Create projection function
+    def project_onto_manifold_hook(perturbation_vector, target_eigenvectors, target_centroid):
+        def projection_hook(module, input_tensor, output):
+            hidden_states = output[0]
+            token_idx = target_token_idx if target_token_idx is not None else -1
+            
+            # Apply the original perturbation
+            perturbed_activation = hidden_states[0, token_idx] + perturbation_vector
+            
+            # Center relative to target manifold centroid
+            centered_activation = perturbed_activation - target_centroid
+            
+            # Project onto target manifold subspace
+            coefficients = torch.matmul(centered_activation, target_eigenvectors.T)
+            projected_activation = target_centroid + torch.matmul(coefficients, target_eigenvectors)
+            
+            modified_hidden_states = hidden_states.clone()
+            modified_hidden_states[0, token_idx] = projected_activation
+            return (modified_hidden_states,) + output[1:]
+        return projection_hook
+    
+    perturbation_vector = direction_vector * full_perturbation_magnitude
+    hook_handle = model.model.layers[layer_idx].register_forward_hook(
+        project_onto_manifold_hook(perturbation_vector, target_eigenvectors, target_centroid_device)
+    )
+    
+    with torch.no_grad():
+        output_ids = model.generate(
+            inputs, max_new_tokens=70, do_sample=False, 
+            pad_token_id=tokenizer.eos_token_id
+        )
+    
+    hook_handle.remove()
+    prompt_length = inputs.shape[1]
+    projected_output = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
+    print(f"Projected onto {target_concept_name} manifold: {projected_output}")
+    
+    # Centroid position vector perturbations
+    print(f"\n--- Perturbing along centroid position vectors ---")
+    
+    # Source concept centroid position vector perturbation
+    source_centroid_norm = torch.norm(source_centroid).item()
+    source_position_direction = source_centroid / torch.norm(source_centroid)
+    step_size_source = 0.5 * source_centroid_norm
+    
+    print(f"\n{source_concept_name} centroid distance from origin: {source_centroid_norm:.4f}")
+    print(f"Step size (0.5 * distance): {step_size_source:.4f}")
+    print(f"Perturbing along {source_concept_name} centroid position vector:")
+    
+    for step in range(1, 6):  # 5 steps: 0.5x, 1.0x, 1.5x, 2.0x, 2.5x
+        magnitude = step * step_size_source
+        
+        perturbed_output = generate_with_perturbation(
+            model, tokenizer, inputs, layer_idx, source_position_direction,
+            magnitude, torch.tensor(1.0, device=model.device),
+            target_token_idx, perturb_once
+        )
+        
+        print(f"Step {step} ({step * 0.5:.1f}x): {perturbed_output}")
+    
+    # Target concept centroid position vector perturbation  
+    target_centroid_norm = torch.norm(target_centroid).item()
+    target_position_direction = target_centroid / torch.norm(target_centroid)
+    step_size_target = 0.5 * target_centroid_norm
+    
+    print(f"\n{target_concept_name} centroid distance from origin: {target_centroid_norm:.4f}")
+    print(f"Step size (0.5 * distance): {step_size_target:.4f}")
+    print(f"Perturbing along {target_concept_name} centroid position vector:")
+    
+    for step in range(1, 6):  # 5 steps: 0.5x, 1.0x, 1.5x, 2.0x, 2.5x
+        magnitude = step * step_size_target
+        
+        perturbed_output = generate_with_perturbation(
+            model, tokenizer, inputs, layer_idx, target_position_direction,
+            magnitude, torch.tensor(1.0, device=model.device),
+            target_token_idx, perturb_once
+        )
+        
+        print(f"Step {step} ({step * 0.5:.1f}x): {perturbed_output}")
     
     print("="*80)
 

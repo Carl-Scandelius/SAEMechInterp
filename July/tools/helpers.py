@@ -325,21 +325,14 @@ def run_perturbation_experiment(
         print(f"--- LAYER: {layer_idx} ---")
         print("="*80)
         
-        effective_mask = concept_analysis["effective_mask"]
-        orthogonal_pc_index = -1
-        for i, is_effective in enumerate(effective_mask):
-            if not is_effective:
-                orthogonal_pc_index = i
-                break
+        # Use the PC with the lowest eigenvalue (last PC since they're sorted descending)
+        orthogonal_pc_index = len(concept_analysis["eigenvalues"]) - 1
         
-        if orthogonal_pc_index == -1:
-            print("No orthogonal direction found.")
-            return ""
-            
         direction = concept_analysis["eigenvectors"][orthogonal_pc_index].to(DEVICE)
         eigenvalue = concept_analysis["eigenvalues"][0] if use_largest_eigenvalue else concept_analysis["eigenvalues"][orthogonal_pc_index]
         
-        print(f"Using orthogonal direction PC{orthogonal_pc_index}")
+        print(f"Using PC with lowest eigenvalue: PC{orthogonal_pc_index}")
+        print(f"Eigenvalue: {concept_analysis['eigenvalues'][orthogonal_pc_index].item():.6f}")
         axes_to_test = [0]
         
     else:
