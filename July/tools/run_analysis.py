@@ -54,7 +54,7 @@ def main():
             
         import wordToken
         wordToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD = args.use_system_prompt
-        print(f"USE_SYSTEM_PROMPT_FOR_MANIFOLD: {wordToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD}")
+        print("USE_SYSTEM_PROMPT_FOR_MANIFOLD: {}".format(wordToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD))
         
         wordToken.main()
         
@@ -63,7 +63,7 @@ def main():
         
         import lastToken
         lastToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD = args.use_system_prompt
-        print(f"USE_SYSTEM_PROMPT_FOR_MANIFOLD: {lastToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD}")
+        print("USE_SYSTEM_PROMPT_FOR_MANIFOLD: {}".format(lastToken.USE_SYSTEM_PROMPT_FOR_MANIFOLD))
         
         original_main = lastToken.main
         
@@ -72,17 +72,17 @@ def main():
             lastToken.CROSS_CONCEPT_ONLY = args.cross_concept_only
             lastToken.USE_PRANAV_SENTENCES = args.use_pranav_sentences
             lastToken.LOCAL_CENTRE = args.local_centre
-            print(f"PERTURB_ONCE: {lastToken.PERTURB_ONCE}")
-            print(f"CROSS_CONCEPT_ONLY: {lastToken.CROSS_CONCEPT_ONLY}")
-            print(f"USE_PRANAV_SENTENCES: {lastToken.USE_PRANAV_SENTENCES}")
-            print(f"LOCAL_CENTRE: {lastToken.LOCAL_CENTRE}")
+            print("PERTURB_ONCE: {}".format(lastToken.PERTURB_ONCE))
+            print("CROSS_CONCEPT_ONLY: {}".format(lastToken.CROSS_CONCEPT_ONLY))
+            print("USE_PRANAV_SENTENCES: {}".format(lastToken.USE_PRANAV_SENTENCES))
+            print("LOCAL_CENTRE: {}".format(lastToken.LOCAL_CENTRE))
             original_main()
             
         lastToken.main = modified_main
         lastToken.main()
         
     else:
-        print(f"Error: Unknown script '{args.script}'")
+        print("Error: Unknown script '{}'".format(args.script))
         sys.exit(1)
 
 if __name__ == "__main__":
