@@ -1,2 +1,2 @@
 # SAEMechInterp
-Exploratory tools for dictionary learning and SAE building on LLMs.
+Exploratory tools for causal intervention on language models.
