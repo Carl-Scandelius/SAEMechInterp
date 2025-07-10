@@ -49,27 +49,44 @@ def find_word_token_index(
     char_end = char_start + word_found_len
 
     messages = [{"role": "user", "content": prompt}]
-    text_for_model = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=add_generation_prompt)
+    try:
+        text_for_model = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=add_generation_prompt)
+    except Exception as e:
+        print(f"Warning: Failed to apply chat template: {e}")
+        return -1, None
 
     prompt_start_in_text = text_for_model.lower().find(lower_prompt)
     if prompt_start_in_text == -1:
+        print(f"Warning: Original prompt not found in chat template output")
         return -1, None
 
     final_char_start = prompt_start_in_text + char_start
     final_char_end = prompt_start_in_text + char_end
 
-    inputs = tokenizer(text_for_model, return_tensors="pt", return_offsets_mapping=True)
-    offset_mapping = inputs.pop('offset_mapping').squeeze(0)
+    try:
+        inputs = tokenizer(text_for_model, return_tensors="pt", return_offsets_mapping=True)
+        offset_mapping = inputs.pop('offset_mapping').squeeze(0)
+    except Exception as e:
+        print(f"Warning: Tokenization failed: {e}")
+        return -1, None
 
     token_indices_for_word = []
     for i, (start, end) in enumerate(offset_mapping):
+        # Check if token overlaps with word span
         if max(start, final_char_start) < min(end, final_char_end):
             token_indices_for_word.append(i)
 
     if not token_indices_for_word:
+        print(f"Warning: No tokens found for concept '{concept}' in prompt")
         return -1, None
 
     target_token_idx = max(token_indices_for_word)
+    
+    # Validate that we have a reasonable token index
+    if target_token_idx >= inputs['input_ids'].shape[1]:
+        print(f"Warning: Token index {target_token_idx} exceeds input length {inputs['input_ids'].shape[1]}")
+        return -1, None
+    
     inputs.to(DEVICE)
     return target_token_idx, inputs
 
@@ -93,7 +110,11 @@ def get_word_token_activations(
         if USE_SYSTEM_PROMPT_FOR_MANIFOLD and system_prompt:
             messages.insert(0, {'role': 'system', 'content': system_prompt})
 
-        inputs = tokenizer.apply_chat_template(messages, return_tensors="pt", add_generation_prompt=False).to(DEVICE)
+        try:
+            inputs = tokenizer.apply_chat_template(messages, return_tensors="pt", add_generation_prompt=False).to(DEVICE)
+        except Exception as e:
+            print(f"Warning: Failed to process prompt '{prompt[:50]}...': {e}")
+            continue
         
         input_ids_list = inputs[0].tolist()
         keyword_ids = tokenizer.encode(keyword, add_special_tokens=False)
@@ -104,16 +125,21 @@ def get_word_token_activations(
                 target_token_idx = i + len(keyword_ids) - 1
         
         if target_token_idx == -1:
+            print(f"Warning: Keyword '{keyword}' not found in tokenized prompt")
             continue
 
         hook_handle = model.model.layers[layer_idx].register_forward_hook(
             lambda module, input, output: hook_fn(module, input, output, target_token_idx)
         )
         
-        with torch.no_grad():
-            model(input_ids=inputs)
-        
-        hook_handle.remove()
+        try:
+            with torch.no_grad():
+                model(input_ids=inputs)
+        except Exception as e:
+            print(f"Warning: Forward pass failed for prompt: {e}")
+        finally:
+            # Ensure hook is always removed
+            hook_handle.remove()
 
         if activation_storage:
             activations.append(activation_storage[0])

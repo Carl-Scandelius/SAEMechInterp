@@ -42,25 +42,37 @@ def get_final_token_activations(
 
     hook_handle = model.model.layers[layer_idx].register_forward_hook(hook_fn)
 
-    print(f"Extracting activations from layer {layer_idx}...")
-    for prompt in tqdm(prompts, desc="Extracting activations"):
-        if USE_SYSTEM_PROMPT_FOR_MANIFOLD and system_prompt:
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
-            ]
-        else:
-            messages = [{'role': 'user', 'content': prompt}]
+    try:
+        print(f"Extracting activations from layer {layer_idx}...")
+        for prompt in tqdm(prompts, desc="Extracting activations"):
+            if USE_SYSTEM_PROMPT_FOR_MANIFOLD and system_prompt:
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt},
+                ]
+            else:
+                messages = [{'role': 'user', 'content': prompt}]
 
-        inputs = tokenizer.apply_chat_template(
-            messages,
-            return_tensors="pt",
-            add_generation_prompt=False
-        ).to(DEVICE)
-        with torch.no_grad():
-            model(input_ids=inputs)
-
-    hook_handle.remove()
+            try:
+                inputs = tokenizer.apply_chat_template(
+                    messages,
+                    return_tensors="pt",
+                    add_generation_prompt=False
+                ).to(DEVICE)
+                
+                with torch.no_grad():
+                    model(input_ids=inputs)
+            except Exception as e:
+                print(f"Warning: Failed to process prompt '{prompt[:50]}...': {e}")
+                continue
+    finally:
+        # Ensure hook is always removed
+        hook_handle.remove()
+        
+    if not activations:
+        print(f"Warning: No activations extracted from layer {layer_idx}")
+        return torch.empty(0, model.config.hidden_size if hasattr(model.config, 'hidden_size') else 4096, device='cpu')
+        
     return torch.cat(activations, dim=0)
 
 def get_global_activations(
@@ -140,52 +152,45 @@ def analyse_global_manifolds(global_activations):
     original_dtype = global_activations.dtype
     original_device = global_activations.device
     
-    if global_activations.dtype == torch.float16:
-        print("Converting from float16 to float32 for SVD computation...")
-        global_activations = global_activations.float()
-    
-    device = global_activations.device
+    # Move to CPU and use float32 for numerical stability
+    print("Moving to CPU and converting to float32 for stable SVD computation...")
+    global_activations = global_activations.cpu().float()
     
     mean_activation = global_activations.mean(dim=0)
     centered_activations = global_activations - mean_activation
     
     try:
         U, S, Vt = torch.svd(centered_activations)
-        print(f"SVD completed successfully on {device}")
+        print(f"SVD completed successfully on CPU")
     except RuntimeError as e:
-        print(f"SVD failed on {device}: {e}")
-        if device.type == 'cuda':
-            print("Trying SVD on CPU as fallback...")
-            centered_activations_cpu = centered_activations.cpu()
-            try:
-                U, S, Vt = torch.svd(centered_activations_cpu)
-                U, S, Vt = U.to(device), S.to(device), Vt.to(device)
-                centered_activations = centered_activations_cpu.to(device)
-                print("SVD completed on CPU, results moved back to GPU")
-            except RuntimeError as e2:
-                print(f"SVD also failed on CPU: {e2}")
-                print("Trying with double precision...")
-                centered_activations_double = centered_activations_cpu.double()
-                U, S, Vt = torch.svd(centered_activations_double)
-                U, S, Vt = U.float().to(device), S.float().to(device), Vt.float().to(device)
-                centered_activations = centered_activations_double.float().to(device)
-                print("SVD completed with double precision")
-        else:
-            raise e
+        print(f"SVD failed on CPU: {e}")
+        print("Trying with double precision...")
+        try:
+            centered_activations_double = centered_activations.double()
+            U, S, Vt = torch.svd(centered_activations_double)
+            U, S, Vt = U.float(), S.float(), Vt.float()
+            centered_activations = centered_activations_double.float()
+            print("SVD completed with double precision")
+        except RuntimeError as e2:
+            print(f"SVD also failed with double precision: {e2}")
+            raise RuntimeError(f"SVD computation failed: {e2}")
     
     eigenvalues = S ** 2 / (global_activations.shape[0] - 1)
     eigenvectors = Vt.T
     
+    # Move results back to original device if needed, but keep float32
+    target_device = original_device if original_device.type == 'cuda' else torch.device('cpu')
+    
     global_analysis = {
-        "eigenvalues": eigenvalues,
-        "eigenvectors": eigenvectors.T,  # Each row is an eigenvector
-        "centered_acts": centered_activations,
-        "mean": mean_activation,
+        "eigenvalues": eigenvalues.to(target_device),
+        "eigenvectors": eigenvectors.T.to(target_device),  # Each row is an eigenvector
+        "centered_acts": centered_activations.to(target_device),
+        "mean": mean_activation.to(target_device),
         "_original_dtype": original_dtype,
         "_original_device": original_device
     }
     
-    print(f"Global PCA completed on {device}. Top 5 eigenvalues: {eigenvalues[:5].tolist()}")
+    print(f"Global PCA completed. Results moved to {target_device}. Top 5 eigenvalues: {eigenvalues[:5].tolist()}")
     
     return global_analysis
 

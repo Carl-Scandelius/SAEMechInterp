@@ -15,6 +15,22 @@ TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 USE_SYSTEM_PROMPT_FOR_MANIFOLD = True
 PERTURB_ONCE = False
 
+def ensure_tensor_compatibility(tensor: torch.Tensor, target_device: Union[str, torch.device], target_dtype: torch.dtype = torch.float32) -> torch.Tensor:
+    """Ensure tensor is on correct device with correct dtype for numerical stability."""
+    if not isinstance(tensor, torch.Tensor):
+        raise ValueError(f"Expected torch.Tensor, got {type(tensor)}")
+    
+    # Convert to target dtype and device
+    tensor = tensor.to(device=target_device, dtype=target_dtype)
+    
+    # Check for NaN or infinite values
+    if torch.isnan(tensor).any():
+        print("Warning: NaN values detected in tensor")
+    if torch.isinf(tensor).any():
+        print("Warning: Infinite values detected in tensor")
+    
+    return tensor
+
 def get_model_and_tokenizer(model_name: str) -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
     """Load model and tokenizer with optimal device placement."""
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -32,26 +48,33 @@ def analyse_manifolds(all_activations_by_concept: Dict[str, torch.Tensor], local
     
     Args:
         all_activations_by_concept: Dictionary mapping concept names to activation tensors
-        local_centre: If True, center each concept by its own centroid (concept-specific PCs).
-                     If False, center all concepts by global centroid (cross-concept comparable PCs).
+        local_centre: If True, use local centering for perturbations (concept-specific reference frame).
+                     If False, use global centering for perturbations (cross-concept reference frame).
+                     
+    Note: Individual concept PCA is ALWAYS computed on concept-centered data regardless of this flag.
+          The local_centre flag only affects how perturbations are applied later.
     """
     concept_analysis: Dict[str, Dict[str, Any]] = {}
     device = torch.device('cpu')
     
+    # Compute centroids for each concept
     centroids = {c: acts.to(device).mean(dim=0) for c, acts in all_activations_by_concept.items()}
     
+    # Compute global centroid for perturbation reference (regardless of centering mode)
+    global_centroid = torch.stack(list(centroids.values())).mean(dim=0)
+    
     if local_centre:
-        print("Using LOCAL centering: Each concept centered by its own centroid")
-        centered_acts = {
-            c: acts.to(device) - centroids[c] for c, acts in all_activations_by_concept.items()
-        }
-        global_centroid = None  # Not needed for local centering
+        print("Using LOCAL centering mode: Perturbations will use concept-specific reference frames")
     else:
-        print("Using GLOBAL centering: All concepts centered by global centroid")
-        global_centroid = torch.stack(list(centroids.values())).mean(dim=0)
-        centered_acts = {
-            c: acts.to(device) - global_centroid for c, acts in all_activations_by_concept.items()
-        }
+        print("Using GLOBAL centering mode: Perturbations will use global reference frame")
+    
+    print("Individual concept PCA: Each concept centered by its own mean (always)")
+    
+    # ALWAYS center each concept by its own mean for PCA computation
+    # This ensures each concept's principal components capture variation within that concept
+    centered_acts = {
+        c: acts.to(device) - centroids[c] for c, acts in all_activations_by_concept.items()
+    }
 
     for concept, acts in centered_acts.items():
         if acts.shape[0] == 0:
@@ -224,21 +247,25 @@ def generate_with_perturbation(
 
     hook_handle = model.model.layers[layer_idx].register_forward_hook(hook_fn_modify)
     
-    generate_kwargs = {
-        'input_ids': input_ids,
-        'max_new_tokens': 70,
-        'do_sample': False,
-        'pad_token_id': tokenizer.eos_token_id
-    }
-    if attention_mask is not None:
-        generate_kwargs['attention_mask'] = attention_mask
-    
-    with torch.no_grad():
-        output_ids = model.generate(**generate_kwargs)
-    
-    hook_handle.remove()
-    decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
-    return decoded_text
+    try:
+        generate_kwargs = {
+            'input_ids': input_ids,
+            'max_new_tokens': 70,
+            'do_sample': False,
+            'pad_token_id': tokenizer.eos_token_id
+        }
+        if attention_mask is not None:
+            generate_kwargs['attention_mask'] = attention_mask
+        
+        with torch.no_grad():
+            output_ids = model.generate(**generate_kwargs)
+        
+        prompt_length = inputs.shape[1] if hasattr(inputs, 'shape') else input_ids.shape[1]
+        decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
+        return decoded_text
+    finally:
+        # Ensure hook is always removed, even if an exception occurs
+        hook_handle.remove()
 
 def run_perturbation_experiment(
     model: AutoModelForCausalLM,
@@ -379,15 +406,20 @@ def run_ablation_experiment(
         
         hook_handle = model.model.layers[layer_idx].register_forward_hook(create_ablation_hook(scenario_name, keep_pcs))
         
-        with torch.no_grad():
-            output_ids = model.generate(
-                inputs, max_new_tokens=30, temperature=0.7, top_p=0.9, 
-                do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
-            )
-        
-        hook_handle.remove()
-        prompt_length = inputs.shape[1]
-        decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
-        print(f"{scenario_name}: {decoded_text}")
+        try:
+            with torch.no_grad():
+                output_ids = model.generate(
+                    inputs, max_new_tokens=30, temperature=0.7, top_p=0.9, 
+                    do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
+                )
+            
+            prompt_length = inputs.shape[1]
+            decoded_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
+            print(f"{scenario_name}: {decoded_text}")
+        except Exception as e:
+            print(f"{scenario_name}: ERROR - {e}")
+        finally:
+            # Ensure hook is always removed
+            hook_handle.remove()
     
     print("="*80)
