@@ -3,9 +3,8 @@
 
 import argparse
 import sys
-from typing import Optional
 
-def parse_arguments() -> argparse.Namespace:
+def parse_arguments():
     """Parse command line arguments for analysis configuration."""
     parser = argparse.ArgumentParser(description="Run token analysis with configurable parameters")
     parser.add_argument(
@@ -42,7 +41,7 @@ def parse_arguments() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-def main() -> None:
+def main():
     """Execute the specified analysis script with configured parameters."""
     args = parse_arguments()
     
