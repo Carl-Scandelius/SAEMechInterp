@@ -316,8 +316,8 @@ def run_cross_concept_perturbation(
     Perturb along the direction between two concept manifolds.
     """
     # Get centroids (mean activations) for both concepts
-    source_centroid = source_concept_analysis["mean"].to(DEVICE)
-    target_centroid = target_concept_analysis["mean"].to(DEVICE)
+    source_centroid = source_concept_analysis["centroid"].to(DEVICE)
+    target_centroid = target_concept_analysis["centroid"].to(DEVICE)
     
     # Compute the vector between centroids
     cross_concept_vector = target_centroid - source_centroid
@@ -741,11 +741,12 @@ def main():
                 missing_concepts.append("lion")
             print(f"Skipping cross-concept perturbation for layer {target_layer}: missing analyses for {missing_concepts}")
 
-    print("\n" + "#"*80)
-    print("### PLOTTING OVERALL RESULTS ###")
-    print("#"*80 + "\n")
-    plot_avg_eigenvalues(dog_avg_eigenvalues, model_name_str, "lastToken")
-    plot_similarity_matrix(dog_top_eigenvectors, model_name_str, "lastToken")
+    # Plotting removed per user request
+    # print("\n" + "#"*80)
+    # print("### PLOTTING OVERALL RESULTS ###")
+    # print("#"*80 + "\n")
+    # plot_avg_eigenvalues(dog_avg_eigenvalues, model_name_str, "lastToken")
+    # plot_similarity_matrix(dog_top_eigenvectors, model_name_str, "lastToken")
 
 if __name__ == "__main__":
     main()
