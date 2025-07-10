@@ -314,18 +314,6 @@ def run_cross_concept_perturbation(
 ) -> None:
     """
     Perturb along the direction between two concept manifolds.
-    
-    Args:
-        model: The transformer model
-        tokenizer: The tokenizer
-        messages: Messages to test (system + user prompts)
-        layer_idx: Layer to perturb
-        source_concept_analysis: Analysis results for the source concept
-        target_concept_analysis: Analysis results for the target concept
-        source_concept_name: Name of the source concept (e.g., "dog")
-        target_concept_name: Name of the target concept (e.g., "lion")
-        target_token_idx: Token index to perturb (None for final token)
-        perturb_once: Whether to perturb only once during generation
     """
     # Get centroids (mean activations) for both concepts
     source_centroid = source_concept_analysis["mean"].to(DEVICE)
@@ -466,59 +454,59 @@ def main():
                 dog_avg_eigenvalues[target_layer] = dog_analysis["eigenvalues"].mean().item()
                 dog_top_eigenvectors[target_layer] = dog_analysis["eigenvectors"][0]
 
-            # Global PC computation
-            if RUN_GLOBAL_PC_ANALYSIS and target_layer not in global_analysis_cache:
-                print("\n" + "~"*80)
-                print(f"### COMPUTING ENHANCED GLOBAL PCs FOR LAYER {target_layer} ###")
-                print(f"### (prompts.json + STSB dataset for broader representation) ###")
-                print("~"*80 + "\n")
-                
-                try:
-                    global_activations, prompt_to_source, all_prompts = get_enhanced_global_activations(
-                        model, tokenizer, concept_prompts, target_layer, 
-                        system_prompt=system_prompt_for_manifold
-                    )
-                    
-                    global_analysis = analyse_global_manifolds(global_activations)
-                    global_analysis_cache[target_layer] = {
-                        'analysis': global_analysis,
-                        'all_prompts': all_prompts,
-                        'prompt_to_source': prompt_to_source
-                    }
-                    
-                    gc.collect()
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
-                    
-                    print(f"Global PC analysis cached for layer {target_layer}")
-                    
-                except Exception as e:
-                    print(f"ERROR: Failed to compute global PC analysis for layer {target_layer}: {e}")
-                    print("Skipping global PC analysis for this layer.")
-                    import traceback
-                    traceback.print_exc()
-                    continue
-                
-                print("~"*80 + "\n")
+            # Global PC computation - COMMENTED OUT
+            # if RUN_GLOBAL_PC_ANALYSIS and target_layer not in global_analysis_cache:
+            #     print("\n" + "~"*80)
+            #     print(f"### COMPUTING ENHANCED GLOBAL PCs FOR LAYER {target_layer} ###")
+            #     print(f"### (prompts.json + STSB dataset for broader representation) ###")
+            #     print("~"*80 + "\n")
+            #     
+            #     try:
+            #         global_activations, prompt_to_source, all_prompts = get_enhanced_global_activations(
+            #             model, tokenizer, concept_prompts, target_layer, 
+            #             system_prompt=system_prompt_for_manifold
+            #         )
+            #         
+            #         global_analysis = analyse_global_manifolds(global_activations)
+            #         global_analysis_cache[target_layer] = {
+            #             'analysis': global_analysis,
+            #             'all_prompts': all_prompts,
+            #             'prompt_to_source': prompt_to_source
+            #         }
+            #         
+            #         gc.collect()
+            #         if torch.cuda.is_available():
+            #             torch.cuda.empty_cache()
+            #         
+            #         print(f"Global PC analysis cached for layer {target_layer}")
+            #         
+            #     except Exception as e:
+            #         print(f"ERROR: Failed to compute global PC analysis for layer {target_layer}: {e}")
+            #         print("Skipping global PC analysis for this layer.")
+            #         import traceback
+            #         traceback.print_exc()
+            #         continue
+            #     
+            #     print("~"*80 + "\n")
 
-            # Cosine similarity analysis
-            if RUN_GLOBAL_PC_ANALYSIS and target_layer in global_analysis_cache:
-                global_data = global_analysis_cache[target_layer]
-                global_analysis = global_data['analysis']
-                
-                try:
-                    cosine_sim_matrix = compute_pc_cosine_similarity(
-                        analysis_results[concept], 
-                        global_analysis, 
-                        concept, 
-                        target_layer, 
-                        top_k=5
-                    )
-                except Exception as e:
-                    print(f"ERROR: Failed to compute cosine similarity for {concept} at layer {target_layer}: {e}")
-                    print("Skipping cosine similarity analysis for this concept-layer combination.")
-                    import traceback
-                    traceback.print_exc()
+            # Cosine similarity analysis - COMMENTED OUT
+            # if RUN_GLOBAL_PC_ANALYSIS and target_layer in global_analysis_cache:
+            #     global_data = global_analysis_cache[target_layer]
+            #     global_analysis = global_data['analysis']
+            #     
+            #     try:
+            #         cosine_sim_matrix = compute_pc_cosine_similarity(
+            #             analysis_results[concept], 
+            #             global_analysis, 
+            #             concept, 
+            #             target_layer, 
+            #             top_k=5
+            #         )
+            #     except Exception as e:
+            #         print(f"ERROR: Failed to compute cosine similarity for {concept} at layer {target_layer}: {e}")
+            #         print("Skipping cosine similarity analysis for this concept-layer combination.")
+            #         import traceback
+            #         traceback.print_exc()
 
             print(f"\nRunning experiments for:")
             print(f"System prompt: '{system_prompt}'")
@@ -583,113 +571,113 @@ def main():
                 target_token_idx=None, perturb_once=PERTURB_ONCE
             )
 
-            # Global PC experiments
-            if RUN_GLOBAL_PC_ANALYSIS and target_layer in global_analysis_cache:
-                global_data = global_analysis_cache[target_layer]
-                global_analysis = global_data['analysis']
-                all_prompts = global_data['all_prompts']
-                
-                global_analysis_for_helpers = {}
-                for key, tensor in global_analysis.items():
-                    if torch.is_tensor(tensor):
-                        global_analysis_for_helpers[key] = tensor.cpu().to(dtype=torch.float16)
-                    else:
-                        global_analysis_for_helpers[key] = tensor
-                
-                print("\n" + "@"*80)
-                print(f"### GLOBAL PC PERTURBATION EXPERIMENTS FOR LAYER {target_layer} ###")
-                print(f"### Using Global PCs computed from {len(all_prompts)} sentences ###")
-                print(f"### (prompts.json + STSB dataset for enhanced global representation) ###")
-                print("@"*80 + "\n")
-                
-                print(f"Running GLOBAL PC perturbation experiments for concept '{concept}'...")
-                try:
-                    run_perturbation_experiment(
-                        model, tokenizer, messages_to_test, target_layer, 
-                        global_analysis_for_helpers, f"GLOBAL-{concept}", AXES_TO_ANALYZE, 
-                        target_token_idx=None, perturb_once=PERTURB_ONCE, 
-                        orthogonal_mode=False, use_largest_eigenvalue=True
-                    )
-                except Exception as e:
-                    print(f"ERROR in global PC perturbation experiment: {e}")
-                    print("Continuing with other analyses...")
-                
-                # Global PC prompt analysis
-                for axis in AXES_TO_ANALYZE:
-                    if axis >= len(global_analysis["eigenvectors"]):
-                        break
-                        
-                    global_pc_direction = global_analysis["eigenvectors"][axis]
-                    
-                    print("\n" + "="*80)
-                    print(f"--- Analyzing ALL dataset prompts along GLOBAL PC{axis} direction (Layer {target_layer}) ---")
-                    if USE_NORMALIZED_PROJECTION:
-                        print("Using normalized projections (projection magnitude / vector magnitude)")
-                    else:
-                        print("Using raw projections")
-                    
-                    prompt_sources = global_data.get('prompt_to_source', None)
-                    
-                    try:
-                        top_prompts_global = find_top_prompts_global(
-                            all_prompts,
-                            global_analysis["centered_acts"],
-                            global_pc_direction,
-                            n=10,
-                            use_normalized_projection=USE_NORMALIZED_PROJECTION,
-                            prompt_sources=prompt_sources
-                        )
-
-                        print(f"\nTop 10 sentences most aligned with POSITIVE GLOBAL PC{axis} direction:")
-                        for i, item in enumerate(top_prompts_global['positive'], 1):
-                            if isinstance(item, tuple):
-                                prompt, source = item
-                                source_display = source.replace('concept_', '').replace('stsb_dataset', 'STSB')
-                                print(f"{i:2d}. [{source_display}] '{prompt}'")
-                            else:
-                                print(f"{i:2d}. '{item}'")
-                            
-                        print(f"\nTop 10 sentences most aligned with NEGATIVE GLOBAL PC{axis} direction:")
-                        for i, item in enumerate(top_prompts_global['negative'], 1):
-                            if isinstance(item, tuple):
-                                prompt, source = item
-                                source_display = source.replace('concept_', '').replace('stsb_dataset', 'STSB')
-                                print(f"{i:2d}. [{source_display}] '{prompt}'")
-                            else:
-                                print(f"{i:2d}. '{item}'")
-                                
-                    except Exception as e:
-                        print(f"ERROR in global PC prompt analysis for axis {axis}: {e}")
-                        print("Continuing with next axis...")
-                        
-                    print("="*80)
-                
-                # Global PC orthogonal perturbation
-                print(f"\nRunning GLOBAL PC orthogonal perturbation for concept '{concept}'...")
-                try:
-                    run_perturbation_experiment(
-                        model, tokenizer, messages_to_test, target_layer,
-                        global_analysis_for_helpers, f"GLOBAL-{concept}",
-                        target_token_idx=None, perturb_once=PERTURB_ONCE,
-                        orthogonal_mode=True, use_largest_eigenvalue=True
-                    )
-                except Exception as e:
-                    print(f"ERROR in global PC orthogonal perturbation: {e}")
-                    print("Continuing with other analyses...")
-
-                # Global PC ablation
-                print(f"\nRunning GLOBAL PC ablation experiment for concept '{concept}'...")
-                try:
-                    run_ablation_experiment(
-                        model, tokenizer, messages_to_test, target_layer,
-                        global_analysis_for_helpers, f"GLOBAL-{concept}",
-                        target_token_idx=None, perturb_once=PERTURB_ONCE
-                    )
-                except Exception as e:
-                    print(f"ERROR in global PC ablation experiment: {e}")
-                    print("Continuing with other analyses...")
-                
-                print("@"*80 + "\n")
+            # Global PC experiments - COMMENTED OUT
+            # if RUN_GLOBAL_PC_ANALYSIS and target_layer in global_analysis_cache:
+            #     global_data = global_analysis_cache[target_layer]
+            #     global_analysis = global_data['analysis']
+            #     all_prompts = global_data['all_prompts']
+            #     
+            #     global_analysis_for_helpers = {}
+            #     for key, tensor in global_analysis.items():
+            #         if torch.is_tensor(tensor):
+            #             global_analysis_for_helpers[key] = tensor.cpu().to(dtype=torch.float16)
+            #         else:
+            #             global_analysis_for_helpers[key] = tensor
+            #     
+            #     print("\n" + "@"*80)
+            #     print(f"### GLOBAL PC PERTURBATION EXPERIMENTS FOR LAYER {target_layer} ###")
+            #     print(f"### Using Global PCs computed from {len(all_prompts)} sentences ###")
+            #     print(f"### (prompts.json + STSB dataset for enhanced global representation) ###")
+            #     print("@"*80 + "\n")
+            #     
+            #     print(f"Running GLOBAL PC perturbation experiments for concept '{concept}'...")
+            #     try:
+            #         run_perturbation_experiment(
+            #             model, tokenizer, messages_to_test, target_layer, 
+            #             global_analysis_for_helpers, f"GLOBAL-{concept}", AXES_TO_ANALYZE, 
+            #             target_token_idx=None, perturb_once=PERTURB_ONCE, 
+            #             orthogonal_mode=False, use_largest_eigenvalue=True
+            #         )
+            #     except Exception as e:
+            #         print(f"ERROR in global PC perturbation experiment: {e}")
+            #         print("Continuing with other analyses...")
+            #     
+            #     # Global PC prompt analysis
+            #     for axis in AXES_TO_ANALYZE:
+            #         if axis >= len(global_analysis["eigenvectors"]):
+            #             break
+            #             
+            #         global_pc_direction = global_analysis["eigenvectors"][axis]
+            #         
+            #         print("\n" + "="*80)
+            #         print(f"--- Analyzing ALL dataset prompts along GLOBAL PC{axis} direction (Layer {target_layer}) ---")
+            #         if USE_NORMALIZED_PROJECTION:
+            #             print("Using normalized projections (projection magnitude / vector magnitude)")
+            #         else:
+            #             print("Using raw projections")
+            #         
+            #         prompt_sources = global_data.get('prompt_to_source', None)
+            #         
+            #         try:
+            #             top_prompts_global = find_top_prompts_global(
+            #                 all_prompts,
+            #                 global_analysis["centered_acts"],
+            #                 global_pc_direction,
+            #                 n=10,
+            #                 use_normalized_projection=USE_NORMALIZED_PROJECTION,
+            #                 prompt_sources=prompt_sources
+            #             )
+            # 
+            #             print(f"\nTop 10 sentences most aligned with POSITIVE GLOBAL PC{axis} direction:")
+            #             for i, item in enumerate(top_prompts_global['positive'], 1):
+            #                 if isinstance(item, tuple):
+            #                     prompt, source = item
+            #                     source_display = source.replace('concept_', '').replace('stsb_dataset', 'STSB')
+            #                     print(f"{i:2d}. [{source_display}] '{prompt}'")
+            #                 else:
+            #                     print(f"{i:2d}. '{item}'")
+            #                 
+            #             print(f"\nTop 10 sentences most aligned with NEGATIVE GLOBAL PC{axis} direction:")
+            #             for i, item in enumerate(top_prompts_global['negative'], 1):
+            #                 if isinstance(item, tuple):
+            #                     prompt, source = item
+            #                     source_display = source.replace('concept_', '').replace('stsb_dataset', 'STSB')
+            #                     print(f"{i:2d}. [{source_display}] '{prompt}'")
+            #                 else:
+            #                     print(f"{i:2d}. '{item}'")
+            #                     
+            #         except Exception as e:
+            #             print(f"ERROR in global PC prompt analysis for axis {axis}: {e}")
+            #             print("Continuing with next axis...")
+            #             
+            #         print("="*80)
+            #     
+            #     # Global PC orthogonal perturbation
+            #     print(f"\nRunning GLOBAL PC orthogonal perturbation for concept '{concept}'...")
+            #     try:
+            #         run_perturbation_experiment(
+            #             model, tokenizer, messages_to_test, target_layer,
+            #             global_analysis_for_helpers, f"GLOBAL-{concept}",
+            #             target_token_idx=None, perturb_once=PERTURB_ONCE,
+            #             orthogonal_mode=True, use_largest_eigenvalue=True
+            #         )
+            #     except Exception as e:
+            #         print(f"ERROR in global PC orthogonal perturbation: {e}")
+            #         print("Continuing with other analyses...")
+            # 
+            #     # Global PC ablation
+            #     print(f"\nRunning GLOBAL PC ablation experiment for concept '{concept}'...")
+            #     try:
+            #         run_ablation_experiment(
+            #             model, tokenizer, messages_to_test, target_layer,
+            #             global_analysis_for_helpers, f"GLOBAL-{concept}",
+            #             target_token_idx=None, perturb_once=PERTURB_ONCE
+            #         )
+            #     except Exception as e:
+            #         print(f"ERROR in global PC ablation experiment: {e}")
+            #         print("Continuing with other analyses...")
+            #     
+            #     print("@"*80 + "\n")
 
     # Run cross-concept perturbation experiments
     print("\n" + "#"*80)
