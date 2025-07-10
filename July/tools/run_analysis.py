@@ -35,6 +35,11 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true", 
         help="Use manifold_sentences_hard_exactword_1000.json instead of prompts.json (last_token only)"
     )
+    parser.add_argument(
+        "--local_centre",
+        action="store_true",
+        help="Use concept-specific centering (subtract each concept's own centroid) instead of global centering (last_token only)"
+    )
     return parser.parse_args()
 
 def main() -> None:
@@ -67,9 +72,11 @@ def main() -> None:
             lastToken.PERTURB_ONCE = args.perturb_once
             lastToken.CROSS_CONCEPT_ONLY = args.cross_concept_only
             lastToken.USE_PRANAV_SENTENCES = args.use_pranav_sentences
+            lastToken.LOCAL_CENTRE = args.local_centre
             print(f"PERTURB_ONCE: {lastToken.PERTURB_ONCE}")
             print(f"CROSS_CONCEPT_ONLY: {lastToken.CROSS_CONCEPT_ONLY}")
             print(f"USE_PRANAV_SENTENCES: {lastToken.USE_PRANAV_SENTENCES}")
+            print(f"LOCAL_CENTRE: {lastToken.LOCAL_CENTRE}")
             original_main()
             
         lastToken.main = modified_main

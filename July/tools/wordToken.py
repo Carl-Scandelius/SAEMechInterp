@@ -174,7 +174,7 @@ def main():
             gc.collect()
             torch.cuda.empty_cache()
 
-        analysis_results = analyse_manifolds(all_activations)
+        analysis_results = analyse_manifolds(all_activations, local_centre=False)  # Default to global centering
 
         if "dog" in analysis_results:
             dog_analysis = analysis_results["dog"]

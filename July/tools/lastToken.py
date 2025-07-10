@@ -27,6 +27,7 @@ USE_NORMALIZED_PROJECTION = True
 RUN_GLOBAL_PC_ANALYSIS = True
 CROSS_CONCEPT_ONLY = False
 USE_PRANAV_SENTENCES = False
+LOCAL_CENTRE = False
 
 def get_final_token_activations(
     model, tokenizer, prompts: List[str], layer_idx: int, system_prompt: str = ""
@@ -339,10 +340,15 @@ def run_cross_concept_perturbation(
     system_prompt = messages[0]['content'] if messages[0]['role'] == 'system' else ""
     user_prompt = next((msg['content'] for msg in messages if msg['role'] == 'user'), "")
     
+    # Check centering mode
+    centering_mode = source_concept_analysis.get("local_centre", False)
+    centering_info = "LOCAL centering (concept-specific PCs)" if centering_mode else "GLOBAL centering (cross-concept comparable PCs)"
+    
     print("\n" + "="*80)
     print(f"--- CROSS-CONCEPT PERTURBATION: '{source_concept_name}' → '{target_concept_name}' ---")
     print(f"--- LAYER: {layer_idx} ---")
     print(f"--- Cross-concept distance: {cross_concept_distance:.4f} ---")
+    print(f"--- Centering mode: {centering_info} ---")
     print("="*80)
     
     print(f"\nSystem: '{system_prompt}'")
@@ -473,7 +479,8 @@ def main():
     print(f"Configuration: USE_NORMALIZED_PROJECTION={USE_NORMALIZED_PROJECTION}")
     print(f"Configuration: RUN_GLOBAL_PC_ANALYSIS={RUN_GLOBAL_PC_ANALYSIS}")
     print(f"Configuration: CROSS_CONCEPT_ONLY={CROSS_CONCEPT_ONLY}")
-    print(f"Configuration: USE_PRANAV_SENTENCES={USE_PRANAV_SENTENCES}\n")
+    print(f"Configuration: USE_PRANAV_SENTENCES={USE_PRANAV_SENTENCES}")
+    print(f"Configuration: LOCAL_CENTRE={LOCAL_CENTRE}\n")
 
     dog_avg_eigenvalues = {}
     dog_top_eigenvectors = {}
@@ -577,7 +584,7 @@ def main():
                 torch.cuda.empty_cache()
 
             all_activations = {concept: concept_activations}
-            analysis_results = analyse_manifolds(all_activations)
+            analysis_results = analyse_manifolds(all_activations, local_centre=LOCAL_CENTRE)
             
             if concept not in analysis_results:
                 print(f"Analysis for concept '{concept}' failed for layer {target_layer}. Skipping to next layer.")

@@ -386,7 +386,7 @@ def main() -> None:
         torch.cuda.empty_cache()
         
         print("\nAnalyzing manifolds...")
-        analysis_results = analyse_manifolds(all_activations)
+        analysis_results = analyse_manifolds(all_activations, local_centre=False)  # Default to global centering
         all_layer_results[target_layer] = analysis_results
         
         if target_layer in ANALYSIS_LAYERS:

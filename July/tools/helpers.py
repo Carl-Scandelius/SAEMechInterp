@@ -27,16 +27,31 @@ def get_model_and_tokenizer(model_name: str) -> Tuple[AutoModelForCausalLM, Auto
     tokenizer.pad_token = tokenizer.eos_token
     return model, tokenizer
 
-def analyse_manifolds(all_activations_by_concept: Dict[str, torch.Tensor]) -> Dict[str, Dict[str, Any]]:
-    """Compute PCA manifolds with global centering and effective component selection."""
+def analyse_manifolds(all_activations_by_concept: Dict[str, torch.Tensor], local_centre: bool = False) -> Dict[str, Dict[str, Any]]:
+    """Compute PCA manifolds with configurable centering strategy.
+    
+    Args:
+        all_activations_by_concept: Dictionary mapping concept names to activation tensors
+        local_centre: If True, center each concept by its own centroid (concept-specific PCs).
+                     If False, center all concepts by global centroid (cross-concept comparable PCs).
+    """
     concept_analysis: Dict[str, Dict[str, Any]] = {}
     device = torch.device('cpu')
     
     centroids = {c: acts.to(device).mean(dim=0) for c, acts in all_activations_by_concept.items()}
-    global_centroid = torch.stack(list(centroids.values())).mean(dim=0)
-    centered_acts = {
-        c: acts.to(device) - global_centroid for c, acts in all_activations_by_concept.items()
-    }
+    
+    if local_centre:
+        print("Using LOCAL centering: Each concept centered by its own centroid")
+        centered_acts = {
+            c: acts.to(device) - centroids[c] for c, acts in all_activations_by_concept.items()
+        }
+        global_centroid = None  # Not needed for local centering
+    else:
+        print("Using GLOBAL centering: All concepts centered by global centroid")
+        global_centroid = torch.stack(list(centroids.values())).mean(dim=0)
+        centered_acts = {
+            c: acts.to(device) - global_centroid for c, acts in all_activations_by_concept.items()
+        }
 
     for concept, acts in centered_acts.items():
         if acts.shape[0] == 0:
@@ -63,7 +78,8 @@ def analyse_manifolds(all_activations_by_concept: Dict[str, torch.Tensor]) -> Di
             "effective_mask": effective_mask,
             "centered_acts": acts,
             "centroid": centroids[concept],
-            "global_centroid": global_centroid
+            "global_centroid": global_centroid,
+            "local_centre": local_centre
         }
 
     return concept_analysis
