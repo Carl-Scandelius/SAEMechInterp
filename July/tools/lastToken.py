@@ -1,5 +1,7 @@
 """Transformer concept manifold exploration and perturbation analysis."""
 
+from __future__ import annotations
+
 import torch
 from tqdm import tqdm
 import gc

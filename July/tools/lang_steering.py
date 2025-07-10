@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Cross-language manifold analysis and steering experiments."""
 
+from __future__ import annotations
+
 import torch
 from tqdm import tqdm
 import gc
@@ -85,7 +87,7 @@ def run_centroid_interpolation(
     print("\n" + "="*80)
     print("--- INTERPOLATING FROM GERMAN TO SPANISH TRANSLATION ---")
     print("--- LAYER: {} ---".format(target_layer))
-    print("--- CENTROID DISTANCE: {} ---".format(centroid_distance:.4f))
+    print("--- CENTROID DISTANCE: {:.4f} ---".format(centroid_distance))
     print("="*80)
     
     system_prompt = messages_to_test[0]['content'] if messages_to_test[0]['role'] == 'system' else ""
@@ -275,7 +277,7 @@ def analyse_manifold_relationships(
     centroid_vector = spanish_centroid - german_centroid
     centroid_distance = torch.norm(centroid_vector).item()
     
-    print("Distance between manifold centroids: {}".format(centroid_distance:.4f))
+    print("Distance between manifold centroids: {:.4f}".format(centroid_distance))
     
     normalized_centroid_vector = centroid_vector / torch.norm(centroid_vector)
     
@@ -324,13 +326,13 @@ def analyse_manifold_relationships(
     spanish_total_var = spanish_analysis["eigenvalues"].sum().item()
     for i in range(min(5, len(spanish_analysis["eigenvalues"]))):
         variance_explained = spanish_analysis["eigenvalues"][i].item() / spanish_total_var * 100
-        print("PC{}: {}%".format(i, variance_explained:.2f))
+        print("PC{}: {:.2f}%".format(i, variance_explained))
     
     print("\nVariance explained by German PCs:")
     german_total_var = german_analysis["eigenvalues"].sum().item()
     for i in range(min(5, len(german_analysis["eigenvalues"]))):
         variance_explained = german_analysis["eigenvalues"][i].item() / german_total_var * 100
-        print("PC{}: {}%".format(i, variance_explained:.2f))
+        print("PC{}: {:.2f}%".format(i, variance_explained))
 
 def main() -> None:
     """Run language manifold analysis and perturbation experiments."""
