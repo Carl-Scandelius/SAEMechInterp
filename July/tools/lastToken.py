@@ -374,9 +374,14 @@ def run_cross_concept_perturbation(
     # Get the 100% perturbation vector
     full_perturbation_magnitude = cross_concept_distance
     
-    # Project onto target concept manifold using its PCs
-    target_eigenvectors = target_concept_analysis["eigenvectors"].to(DEVICE)
+    # Project onto target concept manifold using only its EFFECTIVE PCs
+    effective_mask = target_concept_analysis["effective_mask"]
+    all_eigenvectors = target_concept_analysis["eigenvectors"].to(DEVICE)
+    target_eigenvectors = all_eigenvectors[effective_mask]  # Only effective PCs
     target_centroid_device = target_concept_analysis["centroid"].to(DEVICE)
+    
+    num_effective_pcs = effective_mask.sum().item()
+    print(f"Using {num_effective_pcs} effective PCs out of {len(all_eigenvectors)} total PCs for {target_concept_name} manifold projection")
     
     # Create projection function
     def project_onto_manifold_hook(perturbation_vector, target_eigenvectors, target_centroid):
@@ -390,7 +395,7 @@ def run_cross_concept_perturbation(
             # Center relative to target manifold centroid
             centered_activation = perturbed_activation - target_centroid
             
-            # Project onto target manifold subspace
+            # Project onto target manifold subspace (only effective PCs)
             coefficients = torch.matmul(centered_activation, target_eigenvectors.T)
             projected_activation = target_centroid + torch.matmul(coefficients, target_eigenvectors)
             
