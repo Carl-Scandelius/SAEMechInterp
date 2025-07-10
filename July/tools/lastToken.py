@@ -32,8 +32,8 @@ USE_PRANAV_SENTENCES = False
 LOCAL_CENTRE = False
 
 def get_final_token_activations(
-    model, tokenizer, prompts: List[str], layer_idx: int, system_prompt: str = ""
-) -> torch.Tensor:
+    model, tokenizer, prompts, layer_idx, system_prompt=""
+):
     """Extract final token activations from specified layer."""
     activations = []
 
@@ -65,8 +65,8 @@ def get_final_token_activations(
     return torch.cat(activations, dim=0)
 
 def get_global_activations(
-    model, tokenizer, concept_prompts: Dict[str, List[str]], layer_idx: int, system_prompt: str = ""
-) -> Tuple[torch.Tensor, List[str], List[str]]:
+    model, tokenizer, concept_prompts, layer_idx, system_prompt=""
+):
     """Extract activations from all prompts across concepts for global PC computation."""
     all_prompts = []
     prompt_to_concept = []
@@ -85,8 +85,8 @@ def get_global_activations(
     return global_activations, prompt_to_concept, all_prompts
 
 def get_enhanced_global_activations(
-    model, tokenizer, concept_prompts: Dict[str, List[str]], layer_idx: int, system_prompt: str = ""
-) -> Tuple[torch.Tensor, List[str], List[str]]:
+    model, tokenizer, concept_prompts, layer_idx, system_prompt=""
+):
     """Extract activations from all prompts plus STSB dataset for enhanced global PC computation."""
     all_prompts = []
     prompt_to_source = []
@@ -133,7 +133,7 @@ def get_enhanced_global_activations(
     
     return global_activations, prompt_to_source, all_prompts
 
-def analyse_global_manifolds(global_activations: torch.Tensor) -> Dict[str, Any]:
+def analyse_global_manifolds(global_activations):
     """Compute global PCs via SVD from combined activations."""
     print(f"Computing global PCs from {global_activations.shape[0]} activations...")
     print(f"Tensor device: {global_activations.device}, dtype: {global_activations.dtype}")
@@ -191,13 +191,13 @@ def analyse_global_manifolds(global_activations: torch.Tensor) -> Dict[str, Any]
     return global_analysis
 
 def find_top_prompts_global(
-    all_prompts: List[str], 
-    global_centered_acts: torch.Tensor, 
-    pc_direction: torch.Tensor, 
-    n: int = 10, 
-    use_normalized_projection: bool = True, 
-    prompt_sources: Optional[List[str]] = None
-) -> Dict[str, List]:
+    all_prompts, 
+    global_centered_acts, 
+    pc_direction, 
+    n=10, 
+    use_normalized_projection=True, 
+    prompt_sources=None
+):
     """Find top prompts aligned with global PC direction."""
     target_device = global_centered_acts.device
     target_dtype = torch.float32
@@ -231,12 +231,12 @@ def find_top_prompts_global(
     return top_prompts
 
 def compute_pc_cosine_similarity(
-    concept_analysis: Dict[str, Any], 
-    global_analysis: Dict[str, Any], 
-    concept_name: str, 
-    layer_idx: int, 
-    top_k: int = 5
-) -> torch.Tensor:
+    concept_analysis, 
+    global_analysis, 
+    concept_name, 
+    layer_idx, 
+    top_k=5
+):
     """Compute cosine similarity matrix between concept-specific and global PCs."""
     concept_pcs = concept_analysis["eigenvectors"][:top_k]
     global_pcs = global_analysis["eigenvectors"][:top_k]
@@ -312,11 +312,11 @@ def compute_pc_cosine_similarity(
     return cosine_sim_matrix
 
 def run_cross_concept_perturbation(
-    model, tokenizer, messages: List[Dict[str, str]], layer_idx: int,
-    source_concept_analysis: Dict[str, Any], target_concept_analysis: Dict[str, Any],
-    source_concept_name: str, target_concept_name: str,
-    target_token_idx: Optional[int] = None, perturb_once: bool = False
-) -> None:
+    model, tokenizer, messages, layer_idx,
+    source_concept_analysis, target_concept_analysis,
+    source_concept_name, target_concept_name,
+    target_token_idx=None, perturb_once=False
+):
     """
     Perturb along the direction between two concept manifolds.
     """

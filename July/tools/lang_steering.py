@@ -26,8 +26,8 @@ USE_SYSTEM_PROMPT_FOR_MANIFOLD = True
 PERTURB_ONCE = True
 
 def get_final_token_activations(
-    model, tokenizer, prompts: List[str], layer_idx: int, system_prompt: str = ""
-) -> torch.Tensor:
+    model, tokenizer, prompts, layer_idx, system_prompt=""
+):
     """Extract final token activations from specified layer."""
     activations = []
 

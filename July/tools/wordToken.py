@@ -29,8 +29,8 @@ concept_keywords = {
 }
 
 def find_word_token_index(
-    prompt: str, concept: str, tokenizer, add_generation_prompt: bool
-) -> Tuple[int, Optional[Dict[str, torch.Tensor]]]:
+    prompt, concept, tokenizer, add_generation_prompt
+):
     """Find last token index of concept word in prompt."""
     variations = concept_keywords.get(concept, [concept])
 
@@ -75,9 +75,9 @@ def find_word_token_index(
     return target_token_idx, inputs
 
 def get_word_token_activations(
-    model, tokenizer, prompt_keyword_pairs: List[Tuple[str, str]], 
-    layer_idx: int, concept: str, system_prompt: str = ""
-) -> torch.Tensor:
+    model, tokenizer, prompt_keyword_pairs, 
+    layer_idx, concept, system_prompt=""
+):
     """Extract activations for concept word tokens from specified layer."""
     activations = []
     print("Extracting activations from layer {} for concept '{}'...".format(layer_idx, concept))
