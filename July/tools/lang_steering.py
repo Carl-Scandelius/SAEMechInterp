@@ -83,16 +83,16 @@ def run_centroid_interpolation(
     direction_vector = centroid_vector / centroid_distance
     
     print("\n" + "="*80)
-    print(f"--- INTERPOLATING FROM GERMAN TO SPANISH TRANSLATION ---")
-    print(f"--- LAYER: {target_layer} ---")
-    print(f"--- CENTROID DISTANCE: {centroid_distance:.4f} ---")
+    print("--- INTERPOLATING FROM GERMAN TO SPANISH TRANSLATION ---")
+    print("--- LAYER: {} ---".format(target_layer))
+    print("--- CENTROID DISTANCE: {} ---".format(centroid_distance:.4f))
     print("="*80)
     
     system_prompt = messages_to_test[0]['content'] if messages_to_test[0]['role'] == 'system' else ""
     user_prompt = next((msg['content'] for msg in messages_to_test if msg['role'] == 'user'), "")
     
-    print(f"\nSystem Prompt: '{system_prompt}'")
-    print(f"User Prompt:   '{user_prompt}'")
+    print("\nSystem Prompt: '{}'".format(system_prompt))
+    print("User Prompt:   '{}'".format(user_prompt))
     print("\nInterpolation Results:")
     
     with torch.no_grad():
@@ -103,16 +103,16 @@ def run_centroid_interpolation(
         prompt_length = inputs.shape[1]
         original_text = tokenizer.decode(output_ids[0][prompt_length:], skip_special_tokens=True)
     
-    print(f"\n0% (German baseline): {original_text}")
+    print("\n0% (German baseline): {}".format(original_text))
     
     # Interpolate in 20% steps
     for step in range(1, 6):
         percentage = step * 20
         
         if step == 5:
-            print(f"\n{percentage}% (Spanish target):")
+            print("\n{}% (Spanish target):".format(percentage))
         else:
-            print(f"\n{percentage}% interpolation:")
+            print("\n{}% interpolation:".format(percentage))
         
         perturbation_magnitude = step * 0.2 * centroid_distance
         
@@ -138,7 +138,7 @@ def plot_cross_layer_pc_similarity(
     n_layers = len(layers)
     
     fig, axes = plt.subplots(n_layers, n_layers, figsize=(20, 20))
-    fig.suptitle(f"Cross-Layer PC Similarity for '{concept}' Concept\n{model_name_str}", fontsize=16)
+    fig.suptitle("Cross-Layer PC Similarity for '{}' Concept\n{}".format(concept, model_name_str), fontsize=16)
     
     for i, layer_i in enumerate(layers):
         for j, layer_j in enumerate(layers):
@@ -153,22 +153,22 @@ def plot_cross_layer_pc_similarity(
                         similarity_matrix[pi, pj] = similarity
             
             im = sns.heatmap(similarity_matrix.cpu().numpy(), 
-                       annot=True, fmt='.2f', cmap='coolwarm', 
+                       annot=True, fmt='.2', cmap='coolwarm', 
                        vmin=-1, vmax=1, center=0, 
-                       xticklabels=[f"PC{i}" for i in range(num_pcs)],
-                       yticklabels=[f"PC{i}" for i in range(num_pcs)],
+                       xticklabels=["PC{}".format(i) for i in range(num_pcs)],
+                       yticklabels=["PC{}".format(i) for i in range(num_pcs)],
                        ax=axes[i, j], cbar=False)
             
             if i == 0:
-                axes[i, j].set_title(f"Layer {layer_j}")
+                axes[i, j].set_title("Layer {}".format(layer_j))
             if j == 0:
-                axes[i, j].set_ylabel(f"Layer {layer_i}")
+                axes[i, j].set_ylabel("Layer {}".format(layer_i))
                 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    filename = f"{model_name_str}_{concept.replace(' ', '_')}_cross_layer_pc_similarity.png"
+    filename = "{}_{}_cross_layer_pc_similarity.png".format(model_name_str, concept.replace(' ', '_'))
     plt.savefig(filename)
     plt.close()
-    print(f"Saved cross-layer PC similarity matrix for '{concept}' to {filename}")
+    print("Saved cross-layer PC similarity matrix for '{}' to {}".format(concept, filename))
 
 def plot_cross_concept_pc_similarity_by_layer(
     all_layer_results: Dict[int, Dict[str, Any]], 
@@ -179,7 +179,7 @@ def plot_cross_concept_pc_similarity_by_layer(
 ) -> None:
     """Plot PC similarity matrix between concepts at a specific layer."""
     if layer not in all_layer_results:
-        print(f"Warning: No data for layer {layer}")
+        print("Warning: No data for layer {}".format(layer))
         return
         
     layer_data = all_layer_results[layer]
@@ -195,7 +195,7 @@ def plot_cross_concept_pc_similarity_by_layer(
             
         eigenvectors_i = layer_data[concept_i]["eigenvectors"][:num_pcs]
         for pi in range(min(num_pcs, len(eigenvectors_i))):
-            ylabels.append(f"{concept_i}\nPC{pi}")
+            ylabels.append("{}\nPC{}".format(concept_i, pi))
             
             for j, concept_j in enumerate(concepts):
                 if concept_j not in layer_data:
@@ -204,22 +204,22 @@ def plot_cross_concept_pc_similarity_by_layer(
                 eigenvectors_j = layer_data[concept_j]["eigenvectors"][:num_pcs]
                 for pj in range(min(num_pcs, len(eigenvectors_j))):
                     if i == 0:
-                        xlabels.append(f"{concept_j}\nPC{pj}")
+                        xlabels.append("{}\nPC{}".format(concept_j, pj))
                     
                     sim = compute_cosine_similarity(eigenvectors_i[pi], eigenvectors_j[pj])
                     similarity_matrix[i * num_pcs + pi, j * num_pcs + pj] = sim
     
     sns.heatmap(similarity_matrix[:len(ylabels), :len(xlabels)].cpu().numpy(), 
-                annot=True, fmt='.2f', cmap='coolwarm',
+                annot=True, fmt='.2', cmap='coolwarm',
                 vmin=-1, vmax=1, center=0,
                 xticklabels=xlabels, yticklabels=ylabels)
     
-    plt.title(f"Cross-Concept PC Similarity at Layer {layer}\n{model_name_str}")
+    plt.title("Cross-Concept PC Similarity at Layer {}\n{}".format(layer, model_name_str))
     plt.tight_layout()
-    filename = f"{model_name_str}_layer_{layer}_cross_concept_pc_similarity.png"
+    filename = "{}_layer_{}_cross_concept_pc_similarity.png".format(model_name_str, layer)
     plt.savefig(filename)
     plt.close()
-    print(f"Saved cross-concept PC similarity matrix for layer {layer} to {filename}")
+    print("Saved cross-concept PC similarity matrix for layer {} to {}".format(layer, filename))
 
 def plot_centroid_distances_across_layers(
     all_layer_results: Dict[int, Dict[str, Any]], 
@@ -231,17 +231,17 @@ def plot_centroid_distances_across_layers(
     
     distances = {}
     for pair in [(concepts[i], concepts[j]) for i in range(len(concepts)) for j in range(i+1, len(concepts))]:
-        distances[f"{pair[0]}-{pair[1]}"] = []
+        distances["{}-{}".format(pair[0], pair[1])] = []
         
         for layer in layers:
             if pair[0] not in all_layer_results[layer] or pair[1] not in all_layer_results[layer]:
-                distances[f"{pair[0]}-{pair[1]}"].append(float('nan'))
+                distances["{}-{}".format(pair[0], pair[1])].append(float('nan'))
                 continue
                 
             centroid_1 = all_layer_results[layer][pair[0]]["centroid"]
             centroid_2 = all_layer_results[layer][pair[1]]["centroid"]
             distance = torch.norm(centroid_1 - centroid_2).item()
-            distances[f"{pair[0]}-{pair[1]}"].append(distance)
+            distances["{}-{}".format(pair[0], pair[1])].append(distance)
     
     plt.figure(figsize=(12, 6))
     for pair_name, dists in distances.items():
@@ -249,15 +249,15 @@ def plot_centroid_distances_across_layers(
         
     plt.xlabel('Layer')
     plt.ylabel('Centroid Distance')
-    plt.title(f"Centroid Distances Across Layers\n{model_name_str}")
+    plt.title("Centroid Distances Across Layers\n{}".format(model_name_str))
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.legend()
     plt.xticks(layers)
     
-    filename = f"{model_name_str}_centroid_distances_across_layers.png"
+    filename = "{}_centroid_distances_across_layers.png".format(model_name_str)
     plt.savefig(filename)
     plt.close()
-    print(f"Saved centroid distances plot to {filename}")
+    print("Saved centroid distances plot to {}".format(filename))
 
 def analyse_manifold_relationships(
     spanish_analysis: Dict[str, Any], 
@@ -267,7 +267,7 @@ def analyse_manifold_relationships(
 ) -> None:
     """Analyze relationships between Spanish and German translation manifolds."""
     print("\n" + "#"*80)
-    print(f"--- MANIFOLD RELATIONSHIP ANALYSIS (LAYER {layer_idx}) ---")
+    print("--- MANIFOLD RELATIONSHIP ANALYSIS (LAYER {}) ---".format(layer_idx))
     print("#"*80 + "\n")
     
     spanish_centroid = spanish_analysis["centroid"]
@@ -275,7 +275,7 @@ def analyse_manifold_relationships(
     centroid_vector = spanish_centroid - german_centroid
     centroid_distance = torch.norm(centroid_vector).item()
     
-    print(f"Distance between manifold centroids: {centroid_distance:.4f}")
+    print("Distance between manifold centroids: {}".format(centroid_distance:.4f))
     
     normalized_centroid_vector = centroid_vector / torch.norm(centroid_vector)
     
@@ -283,13 +283,13 @@ def analyse_manifold_relationships(
     for i in range(min(5, len(spanish_analysis["eigenvectors"]))):
         pc_vector = spanish_analysis["eigenvectors"][i]
         similarity = compute_cosine_similarity(normalized_centroid_vector, pc_vector)
-        print(f"PC{i}: {similarity.item():.4f}")
+        print("PC{}: {}".format(i, similarity.item():.4f))
     
     print("\nCosine similarity between centroids vector and German PCs:")
     for i in range(min(5, len(german_analysis["eigenvectors"]))):
         pc_vector = german_analysis["eigenvectors"][i]
         similarity = compute_cosine_similarity(normalized_centroid_vector, pc_vector)
-        print(f"PC{i}: {similarity.item():.4f}")
+        print("PC{}: {}".format(i, similarity.item():.4f))
     
     num_components = min(10, min(len(spanish_analysis["eigenvectors"]), len(german_analysis["eigenvectors"])))
     similarity_matrix = torch.zeros((num_components, num_components))
@@ -302,35 +302,35 @@ def analyse_manifold_relationships(
             similarity_matrix[i, j] = similarity
     
     plt.figure(figsize=(10, 8))
-    sns.heatmap(similarity_matrix.cpu().numpy(), annot=True, fmt='.2f', cmap='coolwarm', 
+    sns.heatmap(similarity_matrix.cpu().numpy(), annot=True, fmt='.2', cmap='coolwarm', 
                 vmin=-1, vmax=1, center=0,
-                xticklabels=[f"German PC{i}" for i in range(num_components)],
-                yticklabels=[f"Spanish PC{i}" for i in range(num_components)])
-    plt.title(f"Cosine Similarity Between Spanish and German PCs (Layer {layer_idx})\n{model_name_str}")
+                xticklabels=["German PC{}".format(i) for i in range(num_components)],
+                yticklabels=["Spanish PC{}".format(i) for i in range(num_components)])
+    plt.title("Cosine Similarity Between Spanish and German PCs (Layer {})\n{}".format(layer_idx, model_name_str))
     plt.tight_layout()
-    plt.savefig(f"{model_name_str}_layer{layer_idx}_spanish_german_pc_similarity.png")
+    plt.savefig("{}_layer{}_spanish_german_pc_similarity.png".format(model_name_str, layer_idx))
     plt.close()
     
-    print(f"\nEigenvector similarity matrix saved as '{model_name_str}_layer{layer_idx}_spanish_german_pc_similarity.png'")
+    print("\nEigenvector similarity matrix saved as '{}_layer{}_spanish_german_pc_similarity.png'".format(model_name_str, layer_idx))
     
     print("\nCosine similarity between corresponding Spanish and German PCs:")
     for i in range(min(5, min(len(spanish_analysis["eigenvectors"]), len(german_analysis["eigenvectors"])))):
         spanish_pc = spanish_analysis["eigenvectors"][i]
         german_pc = german_analysis["eigenvectors"][i]
         similarity = compute_cosine_similarity(spanish_pc, german_pc)
-        print(f"PC{i}: {similarity.item():.4f}")
+        print("PC{}: {}".format(i, similarity.item():.4f))
     
     print("\nVariance explained by Spanish PCs:")
     spanish_total_var = spanish_analysis["eigenvalues"].sum().item()
     for i in range(min(5, len(spanish_analysis["eigenvalues"]))):
         variance_explained = spanish_analysis["eigenvalues"][i].item() / spanish_total_var * 100
-        print(f"PC{i}: {variance_explained:.2f}%")
+        print("PC{}: {}%".format(i, variance_explained:.2f))
     
     print("\nVariance explained by German PCs:")
     german_total_var = german_analysis["eigenvalues"].sum().item()
     for i in range(min(5, len(german_analysis["eigenvalues"]))):
         variance_explained = german_analysis["eigenvalues"][i].item() / german_total_var * 100
-        print(f"PC{i}: {variance_explained:.2f}%")
+        print("PC{}: {}%".format(i, variance_explained:.2f))
 
 def main() -> None:
     """Run language manifold analysis and perturbation experiments."""
@@ -340,7 +340,7 @@ def main() -> None:
     model_name_str = MODEL_NAME.split("/")[-1]
     model, tokenizer = get_model_and_tokenizer(MODEL_NAME)
     
-    print(f"Using model: {MODEL_NAME}")
+    print("Using model: {}".format(MODEL_NAME))
     
     dog_prompts = concept_prompts["dog"].copy()
     random.shuffle(dog_prompts)
@@ -349,7 +349,7 @@ def main() -> None:
     spanish_prompts = dog_prompts[:split_point]
     german_prompts = dog_prompts[split_point:]
     
-    print(f"Split {len(dog_prompts)} dog prompts into {len(spanish_prompts)} Spanish prompts and {len(german_prompts)} German prompts")
+    print("Split {} dog prompts into {} Spanish prompts and {} German prompts".format(len(dog_prompts), len(spanish_prompts), len(german_prompts)))
     
     TARGET_LAYERS = [0, 15, 31]
     ANALYSIS_LAYERS = [0, 15, 31]
@@ -362,7 +362,7 @@ def main() -> None:
     
     for target_layer in TARGET_LAYERS:
         print("\n" + "#"*80)
-        print(f"### COLLECTING DATA FOR LAYER {target_layer} ###")
+        print("### COLLECTING DATA FOR LAYER {} ###".format(target_layer))
         print("#"*80 + "\n")
         
         all_activations = {}
@@ -405,8 +405,8 @@ def main() -> None:
             ]
             
             print("\n" + "="*80)
-            print(f"--- PERTURBATION EXPERIMENT: GERMAN TRANSLATION PERTURBED TOWARD SPANISH ---")
-            print(f"--- LAYER: {target_layer} ---")
+            print("--- PERTURBATION EXPERIMENT: GERMAN TRANSLATION PERTURBED TOWARD SPANISH ---")
+            print("--- LAYER: {} ---".format(target_layer))
             print("="*80)
             
             run_perturbation_experiment(
@@ -422,7 +422,7 @@ def main() -> None:
             )
     
     print("\n" + "#"*80)
-    print(f"### CROSS-LAYER ANALYSES ###")
+    print("### CROSS-LAYER ANALYSES ###")
     print("#"*80 + "\n")
     
     print("\nPlotting centroid distances across all layers...")
@@ -449,7 +449,7 @@ def main() -> None:
     )
     
     for layer in ANALYSIS_LAYERS:
-        print(f"\nPlotting cross-concept PC similarity for layer {layer}...")
+        print("\nPlotting cross-concept PC similarity for layer {}...".format(layer))
         plot_cross_concept_pc_similarity_by_layer(
             all_layer_results, 
             concepts=["dog into spanish", "dog into german"], 

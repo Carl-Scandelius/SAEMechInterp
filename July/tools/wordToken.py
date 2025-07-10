@@ -78,14 +78,14 @@ def get_word_token_activations(
 ) -> torch.Tensor:
     """Extract activations for concept word tokens from specified layer."""
     activations = []
-    print(f"Extracting activations from layer {layer_idx} for concept '{concept}'...")
+    print("Extracting activations from layer {} for concept '{}'...".format(layer_idx, concept))
 
     activation_storage = []
     def hook_fn(module, input, output, target_token_idx):
         token_activation = output[0][:, target_token_idx, :].detach().cpu()
         activation_storage.append(token_activation)
 
-    for prompt, keyword in tqdm(prompt_keyword_pairs, desc=f"Extracting '{concept}' activations"):
+    for prompt, keyword in tqdm(prompt_keyword_pairs, desc="Extracting '{}' activations".format(concept)):
         activation_storage.clear()
 
         messages = [{'role': 'user', 'content': prompt}]
@@ -118,7 +118,7 @@ def get_word_token_activations(
             activations.append(activation_storage[0])
 
     if not activations:
-        print(f"Warning: Could not extract any activations for concept '{concept}' in layer {layer_idx}.")
+        print("Warning: Could not extract any activations for concept '{}' in layer {}.".format(concept, layer_idx))
         return torch.empty(0, model.config.hidden_size, device=DEVICE)
 
     return torch.cat(activations, dim=0)
@@ -146,17 +146,17 @@ def main():
                         break
             filtered_prompts[concept] = pairs
         else:
-            print(f"Warning: No keywords defined for concept '{concept}'. Falling back to simple string match.")
+            print("Warning: No keywords defined for concept '{}'. Falling back to simple string match.".format(concept))
             filtered_prompts[concept] = [(p, concept) for p in prompts if concept in p.lower()]
         
-        print(f"  - Concept '{concept}': Found {len(filtered_prompts[concept])} matching prompts out of {len(prompts)}.")
+        print("  - Concept '{}': Found {} matching prompts out of {}.".format(concept, len(filtered_prompts[concept]), len(prompts)))
 
     TARGET_LAYERS = [0, 15, 31]
     AXES_TO_ANALYZE = range(5)
 
     for target_layer in TARGET_LAYERS:
         print("\n" + "#"*80)
-        print(f"### STARTING ANALYSIS FOR LAYER {target_layer} ###")
+        print("### STARTING ANALYSIS FOR LAYER {} ###".format(target_layer))
         print("#"*80 + "\n")
 
         all_activations = {}
@@ -164,7 +164,7 @@ def main():
         
         for concept, prompts in filtered_prompts.items():
             if not prompts:
-                print(f"No prompts for concept '{concept}' after filtering. Skipping.")
+                print("No prompts for concept '{}' after filtering. Skipping.".format(concept))
                 continue
         
         for concept, prompt_keyword_pairs in filtered_prompts.items():
@@ -208,7 +208,7 @@ def main():
                 matched_variation = var
         
         if last_pos == -1:
-            print(f"Debug: Concept '{test_concept}' variations {variations} not found in decoded text: {decoded_input[:100]}...")
+            print("Debug: Concept '{}' variations {} not found in decoded text: {}...".format(test_concept, variations, decoded_input[:100]))
             target_token_idx = -1
         else:
             input_ids = inputs_for_gen[0].tolist()
@@ -230,11 +230,11 @@ def main():
                         target_token_idx = i + len(concept_ids) - 1
         
         if target_token_idx == -1:
-            print(f"Warning: Concept '{test_concept}' not found in tokenized test prompt. Skipping perturbation tests for layer {target_layer}.")
+            print("Warning: Concept '{}' not found in tokenized test prompt. Skipping perturbation tests for layer {}.".format(test_concept, target_layer))
             continue
 
         if test_concept not in analysis_results:
-            print(f"No analysis results for concept '{test_concept}', skipping layer {target_layer}.")
+            print("No analysis results for concept '{}', skipping layer {}.".format(test_concept, target_layer))
             continue
         
         run_perturbation_experiment(
@@ -261,7 +261,7 @@ def main():
             pc_direction = analysis_results[test_concept]["eigenvectors"][axis]
             
             print("\n" + "="*80)
-            print(f"--- Analyzing original dataset prompts along PC{axis} '{test_concept}' direction (Layer {target_layer}) ---")
+            print("--- Analyzing original dataset prompts along PC{} '{}' direction (Layer {}) ---".format(axis, test_concept, target_layer))
             prompts_for_concept = [p for p, k in filtered_prompts[test_concept]]
             top_prompts_dict = find_top_prompts(
                 prompts_for_concept,
@@ -270,13 +270,13 @@ def main():
                 n=10
             )
 
-            print(f"\nTop 10 prompts most aligned with POSITIVE PC{axis} direction:")
+            print("\nTop 10 prompts most aligned with POSITIVE PC{} direction:".format(axis))
             for i, prompt in enumerate(top_prompts_dict['positive'], 1):
-                print(f"{i:2d}. '{prompt}'")
+                print("{:2d}. '{}'".format(i, prompt))
             
-            print(f"\nTop 10 prompts most aligned with NEGATIVE PC{axis} direction:")
+            print("\nTop 10 prompts most aligned with NEGATIVE PC{} direction:".format(axis))
             for i, prompt in enumerate(top_prompts_dict['negative'], 1):
-                print(f"{i:2d}. '{prompt}'")
+                print("{:2d}. '{}'".format(i, prompt))
             print("="*80)
 
         # Orthogonal perturbation
@@ -289,10 +289,10 @@ def main():
             )
         else:
             print("\n" + "="*80)
-            print(f"--- ORTHOGONAL PERTURBATION: '{test_concept}' ---")
-            print(f"--- LAYER: {target_layer} ---")
+            print("--- ORTHOGONAL PERTURBATION: '{}' ---".format(test_concept))
+            print("--- LAYER: {} ---".format(target_layer))
             print("="*80)
-            print(f"No analysis results for concept '{test_concept}', skipping orthogonal perturbation.")
+            print("No analysis results for concept '{}', skipping orthogonal perturbation.".format(test_concept))
 
         # Ablation experiment
         if test_concept in analysis_results:
@@ -303,10 +303,10 @@ def main():
             )
         else:
             print("\n" + "="*80)
-            print(f"--- ABLATION EXPERIMENT: '{test_concept}' ---")
-            print(f"--- LAYER: {target_layer} ---")
+            print("--- ABLATION EXPERIMENT: '{}' ---".format(test_concept))
+            print("--- LAYER: {} ---".format(target_layer))
             print("="*80)
-            print(f"No analysis results for concept '{test_concept}', skipping ablation experiment.")
+            print("No analysis results for concept '{}', skipping ablation experiment.".format(test_concept))
 
     print("\n" + "#"*80)
     print("### PLOTTING OVERALL RESULTS ###")
