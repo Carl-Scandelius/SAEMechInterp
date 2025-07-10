@@ -14,6 +14,7 @@ from helpers import (
     run_perturbation_experiment,
     run_projection_based_perturbation,
     run_ablation_experiment,
+    generate_with_perturbation,
     MODEL_NAME,
     DEVICE,
 )
@@ -305,6 +306,83 @@ def compute_pc_cosine_similarity(
     
     return cosine_sim_matrix
 
+def run_cross_concept_perturbation(
+    model, tokenizer, messages: List[Dict[str, str]], layer_idx: int,
+    source_concept_analysis: Dict[str, Any], target_concept_analysis: Dict[str, Any],
+    source_concept_name: str, target_concept_name: str,
+    target_token_idx: Optional[int] = None, perturb_once: bool = False
+) -> None:
+    """
+    Perturb along the direction between two concept manifolds.
+    
+    Args:
+        model: The transformer model
+        tokenizer: The tokenizer
+        messages: Messages to test (system + user prompts)
+        layer_idx: Layer to perturb
+        source_concept_analysis: Analysis results for the source concept
+        target_concept_analysis: Analysis results for the target concept
+        source_concept_name: Name of the source concept (e.g., "dog")
+        target_concept_name: Name of the target concept (e.g., "lion")
+        target_token_idx: Token index to perturb (None for final token)
+        perturb_once: Whether to perturb only once during generation
+    """
+    # Get centroids (mean activations) for both concepts
+    source_centroid = source_concept_analysis["mean"].to(DEVICE)
+    target_centroid = target_concept_analysis["mean"].to(DEVICE)
+    
+    # Compute the vector between centroids
+    cross_concept_vector = target_centroid - source_centroid
+    cross_concept_distance = torch.norm(cross_concept_vector).item()
+    
+    # Normalize the direction vector
+    direction_vector = cross_concept_vector / torch.norm(cross_concept_vector)
+    
+    # Prepare inputs for generation
+    if not isinstance(messages, torch.Tensor):
+        inputs = tokenizer.apply_chat_template(
+            messages, return_tensors="pt", add_generation_prompt=True
+        ).to(model.device)
+    else:
+        inputs = messages
+    
+    system_prompt = messages[0]['content'] if messages[0]['role'] == 'system' else ""
+    user_prompt = next((msg['content'] for msg in messages if msg['role'] == 'user'), "")
+    
+    print("\n" + "="*80)
+    print(f"--- CROSS-CONCEPT PERTURBATION: '{source_concept_name}' → '{target_concept_name}' ---")
+    print(f"--- LAYER: {layer_idx} ---")
+    print(f"--- Cross-concept distance: {cross_concept_distance:.4f} ---")
+    print("="*80)
+    
+    print(f"\nSystem: '{system_prompt}'")
+    print(f"User: '{user_prompt}'")
+    
+    # Generate original output (0% perturbation)
+    original_output = generate_with_perturbation(
+        model, tokenizer, inputs, layer_idx, direction_vector, 0.0, 
+        torch.tensor(1.0, device=model.device), target_token_idx, perturb_once
+    )
+    print(f"Original (0%): {original_output}")
+    
+    # Perturb in steps of 0.2 from 0.2 to 1.0
+    print(f"\n--- Perturbing along {source_concept_name} → {target_concept_name} direction ---")
+    for step in range(1, 6):  # 1, 2, 3, 4, 5 corresponding to 0.2, 0.4, 0.6, 0.8, 1.0
+        percentage = step * 0.2
+        
+        # Perturbation magnitude: step * 0.2 * cross_concept_distance
+        perturbation_magnitude = percentage * cross_concept_distance
+        
+        perturbed_output = generate_with_perturbation(
+            model, tokenizer, inputs, layer_idx, direction_vector, 
+            perturbation_magnitude, torch.tensor(1.0, device=model.device),
+            target_token_idx, perturb_once
+        )
+        
+        print(f"Step {step} ({percentage*100:.0f}%): {perturbed_output}")
+    
+    print("="*80)
+
 def main():
     print(f"\nConfiguration: PERTURB_ONCE={PERTURB_ONCE}")
     print(f"Configuration: USE_SYSTEM_PROMPT_FOR_MANIFOLD={USE_SYSTEM_PROMPT_FOR_MANIFOLD}")
@@ -314,6 +392,8 @@ def main():
     dog_avg_eigenvalues = {}
     dog_top_eigenvectors = {}
     global_analysis_cache = {}
+    # Store analysis results for cross-concept perturbation
+    all_concept_analyses = {}
     model_name_str = MODEL_NAME.split('/')[-1]
 
     model, tokenizer = get_model_and_tokenizer(MODEL_NAME)
@@ -375,6 +455,11 @@ def main():
             if concept not in analysis_results:
                 print(f"Analysis for concept '{concept}' failed for layer {target_layer}. Skipping to next layer.")
                 continue
+            
+            # Store analysis results for cross-concept perturbation
+            if target_layer not in all_concept_analyses:
+                all_concept_analyses[target_layer] = {}
+            all_concept_analyses[target_layer][concept] = analysis_results[concept]
 
             if concept == "dog":
                 dog_analysis = analysis_results[concept]
@@ -605,6 +690,68 @@ def main():
                     print("Continuing with other analyses...")
                 
                 print("@"*80 + "\n")
+
+    # Run cross-concept perturbation experiments
+    print("\n" + "#"*80)
+    print("### CROSS-CONCEPT PERTURBATION EXPERIMENTS ###")
+    print("#"*80 + "\n")
+    
+    for target_layer in TARGET_LAYERS:
+        if target_layer not in all_concept_analyses:
+            continue
+            
+        layer_analyses = all_concept_analyses[target_layer]
+        
+        # Check if we have both dog and lion analyses for this layer
+        if "dog" in layer_analyses and "lion" in layer_analyses:
+            print(f"\n" + ">"*80)
+            print(f"### CROSS-CONCEPT PERTURBATION FOR LAYER {target_layer} ###")
+            print(">"*80 + "\n")
+            
+            # Test messages for cross-concept perturbation
+            dog_messages = [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": "Please write a sentence about dogs."}
+            ]
+            lion_messages = [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": "Please write a sentence about lions."}
+            ]
+            
+            # Dog → Lion perturbation
+            print(f"Running cross-concept perturbation: DOG → LION")
+            try:
+                run_cross_concept_perturbation(
+                    model, tokenizer, dog_messages, target_layer,
+                    layer_analyses["dog"], layer_analyses["lion"],
+                    "dog", "lion", target_token_idx=None, perturb_once=PERTURB_ONCE
+                )
+            except Exception as e:
+                print(f"ERROR in dog → lion cross-concept perturbation: {e}")
+                import traceback
+                traceback.print_exc()
+            
+            # Lion → Dog perturbation
+            print(f"\nRunning cross-concept perturbation: LION → DOG")
+            try:
+                run_cross_concept_perturbation(
+                    model, tokenizer, lion_messages, target_layer,
+                    layer_analyses["lion"], layer_analyses["dog"],
+                    "lion", "dog", target_token_idx=None, perturb_once=PERTURB_ONCE
+                )
+            except Exception as e:
+                print(f"ERROR in lion → dog cross-concept perturbation: {e}")
+                import traceback
+                traceback.print_exc()
+            
+            print(">"*80 + "\n")
+        else:
+            missing_concepts = []
+            if "dog" not in layer_analyses:
+                missing_concepts.append("dog")
+            if "lion" not in layer_analyses:
+                missing_concepts.append("lion")
+            print(f"Skipping cross-concept perturbation for layer {target_layer}: missing analyses for {missing_concepts}")
 
     print("\n" + "#"*80)
     print("### PLOTTING OVERALL RESULTS ###")

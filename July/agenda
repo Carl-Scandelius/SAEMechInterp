@@ -1,10 +1,14 @@
 ####
-Have: substantial results for prompts from dataset tending most to positive and negative direction of a given axis. But how far away are these and why is it so hard to replicate semantic itnerpretation via perturbations?
+centroid perturbations
+using Pranav's data to look at perturbations for different concepts
+qualify via ChatGPT
+
+Scaling:
 
 ####
 Next orders of business:
 -Better QA dataset--with user prompt and response and then look at final token
--Repeat for multiple concepts/multi-word perturbations
+-Repeat for multi-word perturbations
 -Repeat last token work with interpolation between manifold centroids and same for word manifolds + try other tokens?
 
 
