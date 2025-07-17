@@ -3,6 +3,7 @@
 Look at word embedding for dog, dogs, dog's, dogs', puppy, puppies, etc. when passed as single-word inputs into LM.
 
 Look at how the contextual word embedding develops as we add instances of sentences with context
+Using 1. last relevant word tokem, 2. avg relevant word tokens
 
 qualify via ChatGPT
 

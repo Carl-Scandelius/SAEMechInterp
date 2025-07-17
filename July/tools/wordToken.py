@@ -23,7 +23,7 @@ from transformers import logging
 logging.set_verbosity(40)
 
 USE_SYSTEM_PROMPT_FOR_MANIFOLD = False 
-SYSTEM_PROMPT = "What is the following sentence about:"
+SYSTEM_PROMPT = "What is the meaning of the following sentence:"
 
 # Word variations to analyze
 WORD_VARIATIONS = {
@@ -37,7 +37,7 @@ CONTEXT_TEMPLATES = [
     "The four-legged {word}.",
     "The barking {word}.",  # Basic predicate
     "The barking and bushy tailed {word}.",  # Extended sentence
-    "The barking and bushy tailed, collared guide {word}.",  # Multi-sentence context
+    "The barking and bushy tailed pet {word}.",  # Multi-sentence context
 ]
 
 
@@ -92,16 +92,26 @@ def extract_word_embedding(model, tokenizer, text: str, target_word: str, layer_
         print(f"Warning: No tokens found for word '{target_word}' in text '{text}'")
         return None
     
-    # Use the last token of the word for consistency
-    target_token_idx = max(target_token_indices)
+    print(f"Debug: Word '{target_word}' → {len(target_token_indices)} token(s) at indices {target_token_indices}")
     
     # Extract activation from specified layer
     activation_storage = []
     
     def hook_fn(module, input, output):
-        # Extract the target token's activation
-        token_activation = output[0][:, target_token_idx, :].detach().cpu()
-        activation_storage.append(token_activation)
+        # Extract all token activations for this word and average them
+        # This handles multi-token words properly (e.g., "puppy" = ['p', 'uppy'])
+        word_activations = []
+        for token_idx in target_token_indices:
+            token_activation = output[0][:, token_idx, :].detach().cpu()
+            word_activations.append(token_activation)
+        
+        # Average across all tokens that make up the word
+        if len(word_activations) == 1:
+            final_activation = word_activations[0]
+        else:
+            final_activation = torch.stack(word_activations).mean(dim=0)
+        
+        activation_storage.append(final_activation)
     
     hook_handle = model.model.layers[layer_idx].register_forward_hook(hook_fn)
     
