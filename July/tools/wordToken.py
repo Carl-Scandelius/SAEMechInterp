@@ -34,10 +34,10 @@ WORD_VARIATIONS = {
 CONTEXT_TEMPLATES = [
     "{word}.",  # No context - just the word
     "The {word}.",  # Simple determiner
-    "I walk my {word}.",  # Basic predicate
-    "Barking, the {word} ran away.",  # Simple sentence
-    "Barking with wagging tail, the {word} ran away.",  # Extended sentence
-    "A four-legged animal descended from the wolf, and known as a companion pet for humans, a {word} is an invaluable addition to a family.",  # Multi-sentence context
+    "The four-legged {word}.",
+    "The barking {word}.",  # Basic predicate
+    "The barking and bushy tailed {word}.",  # Extended sentence
+    "The barking and bushy tailed, collared guide {word}.",  # Multi-sentence context
 ]
 
 
