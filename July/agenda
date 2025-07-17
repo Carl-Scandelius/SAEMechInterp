@@ -1,15 +1,15 @@
 ####
-using Pranav's data to look at perturbations for different concepts
-qualify via ChatGPT
 
-Scaling:
+Look at word embedding for dog, dogs, dog's, dogs', puppy, puppies, etc. when passed as single-word inputs into LM.
+
+Look at how the contextual word embedding develops as we add instances of sentences with context
+
+qualify via ChatGPT
 
 ####
 Next orders of business:
 -Better QA dataset--with user prompt and response and then look at final token
 -Repeat for multi-word perturbations
--Repeat last token work with interpolation between manifold centroids and same for word manifolds + try other tokens?
-
 
 ####
 Papers: train meta-meta-SAE on same data as Nanda paper; see if you keep getting more atomic features. I am quite sure concepts will circle back on themselves--more/less "atomic" is only defined with respect to one use. Language is not semantically well-ordered.

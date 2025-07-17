@@ -32,14 +32,52 @@ def ensure_tensor_compatibility(tensor: torch.Tensor, target_device: Union[str, 
     return tensor
 
 def get_model_and_tokenizer(model_name: str) -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
-    """Load model and tokenizer with optimal device placement."""
+    """Load model and tokenizer with optimal device placement and caching."""
     device = "cuda" if torch.cuda.is_available() else "cpu"
     torch_dtype = torch.float16 if device == "cuda" else torch.float32
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name, torch_dtype=torch_dtype, device_map=device
-    )
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    print(f"Loading model: {model_name}")
+    print("Attempting to use local cache to avoid HuggingFace API rate limits...")
+    
+    try:
+        # Try loading with local_files_only first (uses cache, avoids API calls)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name, 
+            torch_dtype=torch_dtype, 
+            device_map=device,
+            local_files_only=True  # Use only cached files
+        )
+        tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only=True)
+        print("✓ Successfully loaded from local cache")
+        
+    except Exception as e:
+        print(f"Local cache failed: {e}")
+        print("Falling back to online download (may hit rate limits)...")
+        
+        # Fallback to normal loading with better error handling
+        try:
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name, 
+                torch_dtype=torch_dtype, 
+                device_map=device,
+                resume_download=True,  # Resume interrupted downloads
+                force_download=False   # Don't force redownload if cached
+            )
+            tokenizer = AutoTokenizer.from_pretrained(
+                model_name,
+                resume_download=True,
+                force_download=False
+            )
+            print("✓ Successfully loaded from HuggingFace Hub")
+            
+        except Exception as e2:
+            print(f"Failed to load model: {e2}")
+            print("Solutions:")
+            print("1. Wait a few minutes and try again (rate limit)")
+            print("2. Set up HuggingFace authentication: huggingface-cli login")
+            print("3. Download model manually first: huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct")
+            raise e2
+    
     tokenizer.pad_token = tokenizer.eos_token
     return model, tokenizer
 
