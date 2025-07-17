@@ -23,7 +23,7 @@ from transformers import logging
 logging.set_verbosity(40)
 
 USE_SYSTEM_PROMPT_FOR_MANIFOLD = False 
-SYSTEM_PROMPT = "What is the meaning of the following sentence:"
+SYSTEM_PROMPT = "What is the meaning of the following text:"
 
 # Word variations to analyze
 WORD_VARIATIONS = {
@@ -50,47 +50,44 @@ def extract_word_embedding(model, tokenizer, text: str, target_word: str, layer_
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": text}
         ]
-        full_text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
+        inputs = tokenizer.apply_chat_template(messages, return_tensors="pt", add_generation_prompt=False).to(DEVICE)
+        full_input_ids = inputs.squeeze(0)
         
-        # Find the user content part in the full text to locate the target word
-        user_content_start = full_text.lower().find(text.lower())
-        if user_content_start == -1:
-            print(f"Warning: User content not found in chat template output")
-            # Fallback to direct text
-            full_text = text
-            word_start_offset = 0
-        else:
-            word_start_offset = user_content_start
+        # Find target word tokens by matching against the expected token IDs
+        target_word_token_ids = tokenizer.encode(target_word, add_special_tokens=False)
+        
+        # Search for the target word token sequence in the full input
+        target_token_indices = []
+        for i in range(len(full_input_ids) - len(target_word_token_ids) + 1):
+            if full_input_ids[i:i+len(target_word_token_ids)].tolist() == target_word_token_ids:
+                # Found the target word - record all its token positions
+                target_token_indices = list(range(i, i + len(target_word_token_ids)))
+                break
+        
+        if not target_token_indices:
+            print(f"Warning: Word '{target_word}' tokens {target_word_token_ids} not found in full sequence")
+            print(f"Full sequence: {full_input_ids.tolist()}")
+            return None
+            
+        inputs_dict = {"input_ids": inputs, "attention_mask": torch.ones_like(inputs)}
+        
     else:
-        full_text = text
-        word_start_offset = 0
-    
-    # Tokenize the full text
-    inputs = tokenizer(full_text, return_tensors="pt", return_offsets_mapping=True).to(DEVICE)
-    offset_mapping = inputs.pop('offset_mapping').squeeze(0)
-    
-    # Find target word in the original text
-    text_lower = text.lower()
-    word_lower = target_word.lower()
-    local_word_start = text_lower.find(word_lower)
-    
-    if local_word_start == -1:
-        print(f"Warning: Word '{target_word}' not found in text '{text}'")
-        return None
-    
-    # Adjust for the full text with system prompt
-    word_start = word_start_offset + local_word_start
-    word_end = word_start + len(target_word)
-    
-    # Find corresponding token indices
-    target_token_indices = []
-    for i, (start, end) in enumerate(offset_mapping):
-        if max(start, word_start) < min(end, word_end):
-            target_token_indices.append(i)
-    
-    if not target_token_indices:
-        print(f"Warning: No tokens found for word '{target_word}' in text '{text}'")
-        return None
+        # Simple case: no system prompt
+        inputs_dict = tokenizer(text, return_tensors="pt").to(DEVICE)
+        input_ids = inputs_dict["input_ids"].squeeze(0)
+        
+        # Find target word tokens
+        target_word_token_ids = tokenizer.encode(target_word, add_special_tokens=False)
+        
+        target_token_indices = []
+        for i in range(len(input_ids) - len(target_word_token_ids) + 1):
+            if input_ids[i:i+len(target_word_token_ids)].tolist() == target_word_token_ids:
+                target_token_indices = list(range(i, i + len(target_word_token_ids)))
+                break
+        
+        if not target_token_indices:
+            print(f"Warning: Word '{target_word}' not found in tokenized text")
+            return None
     
     print(f"Debug: Word '{target_word}' → {len(target_token_indices)} token(s) at indices {target_token_indices}")
     
@@ -117,7 +114,7 @@ def extract_word_embedding(model, tokenizer, text: str, target_word: str, layer_
     
     try:
         with torch.no_grad():
-            _ = model(**inputs)
+            _ = model(**inputs_dict)
         
         if activation_storage:
             return activation_storage[0].squeeze(0)
