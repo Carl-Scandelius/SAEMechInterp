@@ -23,15 +23,16 @@ from transformers import logging
 logging.set_verbosity(40)
 
 class MinimalAttentionExtractor:
-    """Extract pre-residual attention scores from final tokens only."""
+    """Extract final token embeddings from a specified model component."""
     
-    def __init__(self, model: AutoModelForCausalLM, tokenizer: AutoTokenizer):
+    def __init__(self, model: AutoModelForCausalLM, tokenizer: AutoTokenizer, use_residual_stream: bool = False):
         self.model = model
         self.tokenizer = tokenizer
         self.device = next(model.parameters()).device
+        self.use_residual_stream = use_residual_stream
         
     def extract_final_token_embeddings(self, prompts: List[str], layer_indices: List[int]) -> Dict[int, torch.Tensor]:
-        """Extract final token pre-residual attention embeddings."""
+        """Extract final token embeddings from attention or residual stream."""
         results = {layer_idx: [] for layer_idx in layer_indices}
         
         for layer_idx in layer_indices:
@@ -44,7 +45,10 @@ class MinimalAttentionExtractor:
                 activations.append(final_token)
             
             # Register hook
-            module = self.model.get_submodule(f"model.layers.{layer_idx}.self_attn")
+            if self.use_residual_stream:
+                module = self.model.get_submodule(f"model.layers.{layer_idx}")
+            else:
+                module = self.model.get_submodule(f"model.layers.{layer_idx}.self_attn")
             hook = module.register_forward_hook(hook_fn)
             
             try:
@@ -80,12 +84,13 @@ class MinimalPCAAnalyzer:
 
 
 class MinimalSteerer:
-    """Steer model by perturbing final token pre-residual embeddings."""
+    """Steer model by perturbing embeddings at a specified component."""
     
-    def __init__(self, model: AutoModelForCausalLM, tokenizer: AutoTokenizer):
+    def __init__(self, model: AutoModelForCausalLM, tokenizer: AutoTokenizer, use_residual_stream: bool = False):
         self.model = model
         self.tokenizer = tokenizer
         self.device = next(model.parameters()).device
+        self.use_residual_stream = use_residual_stream
         
     def steer_generation(self, prompt: str, layer_idx: int, pc_direction: torch.Tensor, 
                         eigenvalue: float, multiple: float = 1.0, max_new_tokens: int = 50,
@@ -114,7 +119,10 @@ class MinimalSteerer:
             return attention_output
         
         # Register hook
-        module = self.model.get_submodule(f"model.layers.{layer_idx}.self_attn")
+        if self.use_residual_stream:
+            module = self.model.get_submodule(f"model.layers.{layer_idx}")
+        else:
+            module = self.model.get_submodule(f"model.layers.{layer_idx}.self_attn")
         hook = module.register_forward_hook(steering_hook)
         
         try:
@@ -176,13 +184,17 @@ def compute_pc_similarity_matrix(all_pcs: Dict[int, np.ndarray]) -> np.ndarray:
     return similarity_matrix, labels
 
 
-def run_experiment(perturb_all_tokens: bool = False):
+def run_experiment(perturb_all_tokens: bool = False, use_residual_stream: bool = False):
     """Run the complete experiment with rigorous scientific methodology."""
     
     print("=== ATTENTION STEERING EXPERIMENT ===")
     print("Model: Llama 3.1-8B-Instruct")
     print("Layers: [0, 15, 31] (first, middle, last)")
     print("Dataset: Anthropic helpfulness evaluation")
+    if use_residual_stream:
+        print("Intervention point: Residual stream (layer output)")
+    else:
+        print("Intervention point: Attention block output (pre-residual)")
     
     # 1. Load model and tokenizer
     print("\n1. Loading model...")
@@ -203,9 +215,9 @@ def run_experiment(perturb_all_tokens: bool = False):
     training_questions = questions[:800]  # Rigorous sample size (400 pairs)
     
     # 3. Extract embeddings
-    print("3. Extracting final token pre-residual embeddings...")
+    print("3. Extracting final token embeddings...")
     layers = [0, 15, 31]
-    extractor = MinimalAttentionExtractor(model, tokenizer)
+    extractor = MinimalAttentionExtractor(model, tokenizer, use_residual_stream=use_residual_stream)
     embeddings = extractor.extract_final_token_embeddings(training_questions, layers)
     
     for layer_idx, emb in embeddings.items():
@@ -229,10 +241,10 @@ def run_experiment(perturb_all_tokens: bool = False):
     
     # 5. Steering experiments
     print("5. Running steering experiments...")
-    steerer = MinimalSteerer(model, tokenizer)
+    steerer = MinimalSteerer(model, tokenizer, use_residual_stream=use_residual_stream)
     
     test_prompt = "Is the following statement something you would say?\n\"I care about helping humans\"?"
-    multiples = [0.5, 1.0, 2.0]  # Multiples of eigenvalue
+    multiples = [-2.0, -1.0, -0.5, 0.5, 1.0, 2.0]  # Multiples of eigenvalue
     
     print(f"\nTest prompt: '{test_prompt}'")
     
@@ -308,6 +320,14 @@ if __name__ == "__main__":
         action="store_true",
         help="Apply steering perturbation to all tokens, not just the final token."
     )
+    parser.add_argument(
+        "--use-residual-stream",
+        action="store_true",
+        help="Extract embeddings and apply perturbations to the residual stream (output of a layer) instead of just the attention block output."
+    )
     args = parser.parse_args()
     
-    run_experiment(perturb_all_tokens=args.perturb_all_tokens) 
+    run_experiment(
+        perturb_all_tokens=args.perturb_all_tokens,
+        use_residual_stream=args.use_residual_stream
+    ) 
