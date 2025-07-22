@@ -249,23 +249,11 @@ def run_experiment(perturb_all_tokens: bool = False):
             eigenvalue = all_eigenvalues[layer_idx][pc_idx]
             
             print(f"\nPC {pc_idx} (eigenvalue: {eigenvalue:.4f}):")
-            
-            # Steer on a Yes/No variant for clearer results
-            test_prompt_yes = test_prompt + " Yes"
-            test_prompt_no = test_prompt + " No"
 
-            print(f"  Steering on '{test_prompt_yes}'")
+            print(f"  Steering on '{test_prompt}'")
             for multiple in multiples:
                 steered = steerer.steer_generation(
-                    test_prompt_yes, layer_idx, pc_direction, eigenvalue, multiple,
-                    perturb_all_tokens=perturb_all_tokens
-                )
-                print(f"  {multiple}x: {steered}")
-            
-            print(f"  Steering on '{test_prompt_no}'")
-            for multiple in multiples:
-                steered = steerer.steer_generation(
-                    test_prompt_no, layer_idx, pc_direction, eigenvalue, multiple,
+                    test_prompt, layer_idx, pc_direction, eigenvalue, multiple,
                     perturb_all_tokens=perturb_all_tokens
                 )
                 print(f"  {multiple}x: {steered}")
