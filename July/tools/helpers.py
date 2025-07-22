@@ -447,7 +447,7 @@ def run_ablation_experiment(
         try:
             with torch.no_grad():
                 output_ids = model.generate(
-                    inputs, max_new_tokens=30, temperature=0.7, top_p=0.9, 
+                    inputs, max_new_tokens=30, 
                     do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
                 )
             

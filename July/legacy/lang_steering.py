@@ -99,7 +99,7 @@ def run_centroid_interpolation(
     
     with torch.no_grad():
         output_ids = model.generate(
-            inputs, max_new_tokens=50, temperature=0.7, top_p=0.9,
+            inputs, max_new_tokens=50,
             do_sample=False, use_cache=True, pad_token_id=tokenizer.eos_token_id
         )
         prompt_length = inputs.shape[1]
@@ -285,13 +285,13 @@ def analyse_manifold_relationships(
     for i in range(min(5, len(spanish_analysis["eigenvectors"]))):
         pc_vector = spanish_analysis["eigenvectors"][i]
         similarity = compute_cosine_similarity(normalized_centroid_vector, pc_vector)
-        print("PC{}: {}".format(i, similarity.item():.4f))
+        print("PC{}: {:.4f}".format(i, similarity.item()))
     
     print("\nCosine similarity between centroids vector and German PCs:")
     for i in range(min(5, len(german_analysis["eigenvectors"]))):
         pc_vector = german_analysis["eigenvectors"][i]
         similarity = compute_cosine_similarity(normalized_centroid_vector, pc_vector)
-        print("PC{}: {}".format(i, similarity.item():.4f))
+        print("PC{}: {:.4f}".format(i, similarity.item()))
     
     num_components = min(10, min(len(spanish_analysis["eigenvectors"]), len(german_analysis["eigenvectors"])))
     similarity_matrix = torch.zeros((num_components, num_components))
@@ -320,7 +320,7 @@ def analyse_manifold_relationships(
         spanish_pc = spanish_analysis["eigenvectors"][i]
         german_pc = german_analysis["eigenvectors"][i]
         similarity = compute_cosine_similarity(spanish_pc, german_pc)
-        print("PC{}: {}".format(i, similarity.item():.4f))
+        print("PC{}: {:.4f}".format(i, similarity.item()))
     
     print("\nVariance explained by Spanish PCs:")
     spanish_total_var = spanish_analysis["eigenvalues"].sum().item()
