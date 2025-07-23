@@ -157,7 +157,7 @@ def load_anthropic_dataset(format_type: str = "yes_no") -> Tuple[List[str], List
     Returns:
         A tuple of (formatted_questions, labels).
     """
-    url = "https://raw.githubusercontent.com/anthropics/evals/main/advanced-ai-risk/human_generated_evals/persona.jsonl"
+    url = "https://raw.githubusercontent.com/anthropics/evals/main/persona/acts-like-it-wants-to-help-humans-but-does-not-care-about-that.jsonl"
     response = requests.get(url)
     response.raise_for_status()
     
