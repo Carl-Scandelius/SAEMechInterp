@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import argparse
 import os
+import pandas as pd
 
 from transformers import logging
 logging.set_verbosity(40)
@@ -146,22 +147,38 @@ class MinimalSteerer:
             hook.remove()
 
 
-def load_anthropic_dataset() -> List[str]:
-    """Load Anthropic evaluation dataset."""
-    url = "https://raw.githubusercontent.com/anthropics/evals/main/persona/acts-like-it-wants-to-help-humans-but-does-not-care-about-that.jsonl"
-    
+def load_anthropic_dataset(format_type: str = "yes_no") -> Tuple[List[str], List[str]]:
+    """
+    Load the Anthropic helpfulness dataset and format it.
+
+    Args:
+        format_type: One of "yes_no" or "a_b".
+
+    Returns:
+        A tuple of (formatted_questions, labels).
+    """
+    url = "https://raw.githubusercontent.com/anthropics/evals/main/advanced-ai-risk/human_generated_evals/persona.jsonl"
     response = requests.get(url)
     response.raise_for_status()
     
     questions = []
+    labels = []
     for line in response.text.strip().split('\n'):
         if line.strip():
             entry = json.loads(line)
             question = entry['question']
-            questions.append(f"{question} Yes")
-            questions.append(f"{question} No")
+            if format_type == "yes_no":
+                questions.append(f"{question}. (A) Yes or (B) No? Yes")
+                labels.append("Yes")
+                questions.append(f"{question}.(A) Yes or (B) No? No")
+                labels.append("No")
+            elif format_type == "a_b":
+                questions.append(f"{question}. (A) Yes or (B) No? A")
+                labels.append("A")
+                questions.append(f"{question}.(A) Yes or (B) No? B")
+                labels.append("B")
     
-    return questions
+    return questions, labels
 
 
 def compute_pc_similarity_matrix(all_pcs: Dict[int, np.ndarray]) -> np.ndarray:
@@ -190,16 +207,12 @@ def plot_embedding_space(
     embeddings: torch.Tensor,
     layer_idx: int,
     cluster_labels: Optional[np.ndarray] = None,
-    output_dir: str = "attention_steering_results"
+    sentence_labels: Optional[List[str]] = None,
+    output_dir: str = "attention_steering_results",
+    title_prefix: str = ""
 ):
     """
     Visualize the embedding space using PCA and save the plot.
-
-    Args:
-        embeddings: The high-dimensional embeddings for a layer.
-        layer_idx: The index of the layer being visualized.
-        cluster_labels: Optional labels from a clustering algorithm.
-        output_dir: Directory to save the plot in.
     """
     print(f"   Visualizing embedding space for layer {layer_idx}...")
     
@@ -212,7 +225,28 @@ def plot_embedding_space(
     
     plot_suffix = ""
     title_suffix = ""
-    if cluster_labels is not None:
+    
+    if cluster_labels is not None and sentence_labels is not None:
+        # Both cluster and sentence labels
+        df = pd.DataFrame({
+            'PC1': embeddings_2d[:, 0],
+            'PC2': embeddings_2d[:, 1],
+            'Cluster': cluster_labels,
+            'Sentence Type': sentence_labels
+        })
+        sns.scatterplot(
+            data=df,
+            x='PC1',
+            y='PC2',
+            hue='Cluster',
+            style='Sentence Type',
+            palette="viridis",
+            s=100,
+            alpha=0.8
+        )
+        title_suffix = " with K-Means Clusters & Sentence Types"
+        plot_suffix = "_clusters_sentences"
+    elif cluster_labels is not None:
         # Plot with cluster colors
         sns.scatterplot(
             x=embeddings_2d[:, 0],
@@ -232,12 +266,12 @@ def plot_embedding_space(
             alpha=0.7
         )
         
-    plt.title(f'Embedding Space - Layer {layer_idx}{title_suffix}')
+    plt.title(f'{title_prefix}Embedding Space - Layer {layer_idx}{title_suffix}')
     plt.xlabel('Principal Component 1')
     plt.ylabel('Principal Component 2')
     plt.grid(True, linestyle='--', alpha=0.6)
     
-    filename = f"{output_dir}/embedding_space_layer_{layer_idx}{plot_suffix}.png"
+    filename = f"{output_dir}/{title_prefix.lower().replace(' ', '_')}embedding_space_layer_{layer_idx}{plot_suffix}.png"
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"   Saved embedding space visualization to '{filename}'")
     plt.close()
@@ -473,6 +507,110 @@ def run_cluster_experiment(perturb_all_tokens: bool = False, use_residual_stream
     print("\n=== CLUSTER EXPERIMENT COMPLETE ===")
 
 
+def get_pcs_from_cluster(
+    embeddings: torch.Tensor,
+    cluster_labels: np.ndarray,
+    sentence_labels: np.ndarray,
+    target_sentence_label: str,
+    analyzer: MinimalPCAAnalyzer
+) -> Optional[np.ndarray]:
+    """Identifies the cluster dominated by a sentence label and returns its top PCs."""
+    from scipy import stats
+    
+    target_cluster_id = -1
+    for cid in np.unique(cluster_labels):
+        labels_in_cluster = sentence_labels[cluster_labels == cid]
+        if len(labels_in_cluster) > 0:
+            dominant_label = stats.mode(labels_in_cluster).mode[0]
+            if dominant_label == target_sentence_label:
+                target_cluster_id = cid
+                break
+    
+    if target_cluster_id == -1:
+        print(f"Warning: Could not find a dominant cluster for label '{target_sentence_label}'.")
+        return None
+        
+    cluster_embeddings = embeddings[cluster_labels == target_cluster_id]
+    pcs, _, _ = analyzer.compute_pca_top3(cluster_embeddings)
+    return pcs
+
+
+def run_parallel_experiment(perturb_all_tokens: bool = False, use_residual_stream: bool = False):
+    """Run parallel Yes/No and A/B experiments and compare their PCs."""
+    
+    output_dir = "attention_steering_results"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    print("=== PARALLEL ATTENTION STEERING EXPERIMENT (YES/NO vs A/B) ===")
+    
+    # 1. Load model and tokenizer
+    print("\n1. Loading model...")
+    model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", torch_dtype=torch.float16, device_map="auto")
+    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
+    tokenizer.pad_token = tokenizer.eos_token
+
+    # 2. Load both datasets
+    print("2. Loading datasets...")
+    yn_questions, yn_labels = load_anthropic_dataset(format_type="yes_no")
+    ab_questions, ab_labels = load_anthropic_dataset(format_type="a_b")
+    print(f"   Loaded {len(yn_questions)} 'Yes/No' questions and {len(ab_questions)} 'A/B' questions.")
+
+    training_yn_q = yn_questions[:800]
+    training_ab_q = ab_questions[:800]
+    training_yn_labels = np.array(yn_labels[:800])
+    training_ab_labels = np.array(ab_labels[:800])
+
+    # 3. Process each layer
+    layers = [0, 15, 31]
+    extractor = MinimalAttentionExtractor(model, tokenizer, use_residual_stream=use_residual_stream)
+    analyzer = MinimalPCAAnalyzer()
+    kmeans = KMeans(n_clusters=2, random_state=42, n_init=10)
+
+    for layer_idx in layers:
+        print(f"\n{'='*80}\n--- Processing Layer {layer_idx} ---\n{'='*80}")
+        
+        # --- Yes/No Batch ---
+        print("\nAnalyzing 'Yes/No' batch...")
+        yn_embeddings = extractor.extract_final_token_embeddings(training_yn_q, [layer_idx])[layer_idx]
+        yn_cluster_labels = kmeans.fit_predict(yn_embeddings.numpy())
+        plot_embedding_space(yn_embeddings, layer_idx, yn_cluster_labels, training_yn_labels, output_dir, "YesNo_")
+        
+        yes_pcs = get_pcs_from_cluster(yn_embeddings, yn_cluster_labels, training_yn_labels, "Yes", analyzer)
+        no_pcs = get_pcs_from_cluster(yn_embeddings, yn_cluster_labels, training_yn_labels, "No", analyzer)
+
+        # --- A/B Batch ---
+        print("\nAnalyzing 'A/B' batch...")
+        ab_embeddings = extractor.extract_final_token_embeddings(training_ab_q, [layer_idx])[layer_idx]
+        ab_cluster_labels = kmeans.fit_predict(ab_embeddings.numpy())
+        plot_embedding_space(ab_embeddings, layer_idx, ab_cluster_labels, training_ab_labels, output_dir, "AB_")
+
+        a_pcs = get_pcs_from_cluster(ab_embeddings, ab_cluster_labels, training_ab_labels, "A", analyzer)
+        b_pcs = get_pcs_from_cluster(ab_embeddings, ab_cluster_labels, training_ab_labels, "B", analyzer)
+        
+        # --- Combined Visualization ---
+        print("\nAnalyzing combined embedding space...")
+        all_embeddings = torch.cat([yn_embeddings, ab_embeddings], dim=0)
+        all_labels = np.concatenate([training_yn_labels, training_ab_labels])
+        combined_kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
+        all_cluster_labels = combined_kmeans.fit_predict(all_embeddings.numpy())
+        plot_embedding_space(all_embeddings, layer_idx, all_cluster_labels, list(all_labels), output_dir, "Combined_")
+        
+        # --- Cosine Similarity Analysis ---
+        print("\nComputing PC Cosine Similarities...")
+        if yes_pcs is not None and a_pcs is not None:
+            yes_a_sim = np.dot(yes_pcs, a_pcs.T)
+            print(f"\nCosine Similarity between 'Yes' PCs and 'A' PCs (Layer {layer_idx}):")
+            print(pd.DataFrame(yes_a_sim, index=[f"Yes_PC{i}" for i in range(3)], columns=[f"A_PC{i}" for i in range(3)]))
+
+        if no_pcs is not None and b_pcs is not None:
+            no_b_sim = np.dot(no_pcs, b_pcs.T)
+            print(f"\nCosine Similarity between 'No' PCs and 'B' PCs (Layer {layer_idx}):")
+            print(pd.DataFrame(no_b_sim, index=[f"No_PC{i}" for i in range(3)], columns=[f"B_PC{i}" for i in range(3)]))
+
+    print("\n=== PARALLEL EXPERIMENT COMPLETE ===")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run attention steering experiment.")
     parser.add_argument(
@@ -490,9 +628,18 @@ if __name__ == "__main__":
         action="store_true",
         help="Run cluster-based perturbation experiment instead of global PCA."
     )
+    parser.add_argument(
+        "--parallel-abyn",
+        action="store_true",
+        help="Run parallel analysis on 'Yes/No' and 'A/B' datasets."
+    )
     args = parser.parse_args()
     
-    if args.cluster_perturb:
+    if args.parallel_ab_yes_no_experiment:
+        run_parallel_experiment(
+            use_residual_stream=args.use_residual_stream
+        )
+    elif args.cluster_perturb:
         run_cluster_experiment(
             perturb_all_tokens=args.perturb_all_tokens,
             use_residual_stream=args.use_residual_stream
