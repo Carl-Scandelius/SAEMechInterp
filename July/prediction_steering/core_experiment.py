@@ -44,7 +44,7 @@ def load_prediction_dataset() -> Tuple[List[str], List[str]]:
     for category, sentence_list in data.items():
         for sentence in sentence_list:
             # Add the specified formatting to each sentence
-            formatted_sentence = f'Fill in the word that has been replaced by the asterisk (*) symbol in the following sentence, responding only with the replaced word in all lowercase, singular form. "{sentence}"'
+            formatted_sentence = f'Fill in the word that has been replaced by the asterisk (*) symbol in the following sentence, responding only with the replaced word in all lowercase, singular form: "{sentence}". The missing word is:'
             sentences.append(formatted_sentence)
             labels.append(category)
     
@@ -61,7 +61,7 @@ class MinimalAttentionExtractor:
         self.use_residual_stream = use_residual_stream
         
     def extract_final_token_embeddings(self, prompts: List[str], layer_indices: List[int]) -> Dict[int, torch.Tensor]:
-        """Extract final token embeddings from attention or residual stream."""
+        """Extract final content token embeddings from attention or residual stream."""
         results = {layer_idx: [] for layer_idx in layer_indices}
         
         for layer_idx in layer_indices:
@@ -72,8 +72,11 @@ class MinimalAttentionExtractor:
                     attention_output = output[0]
                 else:
                     attention_output = output
-                final_token = attention_output[:, -1, :].detach().cpu()
-                activations.append(final_token)
+                
+                # Extract the final content token (avoiding special end tokens)
+                # For now, use -1 but we'll add debugging to see what tokens we're getting
+                final_content_token = attention_output[:, -1, :].detach().cpu()
+                activations.append(final_content_token)
             
             # Register hook
             if self.use_residual_stream:
@@ -85,6 +88,14 @@ class MinimalAttentionExtractor:
             try:
                 for prompt in prompts:
                     inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+                    
+                    # Debug: Print tokenization to understand the sequence
+                    if layer_idx == 0 and len(activations) == 0:  # Only print once
+                        tokens = self.tokenizer.convert_ids_to_tokens(inputs['input_ids'][0])
+                        print(f"   Sample tokenization: ...{tokens[-5:]} (extracting position -1: '{tokens[-1]}')")
+                        print(f"   Full prompt: {prompt[:100]}...")
+                        print(f"   Final tokens: {tokens[-10:]}")
+                    
                     with torch.no_grad():
                         self.model(**inputs)
             finally:
@@ -209,6 +220,55 @@ class MinimalSteerer:
         else:
             module = self.model.get_submodule(f"model.layers.{layer_idx}.self_attn")
         hook = module.register_forward_hook(centroid_hook)
+        
+        try:
+            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+            
+            with torch.no_grad():
+                outputs = self.model.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=False,
+                    pad_token_id=self.tokenizer.eos_token_id
+                )
+            
+            # Decode only new tokens
+            new_tokens = outputs[0][inputs['input_ids'].shape[1]:]
+            return self.tokenizer.decode(new_tokens, skip_special_tokens=True)
+            
+        finally:
+            hook.remove()
+
+    def steer_generation_with_opposite_token(self, prompt: str, layer_idx: int, opposite_embedding: torch.Tensor, 
+                                            max_new_tokens: int = 50, perturb_all_tokens: bool = False) -> str:
+        """Generate text by replacing the final token with an embedding from the opposite category."""
+        perturbation_applied = False
+        
+        def replacement_hook(module, input, output):
+            nonlocal perturbation_applied
+            if perturbation_applied:
+                return output
+                
+            attention_output = output[0] if isinstance(output, tuple) else output
+            
+            # Replace final token (or all tokens) with the opposite category embedding
+            if perturb_all_tokens:
+                attention_output[:, :, :] = opposite_embedding.to(attention_output.device, dtype=attention_output.dtype)
+            else:
+                attention_output[:, -1, :] = opposite_embedding.to(attention_output.device, dtype=attention_output.dtype)
+            
+            perturbation_applied = True
+            
+            if isinstance(output, tuple):
+                return (attention_output,) + output[1:]
+            return attention_output
+        
+        # Register hook
+        if self.use_residual_stream:
+            module = self.model.get_submodule(f"model.layers.{layer_idx}")
+        else:
+            module = self.model.get_submodule(f"model.layers.{layer_idx}.self_attn")
+        hook = module.register_forward_hook(replacement_hook)
         
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
@@ -509,7 +569,7 @@ def run_prediction_experiment(perturb_all_tokens: bool = False, use_residual_str
     print("5. Running steering experiments...")
     steerer = MinimalSteerer(model, tokenizer, use_residual_stream=use_residual_stream)
     
-    test_prompt = "Complete this sentence: The animal I see is a"
+    test_prompt = "Fill in the word that has been replaced by the asterisk (*) symbol in the following sentence, responding only with the replaced word in all lowercase, singular form. \"A * is a four-legged member of the Canidae family often kept as a household pet.\""
     multiples = [-2.0, -1.0, -0.5, 0.5, 1.0, 2.0]
     
     print(f"\nTest prompt: '{test_prompt}'")
@@ -603,6 +663,54 @@ def run_prediction_experiment(perturb_all_tokens: bool = False, use_residual_str
             perturb_all_tokens=perturb_all_tokens
         )
         print(f"  Dog replacement: {steered}")
+        
+        # NEW: Opposite token replacement experiments
+        print(f"\nOpposite token replacement experiments (Layer {layer_idx}):")
+        
+        # Get the final token embeddings from specific sentences of opposite categories
+        if len(dog_embeddings) > 0 and len(bird_embeddings) > 0:
+            # Select one specific sentence from each category for swapping
+            # These represent the final token embeddings from actual sentences
+            bird_sentence_idx = 0  # First bird sentence
+            dog_sentence_idx = 0   # First dog sentence
+            
+            if bird_sentence_idx < len(bird_embeddings):
+                bird_final_token = bird_embeddings[bird_sentence_idx]
+                print(f"\nReplacing test_prompt final token with bird sentence {bird_sentence_idx} final token:")
+                steered = steerer.steer_generation_with_opposite_token(
+                    test_prompt, layer_idx, bird_final_token,
+                    perturb_all_tokens=perturb_all_tokens
+                )
+                print(f"  Result: {steered}")
+            
+            if dog_sentence_idx < len(dog_embeddings):
+                dog_final_token = dog_embeddings[dog_sentence_idx]
+                print(f"\nReplacing test_prompt final token with dog sentence {dog_sentence_idx} final token:")
+                steered = steerer.steer_generation_with_opposite_token(
+                    test_prompt, layer_idx, dog_final_token,
+                    perturb_all_tokens=perturb_all_tokens
+                )
+                print(f"  Result: {steered}")
+                
+            # Also try with a few more examples for robustness
+            for additional_idx in [1, 2]:
+                if additional_idx < len(bird_embeddings):
+                    bird_final_token = bird_embeddings[additional_idx]
+                    print(f"\nReplacing test_prompt final token with bird sentence {additional_idx} final token:")
+                    steered = steerer.steer_generation_with_opposite_token(
+                        test_prompt, layer_idx, bird_final_token,
+                        perturb_all_tokens=perturb_all_tokens
+                    )
+                    print(f"  Result: {steered}")
+                
+                if additional_idx < len(dog_embeddings):
+                    dog_final_token = dog_embeddings[additional_idx]
+                    print(f"\nReplacing test_prompt final token with dog sentence {additional_idx} final token:")
+                    steered = steerer.steer_generation_with_opposite_token(
+                        test_prompt, layer_idx, dog_final_token,
+                        perturb_all_tokens=perturb_all_tokens
+                    )
+                    print(f"  Result: {steered}")
 
     # 6. Compute similarity matrix
     print("\n6. Computing PC similarity matrix...")
