@@ -1,126 +1,91 @@
 #!/usr/bin/env python3
 """
-Representation Lensing Experiment with target words {animals, furniture, food}.
+Representation Lensing Experiment for Llama 3.1-8B (non-instruct)
 
-Experiment: Extract embeddings from tokens BEFORE target words in Llama 3.1-8B (non-instruct).
-Pass embeddings through language modeling head to get next-token predictions.
-Perform local PCA (centered by target word mean) and perturb along PC1 with k multipliers.
-Analyze and visualize results including cosine similarity matrices.
+This experiment:
+1. Extracts embeddings from tokens immediately before target words
+2. Analyzes next-token predictions using the language modeling head
+3. Performs local PCA on embeddings and tests perturbations
+4. Generates cosine similarity matrices and prediction analysis
 """
 
 import torch
 import torch.nn.functional as F
 import numpy as np
 import json
-import re
-from sklearn.decomposition import PCA
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from typing import Dict, List, Tuple, Optional, Set
 import matplotlib.pyplot as plt
 import seaborn as sns
+from typing import Dict, List, Tuple, Optional
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from sklearn.decomposition import PCA
 import argparse
-import os
-import pandas as pd
-from collections import defaultdict
+from pathlib import Path
 
-from transformers import logging
-logging.set_verbosity(40)
-
-# Target words for the experiment  
+# Target words for the experiment
 TARGET_WORDS = {"animals", "furniture", "food"}
-PERTURBATION_MULTIPLIERS = [0.5, 1.0, 2.0]
 
-
-def load_sentences_with_target_words(target_words: Set[str], num_sentences: int = None) -> Dict[str, List[str]]:
-    """
-    Load sentences containing target words from manifold_sentences_hard_exactword_1000.json.
+def load_sentences_with_target_words(data_file: str, num_sentences: Optional[int] = None) -> Dict[str, List[str]]:
+    """Load sentences containing target words from the manifold dataset."""
+    with open(data_file, 'r') as f:
+        data = json.load(f)
     
-    Args:
-        target_words: Set of target words to find
-        num_sentences: Number of sentences to load per target word (if None, loads all available)
-    
-    Returns:
-        Dict mapping target word to list of sentences containing it
-    """
-    sentences_by_target = {word: [] for word in target_words}
-    
-    # Load from manifold_sentences
-    try:
-        with open('../tools/manifold_sentences_hard_exactword_1000.json', 'r', encoding='utf-8') as f:
-            manifold_data = json.load(f)
-        
-        for target_word in target_words:
-            if target_word in manifold_data:
-                if num_sentences is None:
-                    # Load all available sentences
-                    available_sentences = manifold_data[target_word]
-                else:
-                    # Load specified number of sentences
-                    available_sentences = manifold_data[target_word][:num_sentences]
-                    
-                sentences_by_target[target_word].extend(available_sentences)
-                print(f"   Loaded {len(available_sentences)} sentences with '{target_word}' from manifold_sentences.json")
-            else:
-                print(f"   Warning: '{target_word}' not found in manifold_sentences.json")
-                
-    except FileNotFoundError:
-        raise FileNotFoundError("manifold_sentences_hard_exactword_1000.json not found in ../tools/")
+    sentences_by_target = {}
+    for target_word in TARGET_WORDS:
+        if target_word in data:
+            sentences = data[target_word]
+            if num_sentences is not None:
+                sentences = sentences[:num_sentences]
+            sentences_by_target[target_word] = sentences
+            print(f"Loaded {len(sentences)} sentences for '{target_word}'")
+        else:
+            raise ValueError(f"Target word '{target_word}' not found in data file")
     
     return sentences_by_target
 
-
-
-def find_token_before_target_word(tokenizer: AutoTokenizer, sentence: str, target_word: str) -> Tuple[Optional[int], List[int]]:
+def find_token_before_target_word(tokenizer: AutoTokenizer, sentence: str, target_word: str) -> Optional[int]:
     """
     Find the position of the token immediately before the target word's first token.
+    Ensures we're not returning positions of spaces or special tokens.
     
-    Args:
-        tokenizer: HuggingFace tokenizer
-        sentence: Input sentence
-        target_word: The target word to find
-    
-    Returns:
-        Tuple of (position_before_target_or_None, all_token_ids)
+    Returns the token position (not the position before target if that would be a space/special token).
     """
     # Tokenize the sentence
     token_ids = tokenizer.encode(sentence, add_special_tokens=True)
     tokens = tokenizer.convert_ids_to_tokens(token_ids)
     
-    # Find the target word in the tokenized sequence
     target_word_lower = target_word.lower()
     
+    # Find the target word in the tokenized sequence
     for i, token in enumerate(tokens):
-        # Clean the token (remove subword indicators like Ġ, ##, etc.)
-        clean_token = token.replace('Ġ', '').replace('##', '').lower()
+        # For Llama tokenization, remove the leading space indicator ▁
+        clean_token = token.replace('▁', '').lower()
         
-        # Check if this token starts or contains the target word
-        if target_word_lower in clean_token or clean_token.startswith(target_word_lower):
-            # Return the position before this token (if it exists)
-            if i > 0:
-                return i - 1, token_ids
-            else:
-                # Target word is the first token, no previous token
-                return None, token_ids
+        # Check if this token matches the target word
+        if (clean_token == target_word_lower or 
+            clean_token.startswith(target_word_lower) or
+            (len(clean_token) > 3 and target_word_lower in clean_token)):
+            
+            # Find a valid previous token (not space, not special tokens)
+            for j in range(i - 1, -1, -1):
+                prev_token = tokens[j]
+                prev_clean = prev_token.replace('▁', '').strip()
+                
+                # Skip if it's just a space marker, special token, or empty
+                if (prev_clean and 
+                    not prev_token.startswith('<') and 
+                    not prev_token.startswith('[') and
+                    len(prev_clean) > 0 and
+                    prev_clean not in ['', ' ', '\n', '\t']):
+                    return j
+            
+            # If no valid previous token found, return None
+            return None
     
-    # Target word not found clearly, try a more flexible approach
-    sentence_lower = sentence.lower()
-    if target_word_lower in sentence_lower:
-        # Find approximate position in the sentence
-        word_start_pos = sentence_lower.find(target_word_lower)
-        
-        # Try to map this back to token positions
-        current_pos = 0
-        for i, token in enumerate(tokens):
-            token_text = token.replace('Ġ', ' ').replace('##', '')
-            if i > 0 and current_pos <= word_start_pos < current_pos + len(token_text):
-                return max(0, i - 1), token_ids
-            current_pos += len(token_text)
-    
-    return None, token_ids
-
+    # Target word not found
+    return None
 
 class RepresentationLensingExtractor:
-    """Extract embeddings from tokens before target words."""
+    """Extract embeddings from specific model layers."""
     
     def __init__(self, model: AutoModelForCausalLM, tokenizer: AutoTokenizer):
         self.model = model
@@ -129,198 +94,143 @@ class RepresentationLensingExtractor:
         
     def extract_pre_target_embeddings(self, sentences_by_target: Dict[str, List[str]], 
                                     layer_indices: List[int]) -> Dict[str, Dict[int, torch.Tensor]]:
-        """
-        Extract embeddings from tokens immediately before target words.
+        """Extract embeddings from tokens immediately before target words."""
         
-        Args:
-            sentences_by_target: Dict mapping target word to sentences
-            layer_indices: List of layer indices to extract from
-        
-        Returns:
-            Dict[target_word][layer_idx] = tensor of embeddings
-        """
-        results = {target: {layer_idx: [] for layer_idx in layer_indices} 
-                  for target in sentences_by_target.keys()}
-        
-        print("Extracting pre-target embeddings...")
+        results = {}
         
         for target_word, sentences in sentences_by_target.items():
-            print(f"\n  Processing target word: '{target_word}'")
-            valid_extractions = 0
+            print(f"\nProcessing target word: '{target_word}'")
+            results[target_word] = {layer_idx: [] for layer_idx in layer_indices}
             
             for sentence_idx, sentence in enumerate(sentences):
                 # Find position before target word
-                pos_before_target, token_ids = find_token_before_target_word(
-                    self.tokenizer, sentence, target_word
-                )
+                pos_before_target = find_token_before_target_word(self.tokenizer, sentence, target_word)
                 
                 if pos_before_target is None:
-                    print(f"    Skipping sentence {sentence_idx}: No token before '{target_word}'")
                     continue
                 
-                # Extract embeddings for each layer
+                # Tokenize and get embeddings
+                token_ids = self.tokenizer.encode(sentence, add_special_tokens=True, return_tensors="pt").to(self.device)
+                
+                # Hook to capture layer outputs
+                layer_outputs = {}
+                
+                def make_hook(layer_idx):
+                    def hook(module, input, output):
+                        layer_outputs[layer_idx] = output[0]  # Get hidden states
+                    return hook
+                
+                # Register hooks for specified layers
+                hooks = []
                 for layer_idx in layer_indices:
-                    embedding = self._extract_embedding_at_position(
-                        sentence, pos_before_target, layer_idx
-                    )
-                    if embedding is not None:
+                    hook = self.model.model.layers[layer_idx].register_forward_hook(make_hook(layer_idx))
+                    hooks.append(hook)
+                
+                # Forward pass
+                with torch.no_grad():
+                    _ = self.model(token_ids)
+                
+                # Extract embeddings at the specified position
+                for layer_idx in layer_indices:
+                    if layer_idx in layer_outputs and pos_before_target < layer_outputs[layer_idx].shape[1]:
+                        embedding = layer_outputs[layer_idx][0, pos_before_target, :]  # [hidden_size]
                         results[target_word][layer_idx].append(embedding)
                 
-                valid_extractions += 1
-                
-                if sentence_idx == 0:  # Debug first sentence
-                    tokens = self.tokenizer.convert_ids_to_tokens(token_ids)
-                    print(f"    Example: '{sentence[:50]}...'")
-                    print(f"    Token at pos {pos_before_target}: '{tokens[pos_before_target]}'")
-                    print(f"    Next token (target area): '{tokens[pos_before_target + 1] if pos_before_target + 1 < len(tokens) else 'END'}'")
+                # Clean up hooks
+                for hook in hooks:
+                    hook.remove()
             
-            print(f"    Successfully extracted from {valid_extractions}/{len(sentences)} sentences")
-            
-                    # Convert lists to tensors
-        for layer_idx in layer_indices:
-            if results[target_word][layer_idx]:
-                stacked_embeddings = torch.stack(results[target_word][layer_idx])
-                results[target_word][layer_idx] = stacked_embeddings
-                print(f"    Layer {layer_idx}: {stacked_embeddings.shape} dtype: {stacked_embeddings.dtype}")
-            else:
-                # Set to empty tensor instead of empty list to avoid AttributeError
-                results[target_word][layer_idx] = torch.empty(0, 0)
-                print(f"    Layer {layer_idx}: No valid embeddings extracted!")
+            # Convert lists to tensors
+            for layer_idx in layer_indices:
+                if results[target_word][layer_idx]:
+                    results[target_word][layer_idx] = torch.stack(results[target_word][layer_idx])
+                    print(f"  Layer {layer_idx}: extracted {results[target_word][layer_idx].shape[0]} embeddings")
+                else:
+                    # Use empty tensor for consistency
+                    results[target_word][layer_idx] = torch.empty(0, self.model.config.hidden_size).to(self.device)
+                    print(f"  Layer {layer_idx}: no valid embeddings extracted")
         
         return results
-    
-    def _extract_embedding_at_position(self, sentence: str, position: int, layer_idx: int) -> Optional[torch.Tensor]:
-        """Extract embedding at specific position and layer."""
-        activations = []
-        
-        def hook_fn(module, input, output):
-            # Get hidden states from the transformer layer
-            if isinstance(output, tuple):
-                hidden_states = output[0]  # (batch_size, seq_len, hidden_size)
-            else:
-                hidden_states = output
-            
-            # Extract embedding at the specified position
-            if position < hidden_states.shape[1]:
-                # Preserve the original dtype when moving to CPU
-                embedding = hidden_states[0, position, :].detach().cpu()
-                activations.append(embedding)
-        
-        # Register hook on the transformer layer
-        layer_module = self.model.get_submodule(f"model.layers.{layer_idx}")
-        hook = layer_module.register_forward_hook(hook_fn)
-        
-        try:
-            inputs = self.tokenizer(sentence, return_tensors="pt", truncation=True, max_length=512).to(self.device)
-            
-            with torch.no_grad():
-                _ = self.model(**inputs)
-            
-            if activations:
-                return activations[0]
-            else:
-                return None
-                
-        finally:
-            hook.remove()
-
 
 class LanguageModelingAnalyzer:
-    """Analyze next-token predictions using language modeling head."""
+    """Analyze next-token predictions using the language modeling head."""
     
     def __init__(self, model: AutoModelForCausalLM, tokenizer: AutoTokenizer):
         self.model = model
         self.tokenizer = tokenizer
-        self.device = next(model.parameters()).device
         self.lm_head = model.lm_head
+        self.device = next(model.parameters()).device
+    
+    def get_top_predictions(self, embeddings: torch.Tensor, top_k: int = 3) -> Dict[str, List[Tuple[str, float]]]:
+        """Get top-k next token predictions for a batch of embeddings."""
         
-    def get_top_predictions(self, embeddings: torch.Tensor, top_k: int = 3) -> List[Tuple[str, float]]:
-        """
-        Pass embeddings through language modeling head and get top predictions.
+        # Ensure correct dtype for the language modeling head
+        embeddings = embeddings.to(dtype=self.lm_head.weight.dtype)
         
-        Args:
-            embeddings: Tensor of embeddings (batch_size, hidden_size)
-            top_k: Number of top predictions to return
+        # Get logits and apply softmax
+        logits = self.lm_head(embeddings)  # [batch_size, vocab_size]
+        probs = F.softmax(logits, dim=-1)  # [batch_size, vocab_size]
         
-        Returns:
-            List of (token_string, probability) tuples
-        """
-        # Validate input to prevent AttributeError
-        if not isinstance(embeddings, torch.Tensor):
-            raise TypeError(f"Expected torch.Tensor, got {type(embeddings)}")
+        # Get top-k predictions for each embedding
+        top_probs, top_indices = torch.topk(probs, top_k, dim=-1)
         
-        if embeddings.numel() == 0:
-            raise ValueError("Empty embeddings tensor provided")
-            
-        if len(embeddings.shape) != 2:
-            raise ValueError(f"Expected 2D tensor (batch_size, hidden_size), got shape {embeddings.shape}")
+        # Convert to tokens and average across batch
+        avg_probs = torch.mean(top_probs, dim=0)  # [top_k]
         
-        # Ensure embeddings match the model's dtype and device
-        embeddings = embeddings.to(self.device, dtype=self.lm_head.weight.dtype)
+        # For token selection, use the most frequent top tokens across the batch
+        # Flatten and get most common tokens
+        all_top_indices = top_indices.flatten()
+        unique_indices, counts = torch.unique(all_top_indices, return_counts=True)
         
-        with torch.no_grad():
-            # Pass through language modeling head
-            logits = self.lm_head(embeddings)  # (batch_size, vocab_size)
-            
-            # Apply softmax to get probabilities
-            probs = F.softmax(logits, dim=-1)  # (batch_size, vocab_size)
-            
-            # Get top-k predictions across all examples
-            mean_probs = probs.mean(dim=0)  # (vocab_size,)
-            top_k_values, top_k_indices = torch.topk(mean_probs, top_k)
-            
-            # Convert to tokens and probabilities
-            predictions = []
-            for value, idx in zip(top_k_values, top_k_indices):
-                token = self.tokenizer.decode([idx.item()])
-                predictions.append((token, value.item()))
+        # Get the most frequent tokens
+        _, most_frequent_idx = torch.topk(counts, min(top_k, len(unique_indices)))
+        most_frequent_tokens = unique_indices[most_frequent_idx]
         
-        return predictions
+        # Get average probabilities for these tokens
+        result_predictions = []
+        for token_id in most_frequent_tokens:
+            token_str = self.tokenizer.decode([token_id.item()])
+            # Calculate average probability of this token across all embeddings
+            token_mask = (top_indices == token_id.unsqueeze(0).unsqueeze(0))
+            if token_mask.any():
+                avg_prob = top_probs[token_mask].mean().item()
+            else:
+                avg_prob = 0.0
+            result_predictions.append((token_str, avg_prob))
+        
+        return {"predictions": result_predictions}
     
     def analyze_predictions_by_target(self, embeddings_by_target: Dict[str, Dict[int, torch.Tensor]], 
-                                    layers: List[int]) -> Dict[str, Dict[int, List[Tuple[str, float]]]]:
-        """Analyze predictions for each target word and layer."""
-        results = {}
+                                    layers: List[int]) -> Dict[str, Dict[int, Dict]]:
+        """Analyze next-token predictions for each target word and layer."""
         
-        print("\nAnalyzing next-token predictions...")
+        results = {}
         
         for target_word in embeddings_by_target.keys():
             results[target_word] = {}
-            print(f"\n  Target word: '{target_word}'")
+            print(f"\nAnalyzing predictions for '{target_word}':")
             
             for layer_idx in layers:
                 embeddings = embeddings_by_target[target_word][layer_idx]
-                # Check if embeddings is a proper tensor with valid shape
-                if isinstance(embeddings, torch.Tensor) and embeddings.numel() > 0 and len(embeddings.shape) == 2:
+                
+                if embeddings.numel() > 0:
                     predictions = self.get_top_predictions(embeddings, top_k=3)
                     results[target_word][layer_idx] = predictions
                     
-                    print(f"    Layer {layer_idx} top predictions:")
-                    for i, (token, prob) in enumerate(predictions):
-                        print(f"      {i+1}. '{token}' (p={prob:.4f})")
+                    print(f"  Layer {layer_idx}:")
+                    for token, prob in predictions["predictions"]:
+                        print(f"    '{token}': {prob:.4f}")
                 else:
-                    results[target_word][layer_idx] = []
-                    print(f"    Layer {layer_idx}: No valid embeddings to analyze (type: {type(embeddings)}, shape: {getattr(embeddings, 'shape', 'N/A')})")
+                    results[target_word][layer_idx] = {"predictions": []}
+                    print(f"  Layer {layer_idx}: No embeddings to analyze")
         
         return results
 
-
 class LocalPCAAnalyzer:
-    """Perform local PCA analysis centered on target word embeddings."""
+    """Perform local PCA analysis on embeddings."""
     
     def compute_local_pca(self, embeddings: torch.Tensor) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
-        Compute local PCA by centering embeddings on their mean.
-        
-        Args:
-            embeddings: Tensor of embeddings (num_samples, hidden_size)
-        
-        Returns:
-            Tuple of (components, eigenvalues, explained_variance_ratios)
-        """
-        if len(embeddings) < 2:
-            print("Warning: Not enough embeddings for PCA")
-            return np.array([]), np.array([]), np.array([])
+        """Compute local PCA by centering embeddings on their mean."""
         
         # Convert to numpy and center the data
         embeddings_np = embeddings.cpu().numpy()
@@ -328,32 +238,26 @@ class LocalPCAAnalyzer:
         centered_embeddings = embeddings_np - mean_embedding
         
         # Compute PCA
-        # Use min(n_samples-1, n_features) to avoid issues with small datasets
         n_components = min(centered_embeddings.shape[0] - 1, centered_embeddings.shape[1], 10)
-        
-        if n_components <= 0:
-            print("Warning: Cannot compute PCA with current data")
-            return np.array([]), np.array([]), np.array([])
-        
         pca = PCA(n_components=n_components)
         pca.fit(centered_embeddings)
         
         return pca.components_, pca.explained_variance_, pca.explained_variance_ratio_
     
     def analyze_all_targets(self, embeddings_by_target: Dict[str, Dict[int, torch.Tensor]], 
-                          layers: List[int]) -> Dict[str, Dict[int, Dict[str, np.ndarray]]]:
-        """Compute local PCA for all target words and layers."""
-        results = {}
+                          layers: List[int]) -> Dict[str, Dict[int, Dict]]:
+        """Perform PCA analysis for all target words and layers."""
         
-        print("\nPerforming local PCA analysis...")
+        results = {}
         
         for target_word in embeddings_by_target.keys():
             results[target_word] = {}
-            print(f"\n  Target word: '{target_word}'")
+            print(f"\nPCA analysis for '{target_word}':")
             
             for layer_idx in layers:
                 embeddings = embeddings_by_target[target_word][layer_idx]
-                if len(embeddings) > 1:
+                
+                if embeddings.numel() > 0 and embeddings.shape[0] > 1:
                     components, eigenvalues, explained_variance = self.compute_local_pca(embeddings)
                     
                     results[target_word][layer_idx] = {
@@ -362,217 +266,149 @@ class LocalPCAAnalyzer:
                         'explained_variance': explained_variance
                     }
                     
-                    if len(explained_variance) > 0:
-                        print(f"    Layer {layer_idx}: Top PC explains {explained_variance[0]:.4f} of variance")
-                    else:
-                        print(f"    Layer {layer_idx}: PCA computation failed")
+                    print(f"  Layer {layer_idx}: Top PC explains {explained_variance[0]:.4f} of variance")
                 else:
                     results[target_word][layer_idx] = {
                         'components': np.array([]),
                         'eigenvalues': np.array([]),
                         'explained_variance': np.array([])
                     }
-                    print(f"    Layer {layer_idx}: Insufficient data for PCA")
+                    print(f"  Layer {layer_idx}: Insufficient data for PCA")
         
         return results
 
-
 class PerturbationAnalyzer:
-    """Analyze effects of perturbing embeddings along principal components."""
+    """Analyze effects of perturbations along principal components."""
     
-    def __init__(self, model: AutoModelForCausalLM, tokenizer: AutoTokenizer, lm_analyzer: LanguageModelingAnalyzer):
-        self.model = model
-        self.tokenizer = tokenizer
-        self.device = next(model.parameters()).device
+    def __init__(self, lm_analyzer: LanguageModelingAnalyzer):
         self.lm_analyzer = lm_analyzer
     
-    def perturb_and_analyze(self, embeddings_by_target: Dict[str, Dict[int, torch.Tensor]],
-                          pca_results: Dict[str, Dict[int, Dict[str, np.ndarray]]],
-                          layers: List[int],
-                          k_values: List[float] = [0.5, 1.0, 2.0]) -> Dict:
-        """
-        Perturb embeddings along PC1 and analyze resulting predictions.
+    def perturb_and_analyze(self, embeddings_by_target: Dict[str, Dict[int, torch.Tensor]], 
+                          pca_results: Dict[str, Dict[int, Dict]], 
+                          layers: List[int], 
+                          perturbation_factors: List[float] = [0.5, 1.0, 2.0]) -> Dict:
+        """Perturb embeddings along top PC and analyze predictions."""
         
-        Args:
-            embeddings_by_target: Original embeddings
-            pca_results: PCA analysis results
-            layers: Layer indices
-            k_values: Multipliers for perturbation
-        
-        Returns:
-            Dict with perturbation analysis results
-        """
         results = {}
-        
-        print("\nPerforming perturbation analysis...")
         
         for target_word in embeddings_by_target.keys():
             results[target_word] = {}
-            print(f"\n  Target word: '{target_word}'")
+            print(f"\nPerturbation analysis for '{target_word}':")
             
             for layer_idx in layers:
-                results[target_word][layer_idx] = {}
-                
                 embeddings = embeddings_by_target[target_word][layer_idx]
                 pca_data = pca_results[target_word][layer_idx]
                 
-                # Check if we have valid tensor data for perturbation
-                if (not isinstance(embeddings, torch.Tensor) or 
-                    embeddings.numel() == 0 or 
-                    len(embeddings.shape) != 2 or 
-                    len(pca_data['components']) == 0):
-                    print(f"    Layer {layer_idx}: No valid data for perturbation (embeddings type: {type(embeddings)}, shape: {getattr(embeddings, 'shape', 'N/A')})")
-                    continue
-                
-                # Get the first principal component
-                pc1 = pca_data['components'][0]  # Shape: (hidden_size,)
-                eigenvalue1 = pca_data['eigenvalues'][0] if len(pca_data['eigenvalues']) > 0 else 1.0
-                
-                print(f"    Layer {layer_idx}: Perturbing along PC1 (eigenvalue: {eigenvalue1:.4f})")
-                
-                # Center the embeddings (as in PCA)
-                embeddings_np = embeddings.cpu().numpy()
-                mean_embedding = np.mean(embeddings_np, axis=0)
-                centered_embeddings = embeddings_np - mean_embedding
-                
-                # Perturb along PC1 with different k values
-                for k in k_values:
-                    perturbation = k * eigenvalue1 * pc1
-                    perturbed_embeddings = centered_embeddings + perturbation
+                if embeddings.numel() > 0 and len(pca_data['components']) > 0:
+                    results[target_word][layer_idx] = {}
                     
-                    # Add back the mean to get absolute embeddings
-                    final_embeddings = perturbed_embeddings + mean_embedding
+                    # Get the top principal component
+                    top_pc = pca_data['components'][0]  # First PC
+                    top_eigenvalue = pca_data['eigenvalues'][0]
                     
-                    # Analyze predictions - preserve the original embeddings' dtype
-                    perturbed_tensor = torch.from_numpy(final_embeddings).to(dtype=embeddings.dtype)
-                    predictions = self.lm_analyzer.get_top_predictions(perturbed_tensor, top_k=3)
-                    
-                    results[target_word][layer_idx][f'k_{k}'] = predictions
-                    
-                    print(f"      k={k}: {predictions[0][0]} (p={predictions[0][1]:.4f})")
+                    for factor in perturbation_factors:
+                        # Perturb embeddings
+                        perturbation = top_eigenvalue * factor * top_pc
+                        embeddings_np = embeddings.cpu().numpy()
+                        perturbed_embeddings_np = embeddings_np + perturbation
+                        
+                        # Convert back to tensor with correct dtype
+                        perturbed_tensor = torch.from_numpy(perturbed_embeddings_np).to(
+                            device=embeddings.device, dtype=embeddings.dtype)
+                        
+                        # Analyze predictions
+                        predictions = self.lm_analyzer.get_top_predictions(perturbed_tensor, top_k=3)
+                        results[target_word][layer_idx][factor] = predictions
+                        
+                        print(f"  Layer {layer_idx}, factor {factor}:")
+                        for token, prob in predictions["predictions"]:
+                            print(f"    '{token}': {prob:.4f}")
+                else:
+                    results[target_word][layer_idx] = {}
+                    print(f"  Layer {layer_idx}: No data for perturbation")
         
         return results
 
-
-def compute_pc_cosine_similarity_matrix(pca_results: Dict[str, Dict[int, Dict[str, np.ndarray]]],
-                                      layers: List[int]) -> Tuple[np.ndarray, List[str]]:
-    """Compute cosine similarity matrix between all PC1s across target words and layers."""
+def create_cosine_similarity_matrix(pca_results: Dict[str, Dict[int, Dict]], 
+                                  layers: List[int], 
+                                  target_words: List[str]) -> np.ndarray:
+    """Create cosine similarity matrix between all PCs."""
     
-    all_pc1s = []
+    # Collect all valid PCs
+    all_pcs = []
     labels = []
     
-    for target_word in sorted(pca_results.keys()):
+    for target_word in target_words:
         for layer_idx in layers:
-            pca_data = pca_results[target_word][layer_idx]
-            if len(pca_data['components']) > 0:
-                pc1 = pca_data['components'][0]
-                all_pc1s.append(pc1)
+            if (target_word in pca_results and 
+                layer_idx in pca_results[target_word] and 
+                len(pca_results[target_word][layer_idx]['components']) > 0):
+                
+                pc = pca_results[target_word][layer_idx]['components'][0]  # Top PC
+                all_pcs.append(pc)
                 labels.append(f"{target_word}_L{layer_idx}")
     
-    if len(all_pc1s) == 0:
+    if not all_pcs:
         return np.array([]), []
     
     # Compute cosine similarity matrix
-    pc_matrix = np.stack(all_pc1s)
+    all_pcs = np.array(all_pcs)
+    similarity_matrix = np.zeros((len(all_pcs), len(all_pcs)))
     
-    # Normalize vectors
-    norms = np.linalg.norm(pc_matrix, axis=1, keepdims=True)
-    normalized = pc_matrix / (norms + 1e-8)  # Add small epsilon to avoid division by zero
-    
-    similarity_matrix = np.dot(normalized, normalized.T)
+    for i in range(len(all_pcs)):
+        for j in range(len(all_pcs)):
+            # Cosine similarity
+            dot_product = np.dot(all_pcs[i], all_pcs[j])
+            norm_i = np.linalg.norm(all_pcs[i])
+            norm_j = np.linalg.norm(all_pcs[j])
+            similarity_matrix[i, j] = dot_product / (norm_i * norm_j)
     
     return similarity_matrix, labels
 
-
-def visualize_results(baseline_predictions: Dict, perturbation_results: Dict, 
-                     similarity_matrix: np.ndarray, similarity_labels: List[str],
-                     pca_results: Dict, output_dir: str = "rep_lensing_results"):
-    """Create visualizations for the experiment results."""
+def plot_cosine_similarity_matrix(similarity_matrix: np.ndarray, labels: List[str], output_path: str):
+    """Plot the cosine similarity matrix."""
     
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    
-    print(f"\nCreating visualizations in {output_dir}/...")
-    
-    # 1. PC Cosine Similarity Matrix
-    if len(similarity_matrix) > 0:
-        plt.figure(figsize=(12, 10))
-        sns.heatmap(similarity_matrix, 
-                   xticklabels=similarity_labels, 
-                   yticklabels=similarity_labels,
-                   cmap='coolwarm',
-                   center=0,
-                   annot=True,
-                   fmt='.3f',
-                   square=True)
-        plt.title('Cosine Similarity Matrix: PC1s Across Target Words and Layers')
-        plt.xticks(rotation=45, ha='right')
-        plt.yticks(rotation=0)
-        plt.tight_layout()
-        plt.savefig(f'{output_dir}/pc1_cosine_similarity_matrix.png', dpi=300, bbox_inches='tight')
-        plt.close()
-        print("   Saved PC cosine similarity matrix")
-    
-    # 2. Explained Variance Summary
-    fig, axes = plt.subplots(1, len(TARGET_WORDS), figsize=(15, 5))
-    if len(TARGET_WORDS) == 1:
-        axes = [axes]
-    
-    for idx, target_word in enumerate(sorted(TARGET_WORDS)):
-        layers = []
-        variances = []
-        
-        for layer_key in sorted(pca_results[target_word].keys()):
-            pca_data = pca_results[target_word][layer_key]
-            if len(pca_data['explained_variance']) > 0:
-                layers.append(layer_key)
-                variances.append(pca_data['explained_variance'][0])
-        
-        if layers:
-            axes[idx].bar(range(len(layers)), variances)
-            axes[idx].set_title(f"PC1 Explained Variance: '{target_word}'")
-            axes[idx].set_xlabel('Layer')
-            axes[idx].set_ylabel('Explained Variance Ratio')
-            axes[idx].set_xticks(range(len(layers)))
-            axes[idx].set_xticklabels([f'L{l}' for l in layers])
-    
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(similarity_matrix, 
+                xticklabels=labels, 
+                yticklabels=labels,
+                annot=True, 
+                cmap='coolwarm', 
+                center=0,
+                square=True)
+    plt.title('Cosine Similarity Between Principal Components')
     plt.tight_layout()
-    plt.savefig(f'{output_dir}/explained_variance_summary.png', dpi=300, bbox_inches='tight')
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
-    print("   Saved explained variance summary")
 
-
-def run_representation_lensing_experiment(num_sentences: int = None, 
-                                        layers: List[int] = [0, 15, 31]):
+def run_representation_lensing_experiment(
+    model_name: str = "meta-llama/Meta-Llama-3.1-8B",
+    data_file: str = "../tools/manifold_sentences_hard_exactword_1000.json",
+    num_sentences: Optional[int] = None,
+    layers: List[int] = [0, 5, 15, 25, 31],
+    output_dir: str = "../prediction_steering_results"
+):
     """Run the complete representation lensing experiment."""
     
-    output_dir = "rep_lensing_results"
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    
-    print("=== REPRESENTATION LENSING EXPERIMENT ===")
-    print("Model: Llama 3.1-8B (non-instruct)")
-    print(f"Target words: {TARGET_WORDS}")
-    print(f"Layers: {layers}")
-    if num_sentences is None:
-        print("Loading all available sentences from manifold_sentences_hard_exactword_1000.json")
-    else:
-        print(f"Sentences per target word: {num_sentences}")
-    print(f"Perturbation multipliers: {PERTURBATION_MULTIPLIERS}")
+    print("=" * 60)
+    print("REPRESENTATION LENSING EXPERIMENT")
+    print("=" * 60)
     
     # 1. Load model and tokenizer
-    print("\n1. Loading model...")
+    print("\n1. Loading Llama 3.1-8B model...")
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer.pad_token = tokenizer.eos_token
+    
     model = AutoModelForCausalLM.from_pretrained(
-        "meta-llama/Llama-3.1-8B",  # Non-instruct version
+        model_name,
         torch_dtype=torch.float16,
         device_map="auto"
     )
-    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B")
-    tokenizer.pad_token = tokenizer.eos_token
+    model.eval()
     
     # 2. Load sentences
-    print("\n2. Loading sentences with target words...")
-    sentences_by_target = load_sentences_with_target_words(TARGET_WORDS, num_sentences)
+    print("\n2. Loading sentences...")
+    sentences_by_target = load_sentences_with_target_words(data_file, num_sentences)
     
     # 3. Extract embeddings
     print("\n3. Extracting pre-target embeddings...")
@@ -584,94 +420,81 @@ def run_representation_lensing_experiment(num_sentences: int = None,
     lm_analyzer = LanguageModelingAnalyzer(model, tokenizer)
     baseline_predictions = lm_analyzer.analyze_predictions_by_target(embeddings_by_target, layers)
     
-    # 5. Perform local PCA
+    # 5. Perform PCA analysis
     print("\n5. Performing local PCA analysis...")
     pca_analyzer = LocalPCAAnalyzer()
     pca_results = pca_analyzer.analyze_all_targets(embeddings_by_target, layers)
     
     # 6. Perturbation analysis
-    print("\n6. Running perturbation experiments...")
-    perturbation_analyzer = PerturbationAnalyzer(model, tokenizer, lm_analyzer)
+    print("\n6. Running perturbation analysis...")
+    perturbation_analyzer = PerturbationAnalyzer(lm_analyzer)
     perturbation_results = perturbation_analyzer.perturb_and_analyze(
-        embeddings_by_target, pca_results, layers, PERTURBATION_MULTIPLIERS
+        embeddings_by_target, pca_results, layers
     )
     
-    # 7. Compute similarity matrix
-    print("\n7. Computing PC cosine similarity matrix...")
-    similarity_matrix, similarity_labels = compute_pc_cosine_similarity_matrix(pca_results, layers)
+    # 7. Create cosine similarity matrix
+    print("\n7. Creating cosine similarity matrix...")
+    Path(output_dir).mkdir(exist_ok=True)
+    
+    similarity_matrix, labels = create_cosine_similarity_matrix(
+        pca_results, layers, list(TARGET_WORDS)
+    )
+    
+    if similarity_matrix.size > 0:
+        plot_cosine_similarity_matrix(
+            similarity_matrix, labels, 
+            f"{output_dir}/pc_similarity_matrix.png"
+        )
+        print(f"   Saved cosine similarity matrix to {output_dir}/pc_similarity_matrix.png")
     
     # 8. Save results
     print("\n8. Saving results...")
     results = {
         'experiment_config': {
+            'model_name': model_name,
             'target_words': list(TARGET_WORDS),
-            'layers': layers,
-            'num_sentences': num_sentences if num_sentences is not None else 'all_available',
-            'perturbation_multipliers': PERTURBATION_MULTIPLIERS
+            'num_sentences': num_sentences if num_sentences else 'all_available',
+            'layers': layers
         },
         'baseline_predictions': baseline_predictions,
-        'perturbation_results': perturbation_results,
-        'pca_explained_variance': {
+        'pca_results': {
             target: {
-                str(layer): {
-                    'top_pc_variance': float(pca_results[target][layer]['explained_variance'][0]) 
-                    if len(pca_results[target][layer]['explained_variance']) > 0 else 0.0
+                layer: {
+                    'explained_variance': data['explained_variance'].tolist() if len(data['explained_variance']) > 0 else [],
+                    'top_variance': data['explained_variance'][0] if len(data['explained_variance']) > 0 else 0.0
                 }
-                for layer in layers
+                for layer, data in layers_data.items()
             }
-            for target in TARGET_WORDS
+            for target, layers_data in pca_results.items()
         },
-        'pc_similarity_matrix': similarity_matrix.tolist() if len(similarity_matrix) > 0 else [],
-        'pc_similarity_labels': similarity_labels
+        'perturbation_results': perturbation_results
     }
     
-    with open(f'{output_dir}/experiment_results.json', 'w') as f:
-        json.dump(results, f, indent=2)
-    print(f"   Saved results to {output_dir}/experiment_results.json")
+    with open(f"{output_dir}/experiment_results.json", 'w') as f:
+        json.dump(results, f, indent=2, default=str)
     
-    # 9. Create visualizations
-    print("\n9. Creating visualizations...")
-    visualize_results(baseline_predictions, perturbation_results, 
-                     similarity_matrix, similarity_labels, pca_results, output_dir)
-    
-    print("\n=== EXPERIMENT COMPLETE ===")
-    print(f"\nResults Summary:")
-    print(f"- Analyzed {len(TARGET_WORDS)} target words across {len(layers)} layers")
-    print(f"- Results saved to {output_dir}/")
-    
-    # Print key findings
-    print(f"\nKey Findings:")
-    for target_word in TARGET_WORDS:
-        print(f"\n'{target_word.upper()}':")
-        for layer_idx in layers:
-            if len(pca_results[target_word][layer_idx]['explained_variance']) > 0:
-                top_variance = pca_results[target_word][layer_idx]['explained_variance'][0]
-                print(f"  Layer {layer_idx}: PC1 explains {top_variance:.3f} of variance")
-                
-                if layer_idx in baseline_predictions[target_word]:
-                    top_pred = baseline_predictions[target_word][layer_idx][0]
-                    print(f"    Baseline top prediction: '{top_pred[0]}' (p={top_pred[1]:.3f})")
-
+    print(f"   Results saved to {output_dir}/experiment_results.json")
+    print("\n✅ Experiment completed successfully!")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run representation lensing experiment.")
-    parser.add_argument(
-        "--num-sentences",
-        type=int,
-        default=100,
-        help="Number of sentences to load per target word"
-    )
-    parser.add_argument(
-        "--layers",
-        nargs='+',
-        type=int,
-        default=[0, 5, 15, 25, 31],
-        help="Layer indices to analyze"
-    )
+    parser = argparse.ArgumentParser(description="Run representation lensing experiment")
+    parser.add_argument("--model-name", default="meta-llama/Meta-Llama-3.1-8B", 
+                       help="Model name")
+    parser.add_argument("--data-file", default="../tools/manifold_sentences_hard_exactword_1000.json",
+                       help="Path to sentences data file")
+    parser.add_argument("--num-sentences", type=int, default=None,
+                       help="Number of sentences per target (default: all)")
+    parser.add_argument("--layers", nargs="+", type=int, default=[0, 5, 15, 25, 31],
+                       help="Layer indices to analyze")
+    parser.add_argument("--output-dir", default="../prediction_steering_results",
+                       help="Output directory")
     
     args = parser.parse_args()
     
     run_representation_lensing_experiment(
+        model_name=args.model_name,
+        data_file=args.data_file,
         num_sentences=args.num_sentences,
-        layers=args.layers
+        layers=args.layers,
+        output_dir=args.output_dir
     ) 
