@@ -183,6 +183,8 @@ class RepresentationLensingExtractor:
                 results[target_word][layer_idx] = stacked_embeddings
                 print(f"    Layer {layer_idx}: {stacked_embeddings.shape} dtype: {stacked_embeddings.dtype}")
             else:
+                # Set to empty tensor instead of empty list to avoid AttributeError
+                results[target_word][layer_idx] = torch.empty(0, 0)
                 print(f"    Layer {layer_idx}: No valid embeddings extracted!")
         
         return results
@@ -243,6 +245,16 @@ class LanguageModelingAnalyzer:
         Returns:
             List of (token_string, probability) tuples
         """
+        # Validate input to prevent AttributeError
+        if not isinstance(embeddings, torch.Tensor):
+            raise TypeError(f"Expected torch.Tensor, got {type(embeddings)}")
+        
+        if embeddings.numel() == 0:
+            raise ValueError("Empty embeddings tensor provided")
+            
+        if len(embeddings.shape) != 2:
+            raise ValueError(f"Expected 2D tensor (batch_size, hidden_size), got shape {embeddings.shape}")
+        
         # Ensure embeddings match the model's dtype and device
         embeddings = embeddings.to(self.device, dtype=self.lm_head.weight.dtype)
         
@@ -278,7 +290,8 @@ class LanguageModelingAnalyzer:
             
             for layer_idx in layers:
                 embeddings = embeddings_by_target[target_word][layer_idx]
-                if len(embeddings) > 0:
+                # Check if embeddings is a proper tensor with valid shape
+                if isinstance(embeddings, torch.Tensor) and embeddings.numel() > 0 and len(embeddings.shape) == 2:
                     predictions = self.get_top_predictions(embeddings, top_k=3)
                     results[target_word][layer_idx] = predictions
                     
@@ -287,7 +300,7 @@ class LanguageModelingAnalyzer:
                         print(f"      {i+1}. '{token}' (p={prob:.4f})")
                 else:
                     results[target_word][layer_idx] = []
-                    print(f"    Layer {layer_idx}: No embeddings to analyze")
+                    print(f"    Layer {layer_idx}: No valid embeddings to analyze (type: {type(embeddings)}, shape: {getattr(embeddings, 'shape', 'N/A')})")
         
         return results
 
@@ -403,8 +416,12 @@ class PerturbationAnalyzer:
                 embeddings = embeddings_by_target[target_word][layer_idx]
                 pca_data = pca_results[target_word][layer_idx]
                 
-                if len(embeddings) == 0 or len(pca_data['components']) == 0:
-                    print(f"    Layer {layer_idx}: No data for perturbation")
+                # Check if we have valid tensor data for perturbation
+                if (not isinstance(embeddings, torch.Tensor) or 
+                    embeddings.numel() == 0 or 
+                    len(embeddings.shape) != 2 or 
+                    len(pca_data['components']) == 0):
+                    print(f"    Layer {layer_idx}: No valid data for perturbation (embeddings type: {type(embeddings)}, shape: {getattr(embeddings, 'shape', 'N/A')})")
                     continue
                 
                 # Get the first principal component
