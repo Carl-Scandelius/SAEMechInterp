@@ -161,8 +161,8 @@ class LanguageModelingAnalyzer:
         self.lm_head = model.lm_head
         self.device = next(model.parameters()).device
     
-    def get_top_predictions(self, embeddings: torch.Tensor, top_k: int = 3) -> Dict[str, List[Tuple[str, float]]]:
-        """Get top-k next token predictions for a batch of embeddings."""
+    def get_top_predictions(self, embeddings: torch.Tensor, top_k: int = 10) -> Dict:
+        """Get top-k next token predictions for a batch of embeddings and rank target words."""
         
         # Ensure correct dtype for the language modeling head
         embeddings = embeddings.to(dtype=self.lm_head.weight.dtype)
@@ -171,34 +171,68 @@ class LanguageModelingAnalyzer:
         logits = self.lm_head(embeddings)  # [batch_size, vocab_size]
         probs = F.softmax(logits, dim=-1)  # [batch_size, vocab_size]
         
-        # Get top-k predictions for each embedding
-        top_probs, top_indices = torch.topk(probs, top_k, dim=-1)
+        # Average probabilities across all embeddings in the batch
+        avg_probs = torch.mean(probs, dim=0)  # [vocab_size]
         
-        # Convert to tokens and average across batch
-        avg_probs = torch.mean(top_probs, dim=0)  # [top_k]
+        # Get top-k predictions
+        top_k_probs, top_k_indices = torch.topk(avg_probs, top_k)
         
-        # For token selection, use the most frequent top tokens across the batch
-        # Flatten and get most common tokens
-        all_top_indices = top_indices.flatten()
-        unique_indices, counts = torch.unique(all_top_indices, return_counts=True)
+        # Convert top-k to list of (token, probability)
+        top_predictions = []
+        for i in range(top_k):
+            token_str = self.tokenizer.decode([top_k_indices[i].item()])
+            prob = top_k_probs[i].item()
+            top_predictions.append((token_str, prob))
         
-        # Get the most frequent tokens
-        _, most_frequent_idx = torch.topk(counts, min(top_k, len(unique_indices)))
-        most_frequent_tokens = unique_indices[most_frequent_idx]
+        # Find rankings of target category words
+        target_word_rankings = {}
         
-        # Get average probabilities for these tokens
-        result_predictions = []
-        for token_id in most_frequent_tokens:
-            token_str = self.tokenizer.decode([token_id.item()])
-            # Calculate average probability of this token across all embeddings
-            token_mask = (top_indices == token_id.unsqueeze(0).unsqueeze(0))
-            if token_mask.any():
-                avg_prob = top_probs[token_mask].mean().item()
-            else:
-                avg_prob = 0.0
-            result_predictions.append((token_str, avg_prob))
+        # Sort all probabilities to get rankings
+        sorted_probs, sorted_indices = torch.sort(avg_probs, descending=True)
         
-        return {"predictions": result_predictions}
+        # Check each target word and its variations
+        for target_word in TARGET_WORDS:
+            target_variations = [
+                target_word,                    # "animals"
+                target_word.capitalize(),       # "Animals" 
+                target_word.upper(),           # "ANIMALS"
+                target_word[:-1],              # "animal" (singular)
+                target_word[:-1].capitalize(), # "Animal"
+                target_word[:-1].upper(),      # "ANIMAL"
+            ]
+            
+            best_rank = None
+            best_prob = 0.0
+            best_token = None
+            
+            # Search through all tokens to find the best ranking target word variant
+            for rank, token_id in enumerate(sorted_indices):
+                token_str = self.tokenizer.decode([token_id.item()]).strip()
+                
+                # Check if this token matches any target word variation
+                for variation in target_variations:
+                    if token_str.lower() == variation.lower() or variation.lower() in token_str.lower():
+                        if best_rank is None or rank < best_rank:
+                            best_rank = rank + 1  # Convert to 1-indexed ranking
+                            best_prob = sorted_probs[rank].item()
+                            best_token = token_str
+                        break
+                
+                # Stop searching after reasonable number of tokens to avoid excessive computation
+                if rank > 100:  # Only check top 100 tokens
+                    break
+            
+            if best_rank is not None:
+                target_word_rankings[target_word] = {
+                    'rank': best_rank,
+                    'probability': best_prob,
+                    'token': best_token
+                }
+        
+        return {
+            "predictions": top_predictions,
+            "target_word_rankings": target_word_rankings
+        }
     
     def analyze_predictions_by_target(self, embeddings_by_target: Dict[str, Dict[int, torch.Tensor]], 
                                     layers: List[int]) -> Dict[str, Dict[int, Dict]]:
@@ -214,14 +248,23 @@ class LanguageModelingAnalyzer:
                 embeddings = embeddings_by_target[target_word][layer_idx]
                 
                 if embeddings.numel() > 0:
-                    predictions = self.get_top_predictions(embeddings, top_k=3)
-                    results[target_word][layer_idx] = predictions
+                    predictions_data = self.get_top_predictions(embeddings, top_k=10)
+                    results[target_word][layer_idx] = predictions_data
                     
-                    print(f"  Layer {layer_idx}:")
-                    for token, prob in predictions["predictions"]:
-                        print(f"    '{token}': {prob:.4f}")
+                    print(f"  Layer {layer_idx} - Top 10 predictions:")
+                    for i, (token, prob) in enumerate(predictions_data["predictions"]):
+                        print(f"    {i+1}. '{token}': {prob:.6f}")
+                    
+                    # Display target word rankings
+                    rankings = predictions_data["target_word_rankings"]
+                    if rankings:
+                        print(f"  Layer {layer_idx} - Target word rankings:")
+                        for word, rank_info in rankings.items():
+                            print(f"    '{word}': {rank_info['rank']} with probability {rank_info['probability']:.8f} (token: '{rank_info['token']}')")
+                    else:
+                        print(f"  Layer {layer_idx} - Target words not found in top 1000 predictions")
                 else:
-                    results[target_word][layer_idx] = {"predictions": []}
+                    results[target_word][layer_idx] = {"predictions": [], "target_word_rankings": {}}
                     print(f"  Layer {layer_idx}: No embeddings to analyze")
         
         return results
@@ -286,7 +329,7 @@ class PerturbationAnalyzer:
     def perturb_and_analyze(self, embeddings_by_target: Dict[str, Dict[int, torch.Tensor]], 
                           pca_results: Dict[str, Dict[int, Dict]], 
                           layers: List[int], 
-                          perturbation_factors: List[float] = [0.5, 1.0, 2.0]) -> Dict:
+                          perturbation_factors: List[float] = [-2.0, -1.0, -0.5, 0.5, 1.0, 2.0]) -> Dict:
         """Perturb embeddings along top PC and analyze predictions."""
         
         results = {}
@@ -317,12 +360,22 @@ class PerturbationAnalyzer:
                             device=embeddings.device, dtype=embeddings.dtype)
                         
                         # Analyze predictions
-                        predictions = self.lm_analyzer.get_top_predictions(perturbed_tensor, top_k=3)
-                        results[target_word][layer_idx][factor] = predictions
+                        predictions_data = self.lm_analyzer.get_top_predictions(perturbed_tensor, top_k=10)
+                        results[target_word][layer_idx][factor] = predictions_data
                         
-                        print(f"  Layer {layer_idx}, factor {factor}:")
-                        for token, prob in predictions["predictions"]:
-                            print(f"    '{token}': {prob:.4f}")
+                        print(f"  Layer {layer_idx}, factor {factor} - Top 10 predictions:")
+                        for i, (token, prob) in enumerate(predictions_data["predictions"]):
+                            print(f"    {i+1}. '{token}': {prob:.6f}")
+                        
+                        # Display target word rankings for perturbations
+                        rankings = predictions_data["target_word_rankings"]
+                        if rankings:
+                            print(f"  Layer {layer_idx}, factor {factor} - Target word rankings:")
+                            for word, rank_info in rankings.items():
+                                print(f"    '{word}': {rank_info['rank']} with probability {rank_info['probability']:.8f} (token: '{rank_info['token']}')")
+                        else:
+                            print(f"  Layer {layer_idx}, factor {factor} - Target words not found in top 1000 predictions")
+                        print()  # Add spacing between perturbation factors
                 else:
                     results[target_word][layer_idx] = {}
                     print(f"  Layer {layer_idx}: No data for perturbation")
@@ -474,7 +527,7 @@ def run_representation_lensing_experiment(
         json.dump(results, f, indent=2, default=str)
     
     print(f"   Results saved to {output_dir}/experiment_results.json")
-    print("\n✅ Experiment completed successfully!")
+    print("\n  Experiment completed successfully!")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run representation lensing experiment")
@@ -484,9 +537,9 @@ if __name__ == "__main__":
                        help="Path to sentences data file")
     parser.add_argument("--num-sentences", type=int, default=None,
                        help="Number of sentences per target (default: all)")
-    parser.add_argument("--layers", nargs="+", type=int, default=[0, 5, 15, 25, 31],
+    parser.add_argument("--layers", nargs="+", type=int, default=[0, 5, 15, 25, 27, 30, 31],
                        help="Layer indices to analyze")
-    parser.add_argument("--output-dir", default="../prediction_steering_results",
+    parser.add_argument("--output-dir", default="../rep_lensing/lens_results",
                        help="Output directory")
     
     args = parser.parse_args()
