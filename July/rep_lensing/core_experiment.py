@@ -503,7 +503,7 @@ def run_representation_lensing_experiment(
             )
         else:
             # CPU fallback with float32
-            print("   Loading model for CPU (this will be slower)")
+            print("   cuda failed: Loading model for CPU")
             model = AutoModelForCausalLM.from_pretrained(
                 model_name,
                 torch_dtype=torch.float32,
