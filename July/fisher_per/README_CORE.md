@@ -25,7 +25,16 @@ The Fisher Information Matrix captures the local curvature of the log-likelihood
 ```bash
 conda activate interp
 pip install -r requirements_minimal.txt
-python core_experiment.py
+
+# For memory-constrained environments (A100 40GB)
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+python core_experiment.py --num-sentences 10 --max-vocab-subset 150 --batch-size 15
+
+# Standard usage (requires more memory)
+python core_experiment.py --num-sentences 20 --max-vocab-subset 200 --batch-size 20
+
+# Ultra-low memory usage
+python core_experiment.py --num-sentences 5 --max-vocab-subset 100 --batch-size 10
 ```
 
 ## Scientific Rigor
@@ -47,4 +56,18 @@ python core_experiment.py
 - Uses residual stream activations (model.layers.{layer_idx} output)
 - Computes exact Fisher matrix via autograd
 - Efficient eigendecomposition with torch.linalg.eigh
-- Handles both GPU and CPU execution gracefully 
+- Handles both GPU and CPU execution gracefully
+
+## Memory Optimization
+
+For large models like Llama-3.1-8B on GPUs with limited memory:
+
+- **--max-vocab-subset**: Reduces vocabulary tokens used in Fisher computation (default: 200)
+- **--batch-size**: Processes Fisher gradients in smaller batches (default: 20)
+- **--num-sentences**: Use fewer sentences for initial testing (recommend: 5-10)
+- **Environment**: Set `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
+
+**Memory Requirements**:
+- A100 40GB: Use `--max-vocab-subset 150 --batch-size 15 --num-sentences 10`
+- V100 32GB: Use `--max-vocab-subset 100 --batch-size 10 --num-sentences 5`
+- RTX 4090 24GB: Use `--max-vocab-subset 80 --batch-size 8 --num-sentences 3` 

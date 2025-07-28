@@ -61,6 +61,9 @@ DEVICE = setup_device()
 # Disable tokenizer parallelism warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+# Optimize CUDA memory allocation to reduce fragmentation
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 def filter_sentences_by_prediction(sentences: List[str], target_word: str, 
                                   model: AutoModelForCausalLM, tokenizer: AutoTokenizer) -> List[str]:
     """
@@ -88,8 +91,11 @@ def filter_sentences_by_prediction(sentences: List[str], target_word: str,
     print(f"Target token IDs for '{target_word}': {sorted(target_token_ids)}")
     
     for i, sentence in enumerate(sentences):
-        if i % 100 == 0:
+        if i % 50 == 0:  # More frequent updates and memory cleanup
             print(f"  Processing sentence {i+1}/{len(sentences)}...")
+            # Clear CUDA cache periodically
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
         
         # Find position before target word
         pos_before_target = find_token_before_animals(tokenizer, sentence) if target_word == "animals" else find_token_before_word(tokenizer, sentence, target_word)
@@ -110,9 +116,14 @@ def filter_sentences_by_prediction(sentences: List[str], target_word: str,
                 # Check if the most likely token is our target word
                 if top_token_id in target_token_ids:
                     filtered_sentences.append(sentence)
+            
+            # Clear intermediate tensors
+            del token_ids, outputs, logits
                     
         except Exception as e:
             # Skip sentences that cause errors
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             continue
     
     print(f"Filtered to {len(filtered_sentences)} sentences where '{target_word}' has highest probability")
@@ -251,7 +262,7 @@ class FisherInfoExtractor:
             hook.remove()
     
     def compute_fisher_matrix(self, h: torch.Tensor, layer_idx: int, 
-                            max_vocab_subset: int = 1000) -> Tuple[torch.Tensor, torch.Tensor]:
+                            max_vocab_subset: int = 200) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Compute Fisher Information Matrix I(h) = Σ_c p(c|h)[∇_h log p(c|h) ∇_h log p(c|h)^T]
         
@@ -281,24 +292,41 @@ class FisherInfoExtractor:
             # Initialize Fisher matrix
             fisher_matrix = torch.zeros(h.shape[0], h.shape[0], device=h.device, dtype=h.dtype)
             
-            # Compute Fisher matrix components
-            for i, (prob, token_idx) in enumerate(zip(top_probs, top_indices)):
-                if prob < 1e-8:  # Skip very low probability tokens
-                    continue
+            # Compute Fisher matrix components in smaller batches to save memory
+            batch_size = 20  # Process 20 tokens at a time to reduce memory usage
+            num_batches = (len(top_probs) + batch_size - 1) // batch_size
+            
+            for batch_idx in range(num_batches):
+                start_idx = batch_idx * batch_size
+                end_idx = min(start_idx + batch_size, len(top_probs))
                 
-                # Compute gradient of log p(c|h) w.r.t. h
-                log_prob = torch.log(prob + 1e-8)  # Add small epsilon for numerical stability
+                batch_probs = top_probs[start_idx:end_idx]
+                batch_indices = top_indices[start_idx:end_idx]
                 
-                # Clear gradients
-                if h_requires_grad.grad is not None:
-                    h_requires_grad.grad.zero_()
+                for i, (prob, token_idx) in enumerate(zip(batch_probs, batch_indices)):
+                    if prob < 1e-6:  # Skip very low probability tokens (increased threshold)
+                        continue
+                    
+                    # Compute gradient of log p(c|h) w.r.t. h
+                    log_prob = torch.log(prob + 1e-8)  # Add small epsilon for numerical stability
+                    
+                    # Clear gradients
+                    if h_requires_grad.grad is not None:
+                        h_requires_grad.grad.zero_()
+                    
+                    # Compute gradient
+                    log_prob.backward(retain_graph=True)
+                    grad = h_requires_grad.grad.clone()
+                    
+                    # Add to Fisher matrix: p(c|h) * grad * grad^T
+                    fisher_matrix += prob * torch.outer(grad, grad)
+                    
+                    # Clear intermediate computations
+                    del grad
                 
-                # Compute gradient
-                log_prob.backward(retain_graph=True)
-                grad = h_requires_grad.grad.clone()
-                
-                # Add to Fisher matrix: p(c|h) * grad * grad^T
-                fisher_matrix += prob * torch.outer(grad, grad)
+                # Clear CUDA cache between batches
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
         
         # Eigendecomposition to find top eigenvector
         try:
@@ -480,13 +508,21 @@ def analyze_prediction_changes(all_results: Dict, scales: List[float], output_di
     plt.savefig(f'{output_dir}/perturbation_analysis.png', dpi=300, bbox_inches='tight')
     plt.close()
 
+def clear_memory():
+    """Aggressive memory cleanup."""
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+
 def run_fisher_experiment(
     model_name: str = "meta-llama/Meta-Llama-3.1-8B",
     data_file: str = "../tools/manifold_sentences_hard_exactword_1000.json",
     num_sentences: int = 20,
     layers: List[int] = [0, 5, 10, 15, 20, 25, 30, 31],
     scales: List[float] = [0, -10, -5, -2, -1, -0.5, 0.5, 1, 2, 5, 10],
-    output_dir: str = "fisher_results"
+    output_dir: str = "fisher_results",
+    max_vocab_subset: int = 200,
+    batch_size: int = 20
 ):
     """Run the complete Fisher-guided perturbation experiment."""
     
@@ -494,6 +530,10 @@ def run_fisher_experiment(
     print("FISHER-GUIDED EMBEDDING PERTURBATIONS EXPERIMENT")
     print("=" * 60)
     print(f"Device: {DEVICE}")
+    print(f"Memory optimizations: vocab_subset={max_vocab_subset}, batch_size={batch_size}")
+    
+    # Clear any existing memory
+    clear_memory()
     
     # 1. Load model and tokenizer
     print("\n1. Loading Llama 3.1-8B model...")
@@ -561,7 +601,7 @@ def run_fisher_experiment(
             
             # Compute Fisher matrix and top eigenvector
             try:
-                fisher_direction, eigenvalue = fisher_extractor.compute_fisher_matrix(h, layer_idx)
+                fisher_direction, eigenvalue = fisher_extractor.compute_fisher_matrix(h, layer_idx, max_vocab_subset)
                 fisher_directions[sentence_idx][layer_idx] = fisher_direction
                 print(f"✅ Fisher eigenvalue: {eigenvalue.item():.6f}")
                 
@@ -571,8 +611,16 @@ def run_fisher_experiment(
                 )
                 all_results[sentence_idx][layer_idx] = results
                 
+                # Clear memory after each computation
+                del h, fisher_direction, eigenvalue
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                
             except Exception as e:
                 print(f"❌ Error: {e}")
+                # Clear memory on error
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
                 continue
     
     # 5. Compute and plot similarity matrix
@@ -633,6 +681,10 @@ if __name__ == "__main__":
                        help="Layer indices to analyze")
     parser.add_argument("--output-dir", default="fisher_results",
                        help="Output directory")
+    parser.add_argument("--max-vocab-subset", type=int, default=200,
+                       help="Maximum number of top vocabulary tokens to use for Fisher computation (reduce for memory savings)")
+    parser.add_argument("--batch-size", type=int, default=20,
+                       help="Batch size for Fisher computation (reduce for memory savings)")
     
     args = parser.parse_args()
     
@@ -641,5 +693,7 @@ if __name__ == "__main__":
         data_file=args.data_file,
         num_sentences=args.num_sentences,
         layers=args.layers,
-        output_dir=args.output_dir
+        output_dir=args.output_dir,
+        max_vocab_subset=args.max_vocab_subset,
+        batch_size=args.batch_size
     ) 
