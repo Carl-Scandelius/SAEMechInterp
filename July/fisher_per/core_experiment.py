@@ -61,8 +61,97 @@ DEVICE = setup_device()
 # Disable tokenizer parallelism warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-def load_animal_sentences(data_file: str, num_sentences: int = 20) -> List[str]:
-    """Load diverse animal sentences from the manifold dataset."""
+def filter_sentences_by_prediction(sentences: List[str], target_word: str, 
+                                  model: AutoModelForCausalLM, tokenizer: AutoTokenizer) -> List[str]:
+    """
+    Filter sentences to only include those where the token before target_word
+    predicts target_word as the highest probability next token.
+    """
+    print(f"Filtering {len(sentences)} sentences where '{target_word}' has highest next-token probability...")
+    
+    filtered_sentences = []
+    target_word_lower = target_word.lower()
+    
+    # Get target word token variations
+    target_variations = [
+        target_word, target_word.capitalize(), target_word.upper(),
+        target_word[:-1], target_word[:-1].capitalize(), target_word[:-1].upper()  # singular forms
+    ]
+    target_token_ids = set()
+    for variation in target_variations:
+        # Try different tokenization approaches
+        tokens = tokenizer.encode(f" {variation}", add_special_tokens=False)
+        target_token_ids.update(tokens)
+        tokens = tokenizer.encode(variation, add_special_tokens=False)
+        target_token_ids.update(tokens)
+    
+    print(f"Target token IDs for '{target_word}': {sorted(target_token_ids)}")
+    
+    for i, sentence in enumerate(sentences):
+        if i % 100 == 0:
+            print(f"  Processing sentence {i+1}/{len(sentences)}...")
+        
+        # Find position before target word
+        pos_before_target = find_token_before_animals(tokenizer, sentence) if target_word == "animals" else find_token_before_word(tokenizer, sentence, target_word)
+        if pos_before_target is None:
+            continue
+        
+        try:
+            # Tokenize and run model
+            token_ids = tokenizer.encode(sentence, add_special_tokens=True, return_tensors="pt").to(model.device)
+            
+            with torch.no_grad():
+                outputs = model(token_ids)
+                logits = outputs.logits[0, pos_before_target, :]  # Next token logits
+                
+                # Get the most likely token
+                top_token_id = torch.argmax(logits).item()
+                
+                # Check if the most likely token is our target word
+                if top_token_id in target_token_ids:
+                    filtered_sentences.append(sentence)
+                    
+        except Exception as e:
+            # Skip sentences that cause errors
+            continue
+    
+    print(f"Filtered to {len(filtered_sentences)} sentences where '{target_word}' has highest probability")
+    return filtered_sentences
+
+def find_token_before_word(tokenizer: AutoTokenizer, sentence: str, target_word: str) -> Optional[int]:
+    """
+    Find the position of the token immediately before the specified target word.
+    Returns None if target word is not found or is the first token.
+    """
+    # Tokenize the sentence
+    token_ids = tokenizer.encode(sentence, add_special_tokens=True)
+    tokens = tokenizer.convert_ids_to_tokens(token_ids)
+    
+    target_word_lower = target_word.lower()
+    
+    # Find target word in the tokenized sequence
+    for i, token in enumerate(tokens):
+        # For Llama tokenization, remove the leading space indicator ▁
+        clean_token = token.replace('▁', '').lower()
+        
+        # Check if this token matches the target word
+        if (clean_token == target_word_lower or 
+            clean_token.startswith(target_word_lower) or
+            (target_word_lower in clean_token and len(clean_token) <= len(target_word_lower) + 3)):
+            
+            # Return the position before this token (if it exists and is valid)
+            if i > 0:
+                return i - 1
+            else:
+                return None  # target word is the first token
+    
+    # Target word not found
+    return None
+
+def load_animal_sentences(data_file: str, num_sentences: int = 20, 
+                         model: Optional[AutoModelForCausalLM] = None, 
+                         tokenizer: Optional[AutoTokenizer] = None) -> List[str]:
+    """Load diverse animal sentences from the manifold dataset, filtered by prediction accuracy."""
     with open(data_file, 'r') as f:
         data = json.load(f)
     
@@ -72,9 +161,20 @@ def load_animal_sentences(data_file: str, num_sentences: int = 20) -> List[str]:
     all_sentences = data["animals"]
     print(f"Available animal sentences: {len(all_sentences)}")
     
-    # Select diverse sentences by taking every nth sentence
-    step = len(all_sentences) // num_sentences
-    selected_sentences = [all_sentences[i * step] for i in range(num_sentences)]
+    # Filter sentences if model and tokenizer are provided
+    if model is not None and tokenizer is not None:
+        filtered_sentences = filter_sentences_by_prediction(all_sentences, "animals", model, tokenizer)
+        if len(filtered_sentences) < num_sentences:
+            print(f"Warning: Only {len(filtered_sentences)} sentences pass filter, requested {num_sentences}")
+            selected_sentences = filtered_sentences
+        else:
+            # Select diverse sentences from filtered set
+            step = len(filtered_sentences) // num_sentences
+            selected_sentences = [filtered_sentences[i * step] for i in range(num_sentences)]
+    else:
+        # Fallback to original selection method
+        step = len(all_sentences) // num_sentences
+        selected_sentences = [all_sentences[i * step] for i in range(num_sentences)]
     
     print(f"Selected {len(selected_sentences)} diverse animal sentences")
     return selected_sentences
@@ -131,9 +231,11 @@ class FisherInfoExtractor:
         
         def hook_fn(module, input, output):
             nonlocal activation
+            # Extract hidden states from layer output (output can be tuple or tensor)
+            hidden_states = output[0] if isinstance(output, tuple) else output
             # Extract activation at the specified position
-            if pos_before_animals < output.shape[1]:
-                activation = output[0, pos_before_animals, :].detach().clone()  # [hidden_size]
+            if pos_before_animals < hidden_states.shape[1]:
+                activation = hidden_states[0, pos_before_animals, :].detach().clone()  # [hidden_size]
         
         # Register hook on the layer (residual stream output)
         hook = self.model.model.layers[layer_idx].register_forward_hook(hook_fn)
@@ -257,9 +359,16 @@ class FisherPerturbationAnalyzer:
             # Hook to inject perturbed activation
             def make_injection_hook(h_new):
                 def injection_hook(module, input, output):
-                    if pos_before_animals < output.shape[1]:
-                        output[0, pos_before_animals, :] = h_new
-                    return output
+                    # Handle both tuple and tensor outputs
+                    if isinstance(output, tuple):
+                        hidden_states = output[0]
+                        if pos_before_animals < hidden_states.shape[1]:
+                            hidden_states[0, pos_before_animals, :] = h_new
+                        return output
+                    else:
+                        if pos_before_animals < output.shape[1]:
+                            output[0, pos_before_animals, :] = h_new
+                        return output
                 return injection_hook
             
             # Apply perturbation and get next-token predictions
@@ -418,9 +527,9 @@ def run_fisher_experiment(
         print(f"❌ Error loading model: {e}")
         raise
     
-    # 2. Load sentences
-    print("\n2. Loading animal sentences...")
-    sentences = load_animal_sentences(data_file, num_sentences)
+    # 2. Load sentences (with filtering based on prediction accuracy)
+    print("\n2. Loading and filtering animal sentences...")
+    sentences = load_animal_sentences(data_file, num_sentences, model, tokenizer)
     
     # 3. Initialize extractors and analyzers
     print("\n3. Initializing Fisher analysis components...")

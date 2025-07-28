@@ -63,19 +63,98 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 # Target words for the experiment
 TARGET_WORDS = {"animals", "furniture", "food"}
 
-def load_sentences_with_target_words(data_file: str, num_sentences: Optional[int] = None) -> Dict[str, List[str]]:
-    """Load sentences containing target words from the manifold dataset."""
+def filter_sentences_by_prediction_rep(sentences: List[str], target_word: str, 
+                                       model: AutoModelForCausalLM, tokenizer: AutoTokenizer) -> List[str]:
+    """
+    Filter sentences to only include those where the token before target_word
+    predicts target_word as the highest probability next token.
+    """
+    print(f"Filtering {len(sentences)} sentences where '{target_word}' has highest next-token probability...")
+    
+    filtered_sentences = []
+    target_word_lower = target_word.lower()
+    
+    # Get target word token variations
+    target_variations = [
+        target_word, target_word.capitalize(), target_word.upper(),
+        target_word[:-1], target_word[:-1].capitalize(), target_word[:-1].upper()  # singular forms
+    ]
+    target_token_ids = set()
+    for variation in target_variations:
+        # Try different tokenization approaches
+        tokens = tokenizer.encode(f" {variation}", add_special_tokens=False)
+        target_token_ids.update(tokens)
+        tokens = tokenizer.encode(variation, add_special_tokens=False)
+        target_token_ids.update(tokens)
+    
+    print(f"Target token IDs for '{target_word}': {sorted(target_token_ids)}")
+    
+    for i, sentence in enumerate(sentences):
+        if i % 100 == 0:
+            print(f"  Processing sentence {i+1}/{len(sentences)}...")
+        
+        # Find position before target word
+        pos_before_target = find_token_before_target_word(tokenizer, sentence, target_word)
+        if pos_before_target is None:
+            continue
+        
+        try:
+            # Tokenize and run model
+            token_ids = tokenizer.encode(sentence, add_special_tokens=True, return_tensors="pt").to(model.device)
+            
+            with torch.no_grad():
+                outputs = model(token_ids)
+                logits = outputs.logits[0, pos_before_target, :]  # Next token logits
+                
+                # Get the most likely token
+                top_token_id = torch.argmax(logits).item()
+                
+                # Check if the most likely token is our target word
+                if top_token_id in target_token_ids:
+                    filtered_sentences.append(sentence)
+                    
+        except Exception as e:
+            # Skip sentences that cause errors
+            continue
+    
+    print(f"Filtered to {len(filtered_sentences)} sentences where '{target_word}' has highest probability")
+    return filtered_sentences
+
+def load_sentences_with_target_words(data_file: str, num_sentences: Optional[int] = None,
+                                   model: Optional[AutoModelForCausalLM] = None, 
+                                   tokenizer: Optional[AutoTokenizer] = None) -> Dict[str, List[str]]:
+    """Load sentences containing target words from the manifold dataset, filtered by prediction accuracy."""
     with open(data_file, 'r') as f:
         data = json.load(f)
     
     sentences_by_target = {}
     for target_word in TARGET_WORDS:
         if target_word in data:
-            sentences = data[target_word]
-            if num_sentences is not None:
-                sentences = sentences[:num_sentences]
+            all_sentences = data[target_word]
+            print(f"Available sentences for '{target_word}': {len(all_sentences)}")
+            
+            # Filter sentences if model and tokenizer are provided
+            if model is not None and tokenizer is not None:
+                filtered_sentences = filter_sentences_by_prediction_rep(all_sentences, target_word, model, tokenizer)
+                if num_sentences is not None:
+                    if len(filtered_sentences) < num_sentences:
+                        print(f"Warning: Only {len(filtered_sentences)} sentences pass filter for '{target_word}', requested {num_sentences}")
+                        sentences = filtered_sentences
+                    else:
+                        # Select diverse sentences from filtered set
+                        step = len(filtered_sentences) // num_sentences
+                        sentences = [filtered_sentences[i * step] for i in range(num_sentences)]
+                else:
+                    sentences = filtered_sentences
+            else:
+                # Fallback to original selection method
+                if num_sentences is not None:
+                    sentences = all_sentences[:num_sentences]
+                else:
+                    sentences = all_sentences
+            
             sentences_by_target[target_word] = sentences
-            print(f"Loaded {len(sentences)} sentences for '{target_word}'")
+            print(f"Selected {len(sentences)} sentences for '{target_word}'")
         else:
             raise ValueError(f"Target word '{target_word}' not found in data file")
     
@@ -523,9 +602,9 @@ def run_representation_lensing_experiment(
         print("   3. Model not available")
         raise
     
-    # 2. Load sentences
-    print("\n2. Loading sentences...")
-    sentences_by_target = load_sentences_with_target_words(data_file, num_sentences)
+    # 2. Load sentences (with filtering based on prediction accuracy)
+    print("\n2. Loading and filtering sentences...")
+    sentences_by_target = load_sentences_with_target_words(data_file, num_sentences, model, tokenizer)
     
     # 3. Extract embeddings
     print("\n3. Extracting pre-target embeddings...")
