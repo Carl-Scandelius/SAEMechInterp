@@ -19,7 +19,46 @@ from typing import Dict, List, Tuple, Optional
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from sklearn.decomposition import PCA
 import argparse
+import os
 from pathlib import Path
+
+# Robust CUDA setup and device detection
+def setup_device():
+    """Set up the computation device with robust CUDA handling."""
+    
+    # Clear any existing CUDA context
+    if torch.cuda.is_available():
+        try:
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+        except Exception as e:
+            print(f"Warning: CUDA cleanup failed: {e}")
+    
+    # Detect available device
+    if torch.cuda.is_available():
+        try:
+            # Test CUDA functionality
+            test_tensor = torch.tensor([1.0]).cuda()
+            device = torch.device("cuda")
+            print(f"✅ Using CUDA device: {torch.cuda.get_device_name()}")
+            print(f"   CUDA version: {torch.version.cuda}")
+            print(f"   Available GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
+            del test_tensor
+            torch.cuda.empty_cache()
+            return device
+        except Exception as e:
+            print(f"⚠️  CUDA available but failed initialization: {e}")
+            print("   Falling back to CPU")
+            return torch.device("cpu")
+    else:
+        print("ℹ️  CUDA not available, using CPU")
+        return torch.device("cpu")
+
+# Set up device early
+DEVICE = setup_device()
+
+# Disable tokenizer parallelism warnings
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # Target words for the experiment
 TARGET_WORDS = {"animals", "furniture", "food"}
@@ -446,18 +485,43 @@ def run_representation_lensing_experiment(
     print("=" * 60)
     print("REPRESENTATION LENSING EXPERIMENT")
     print("=" * 60)
+    print(f"Device: {DEVICE}")
     
     # 1. Load model and tokenizer
     print("\n1. Loading Llama 3.1-8B model...")
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    tokenizer.pad_token = tokenizer.eos_token
-    
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        torch_dtype=torch.float16,
-        device_map="auto"
-    )
-    model.eval()
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        tokenizer.pad_token = tokenizer.eos_token
+        
+        # Load model with device-appropriate settings
+        if DEVICE.type == "cuda":
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                torch_dtype=torch.float16,
+                device_map="auto",
+                trust_remote_code=True
+            )
+        else:
+            # CPU fallback with float32
+            print("   Loading model for CPU (this will be slower)")
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                torch_dtype=torch.float32,
+                device_map=None,
+                trust_remote_code=True
+            )
+            model = model.to(DEVICE)
+        
+        model.eval()
+        print(f"   Model loaded successfully on {model.device}")
+        
+    except Exception as e:
+        print(f" Error loading model: {e}")
+        print("   This might be due to:")
+        print("   1. Insufficient GPU memory")
+        print("   2. CUDA environment issues")
+        print("   3. Model not available")
+        raise
     
     # 2. Load sentences
     print("\n2. Loading sentences...")
@@ -535,7 +599,7 @@ if __name__ == "__main__":
                        help="Model name")
     parser.add_argument("--data-file", default="../tools/manifold_sentences_hard_exactword_1000.json",
                        help="Path to sentences data file")
-    parser.add_argument("--num-sentences", type=int, default=None,
+    parser.add_argument("--num-sentences", type=int, default=100,
                        help="Number of sentences per target (default: all)")
     parser.add_argument("--layers", nargs="+", type=int, default=[0, 5, 15, 25, 27, 30, 31],
                        help="Layer indices to analyze")
