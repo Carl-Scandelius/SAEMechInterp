@@ -30,6 +30,8 @@ pip install -r requirements_minimal.txt
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 python core_experiment.py --num-sentences 10 --max-vocab-subset 150 --batch-size 15
 
+# Note: Float16/Float32 dtype issues are handled automatically
+
 # Standard usage (requires more memory)
 python core_experiment.py --num-sentences 20 --max-vocab-subset 200 --batch-size 20
 
@@ -70,4 +72,22 @@ For large models like Llama-3.1-8B on GPUs with limited memory:
 **Memory Requirements**:
 - A100 40GB: Use `--max-vocab-subset 150 --batch-size 15 --num-sentences 10`
 - V100 32GB: Use `--max-vocab-subset 100 --batch-size 10 --num-sentences 5`
-- RTX 4090 24GB: Use `--max-vocab-subset 80 --batch-size 8 --num-sentences 3` 
+- RTX 4090 24GB: Use `--max-vocab-subset 80 --batch-size 8 --num-sentences 3`
+
+## Common Issues & Solutions
+
+**"linalg_eigh_cuda" not implemented for 'Half'**: 
+- **Problem**: PyTorch's eigendecomposition doesn't support float16 on CUDA
+- **Solution**: Automatically casts Fisher matrix computation to float32 for numerical stability
+- **Implementation**: 
+  - Converts activations to float32 before gradient computation
+  - Converts language modeling head weights to float32 temporarily
+  - Performs eigendecomposition in float32
+  - Converts results back to original dtype for consistency
+- **Impact**: No user action required, maintains model precision for other operations
+
+**"Can't call numpy() on Tensor that requires grad"**: 
+- **Problem**: Fisher eigenvectors retain gradients from computation, blocking numpy conversion
+- **Solution**: Automatically detaches tensors from computation graph before numpy operations
+- **Implementation**: Added `.detach()` calls in both Fisher matrix computation and cosine similarity calculation
+- **Impact**: No user action required, preserves computational efficiency 

@@ -266,16 +266,20 @@ class FisherInfoExtractor:
         """
         Compute Fisher Information Matrix I(h) = Σ_c p(c|h)[∇_h log p(c|h) ∇_h log p(c|h)^T]
         
+        Note: Computation is performed in float32 for numerical stability, even if input is float16.
+        This is necessary because torch.linalg.eigh doesn't support Half precision on CUDA.
+        
         Args:
             h: Activation vector [hidden_size]
             layer_idx: Layer index where h was extracted
             max_vocab_subset: Limit computation to top-k most likely tokens for efficiency
             
         Returns:
-            fisher_matrix: Fisher Information Matrix [hidden_size, hidden_size]
-            top_eigenvalue: Largest eigenvalue of the Fisher matrix
+            top_eigenvector: Top eigenvector of Fisher matrix [hidden_size] (original dtype)
+            top_eigenvalue: Largest eigenvalue of the Fisher matrix (original dtype)
         """
-        h_requires_grad = h.detach().clone().requires_grad_(True)
+        # Ensure float32 for numerical stability in eigendecomposition
+        h_requires_grad = h.detach().clone().to(dtype=torch.float32).requires_grad_(True)
         
         # Forward pass from the activation through the remaining layers to get logits
         with torch.enable_grad():
@@ -283,14 +287,21 @@ class FisherInfoExtractor:
             # For now, we'll use the language modeling head directly
             # This is an approximation - ideally we'd pass through remaining layers
             
-            logits = self.model.lm_head(h_requires_grad)  # [vocab_size]
+            # Ensure lm_head computation works with float32 input
+            if h_requires_grad.dtype != self.model.lm_head.weight.dtype:
+                # Create a temporary float32 version of the lm_head for computation
+                lm_head_weight = self.model.lm_head.weight.to(dtype=h_requires_grad.dtype)
+                lm_head_bias = self.model.lm_head.bias.to(dtype=h_requires_grad.dtype) if self.model.lm_head.bias is not None else None
+                logits = F.linear(h_requires_grad, lm_head_weight, lm_head_bias)
+            else:
+                logits = self.model.lm_head(h_requires_grad)  # [vocab_size]
             probs = F.softmax(logits, dim=-1)  # [vocab_size]
             
             # Limit to top-k tokens for computational efficiency
             top_probs, top_indices = torch.topk(probs, min(max_vocab_subset, probs.shape[0]))
             
-            # Initialize Fisher matrix
-            fisher_matrix = torch.zeros(h.shape[0], h.shape[0], device=h.device, dtype=h.dtype)
+            # Initialize Fisher matrix in float32 for numerical stability
+            fisher_matrix = torch.zeros(h.shape[0], h.shape[0], device=h.device, dtype=torch.float32)
             
             # Compute Fisher matrix components in smaller batches to save memory
             batch_size = 20  # Process 20 tokens at a time to reduce memory usage
@@ -316,10 +327,12 @@ class FisherInfoExtractor:
                     
                     # Compute gradient
                     log_prob.backward(retain_graph=True)
-                    grad = h_requires_grad.grad.clone()
+                    grad = h_requires_grad.grad.clone().to(dtype=torch.float32)
                     
                     # Add to Fisher matrix: p(c|h) * grad * grad^T
-                    fisher_matrix += prob * torch.outer(grad, grad)
+                    # Ensure probability is also float32 for consistency
+                    prob_float32 = prob.to(dtype=torch.float32)
+                    fisher_matrix += prob_float32 * torch.outer(grad, grad)
                     
                     # Clear intermediate computations
                     del grad
@@ -335,6 +348,10 @@ class FisherInfoExtractor:
             sorted_indices = torch.argsort(eigenvalues, descending=True)
             top_eigenvalue = eigenvalues[sorted_indices[0]]
             top_eigenvector = eigenvectors[:, sorted_indices[0]]
+            
+            # Convert back to original dtype for consistency with model and detach from computation graph
+            top_eigenvector = top_eigenvector.to(dtype=h.dtype).detach()
+            top_eigenvalue = top_eigenvalue.to(dtype=h.dtype).detach()
             
             return top_eigenvector, top_eigenvalue
             
@@ -436,7 +453,7 @@ def compute_cosine_similarities(fisher_directions: Dict[str, Dict[int, torch.Ten
         for layer_idx in layers:
             if layer_idx in fisher_directions[sentence_idx]:
                 direction = fisher_directions[sentence_idx][layer_idx]
-                directions.append(direction.cpu().numpy())
+                directions.append(direction.detach().cpu().numpy())
                 labels.append(f"S{sentence_idx}_L{layer_idx}")
     
     if not directions:
