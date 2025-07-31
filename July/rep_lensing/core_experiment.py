@@ -4,9 +4,13 @@ Representation Lensing Experiment for Llama 3.1-8B (non-instruct)
 
 This experiment:
 1. Extracts embeddings from tokens immediately before target words
-2. Analyzes next-token predictions using the language modeling head
+2. Analyzes next-token predictions using three projection methods:
+   - lm_head: Standard language modeling head
+   - embedding_transpose: Transpose of embedding matrix
+   - lm_head_with_norm: LM head with final RMSNorm (complete pipeline)
 3. Performs local PCA on embeddings and tests perturbations
-4. Generates cosine similarity matrices and prediction analysis
+4. Tests multi-centroid perturbations (each category perturbed by all three centroids)
+5. Generates cosine similarity matrices and prediction analysis
 """
 
 import torch
@@ -288,6 +292,7 @@ class LanguageModelingAnalyzer:
         self.tokenizer = tokenizer
         self.lm_head = model.lm_head
         self.embed_tokens = model.model.embed_tokens
+        self.final_norm = model.model.norm  # Add reference to final RMSNorm
         self.device = next(model.parameters()).device
     
     def get_top_predictions(self, embeddings: torch.Tensor, top_k: int = 10, 
@@ -297,7 +302,7 @@ class LanguageModelingAnalyzer:
         Args:
             embeddings: Input embeddings [batch_size, hidden_size]
             top_k: Number of top predictions to return
-            projection_method: Either "lm_head" or "embedding_transpose"
+            projection_method: Either "lm_head", "embedding_transpose", or "lm_head_with_norm"
         """
         
         # Ensure correct dtype for computation
@@ -310,8 +315,12 @@ class LanguageModelingAnalyzer:
             # Use transpose of embedding matrix: embeddings @ embed_weights.T
             embed_weights = self.embed_tokens.weight  # [vocab_size, hidden_size]
             logits = torch.matmul(embeddings, embed_weights.T)  # [batch_size, vocab_size]
+        elif projection_method == "lm_head_with_norm":
+            # Apply final RMSNorm then LM head (complete pipeline like standard forward pass)
+            normalized_embeddings = self.final_norm(embeddings)
+            logits = self.lm_head(normalized_embeddings)  # [batch_size, vocab_size]
         else:
-            raise ValueError(f"Unknown projection_method: {projection_method}. Use 'lm_head' or 'embedding_transpose'")
+            raise ValueError(f"Unknown projection_method: {projection_method}. Use 'lm_head', 'embedding_transpose', or 'lm_head_with_norm'")
         
         probs = F.softmax(logits, dim=-1)  # [batch_size, vocab_size]
         
@@ -391,7 +400,14 @@ class LanguageModelingAnalyzer:
         """Analyze next-token predictions for each target word and layer using specified projection method."""
         
         results = {}
-        method_name = "LM Head" if projection_method == "lm_head" else "Embedding Transpose"
+        if projection_method == "lm_head":
+            method_name = "LM Head"
+        elif projection_method == "embedding_transpose":
+            method_name = "Embedding Transpose"
+        elif projection_method == "lm_head_with_norm":
+            method_name = "LM Head with RMSNorm"
+        else:
+            method_name = projection_method.upper().replace('_', ' ')
         
         for target_word in embeddings_by_target.keys():
             results[target_word] = {}
@@ -495,12 +511,19 @@ class PerturbationAnalyzer:
             layers: Layer indices to analyze
             perturbation_factors: Scaling factors for perturbations
             pc_indices: Which principal components to test (1-indexed)
-            projection_method: Either "lm_head" or "embedding_transpose"
+            projection_method: Either "lm_head", "embedding_transpose", or "lm_head_with_norm"
             include_centroid: Whether to include centroid-based perturbations
         """
         
         results = {}
-        method_name = "LM Head" if projection_method == "lm_head" else "Embedding Transpose"
+        if projection_method == "lm_head":
+            method_name = "LM Head"
+        elif projection_method == "embedding_transpose":
+            method_name = "Embedding Transpose"
+        elif projection_method == "lm_head_with_norm":
+            method_name = "LM Head with RMSNorm"
+        else:
+            method_name = projection_method.upper().replace('_', ' ')
         
         for target_word in embeddings_by_target.keys():
             results[target_word] = {}
@@ -512,6 +535,9 @@ class PerturbationAnalyzer:
                 
                 if embeddings.numel() > 0 and len(pca_data['components']) > 0:
                     results[target_word][layer_idx] = {}
+                    
+                    # Convert embeddings to numpy once for all perturbations
+                    embeddings_np = embeddings.cpu().numpy()
                     
                     # Test perturbations along specified principal components
                     for pc_idx in pc_indices:
@@ -533,7 +559,6 @@ class PerturbationAnalyzer:
                         for factor in perturbation_factors:
                             # Perturb embeddings
                             perturbation = eigenvalue * factor * pc
-                            embeddings_np = embeddings.cpu().numpy()
                             perturbed_embeddings_np = embeddings_np + perturbation
                             
                             # Convert back to tensor with correct dtype
@@ -559,48 +584,55 @@ class PerturbationAnalyzer:
                                 print(f"    Factor {factor} - Target words not in top 100 predictions")
                             print()  # Add spacing between perturbation factors
                     
-                    # Add centroid-based perturbations
+                    # Add centroid-based perturbations using all three category centroids
                     if include_centroid:
-                        # Compute centroid of embeddings
-                        embeddings_np = embeddings.cpu().numpy()
-                        centroid = np.mean(embeddings_np, axis=0)
+                        # First, compute centroids for all target words at this layer
+                        all_centroids = {}
+                        for target in embeddings_by_target.keys():
+                            target_embeddings = embeddings_by_target[target][layer_idx]
+                            if target_embeddings.numel() > 0:
+                                target_embeddings_np = target_embeddings.cpu().numpy()
+                                target_centroid = np.mean(target_embeddings_np, axis=0)
+                                all_centroids[target] = target_centroid
                         
-                        # Normalize centroid to unit vector (direction only)
-                        centroid_direction = centroid / (np.linalg.norm(centroid) + 1e-8)
-                        
-                        # Use magnitude of first PC's eigenvalue
-                        first_pc_eigenvalue = pca_data['eigenvalues'][0] if len(pca_data['eigenvalues']) > 0 else 1.0
-                        
-                        print(f"  Layer {layer_idx}, Centroid perturbation (magnitude from PC1 eigenvalue: {first_pc_eigenvalue:.6f}):")
-                        results[target_word][layer_idx]['Centroid'] = {}
-                        
-                        for factor in perturbation_factors:
-                            # Perturb embeddings using centroid direction with PC1 eigenvalue magnitude
-                            perturbation = first_pc_eigenvalue * factor * centroid_direction
-                            perturbed_embeddings_np = embeddings_np + perturbation
+                        # Now perturb current target's embeddings using all three centroids
+                        for centroid_source, centroid in all_centroids.items():
+                            # Normalize centroid to unit vector (direction only)
+                            centroid_direction = centroid / (np.linalg.norm(centroid) + 1e-8)
                             
-                            # Convert back to tensor with correct dtype
-                            perturbed_tensor = torch.from_numpy(perturbed_embeddings_np).to(
-                                device=embeddings.device, dtype=embeddings.dtype)
+                            # Use magnitude of the centroid position vector
+                            centroid_magnitude = np.linalg.norm(centroid)
                             
-                            # Analyze predictions using specified projection method
-                            predictions_data = self.lm_analyzer.get_top_predictions(perturbed_tensor, top_k=10,
-                                                                                   projection_method=projection_method)
-                            results[target_word][layer_idx]['Centroid'][factor] = predictions_data
+                            print(f"  Layer {layer_idx}, {centroid_source} centroid perturbation (magnitude: {centroid_magnitude:.6f}):")
+                            results[target_word][layer_idx][f'Centroid_{centroid_source}'] = {}
                             
-                            print(f"    Factor {factor} - Top 5 predictions:")
-                            for i, (token, prob) in enumerate(predictions_data["predictions"][:5]):
-                                print(f"      {i+1}. '{token}': {prob:.6f}")
-                            
-                            # Display target word rankings for perturbations
-                            rankings = predictions_data["target_word_rankings"]
-                            if rankings:
-                                print(f"    Factor {factor} - Target word rankings:")
-                                for word, rank_info in rankings.items():
-                                    print(f"      '{word}': {rank_info['rank']} (prob: {rank_info['probability']:.8f})")
-                            else:
-                                print(f"    Factor {factor} - Target words not in top 100 predictions")
-                            print()  # Add spacing between perturbation factors
+                            for factor in perturbation_factors:
+                                # Perturb embeddings using centroid direction with centroid magnitude
+                                perturbation = centroid_magnitude * factor * centroid_direction
+                                perturbed_embeddings_np = embeddings_np + perturbation
+                                
+                                # Convert back to tensor with correct dtype
+                                perturbed_tensor = torch.from_numpy(perturbed_embeddings_np).to(
+                                    device=embeddings.device, dtype=embeddings.dtype)
+                                
+                                # Analyze predictions using specified projection method
+                                predictions_data = self.lm_analyzer.get_top_predictions(perturbed_tensor, top_k=10,
+                                                                                       projection_method=projection_method)
+                                results[target_word][layer_idx][f'Centroid_{centroid_source}'][factor] = predictions_data
+                                
+                                print(f"    Factor {factor} - Top 5 predictions:")
+                                for i, (token, prob) in enumerate(predictions_data["predictions"][:5]):
+                                    print(f"      {i+1}. '{token}': {prob:.6f}")
+                                
+                                # Display target word rankings for perturbations
+                                rankings = predictions_data["target_word_rankings"]
+                                if rankings:
+                                    print(f"    Factor {factor} - Target word rankings:")
+                                    for word, rank_info in rankings.items():
+                                        print(f"      '{word}': {rank_info['rank']} (prob: {rank_info['probability']:.8f})")
+                                else:
+                                    print(f"    Factor {factor} - Target words not in top 100 predictions")
+                                print()  # Add spacing between perturbation factors
                 else:
                     results[target_word][layer_idx] = {}
                     print(f"  Layer {layer_idx}: No data for perturbation")
@@ -709,13 +741,20 @@ class AdditionalTestCaseAnalyzer:
             embeddings_by_target: Original experiment embeddings (needed for centroid computation)
             perturbation_factors: Scaling factors for perturbations
             pc_indices: Which principal components to test (1-indexed)
-            projection_method: Either "lm_head" or "embedding_transpose"
+            projection_method: Either "lm_head", "embedding_transpose", or "lm_head_with_norm"
             include_centroid: Whether to include centroid-based perturbations
         """
         
         results = {}
         case_types = ["category_word", "spelling", "translation"]
-        method_name = "LM Head" if projection_method == "lm_head" else "Embedding Transpose"
+        if projection_method == "lm_head":
+            method_name = "LM Head"
+        elif projection_method == "embedding_transpose":
+            method_name = "Embedding Transpose"
+        elif projection_method == "lm_head_with_norm":
+            method_name = "LM Head with RMSNorm"
+        else:
+            method_name = projection_method.upper().replace('_', ' ')
         
         for target_word in test_case_embeddings.keys():
             results[target_word] = {}
@@ -784,27 +823,30 @@ class AdditionalTestCaseAnalyzer:
                                 for i, (token, prob) in enumerate(predictions_data["predictions"][:3]):
                                     print(f"        {i+1}. '{token}': {prob:.6f}")
                     
-                    # Add centroid-based perturbations for test cases
+                    # Add centroid-based perturbations for test cases using all three category centroids
                     if include_centroid:
-                        # We need the original embeddings from the experiment for centroid computation
-                        # Use the embeddings for this target/layer from the original experiment
-                        original_embeddings = embeddings_by_target.get(target_word, {}).get(layer_idx)
-                        if original_embeddings is not None and original_embeddings.numel() > 0:
-                            # Compute centroid from original experiment embeddings
-                            original_embeddings_np = original_embeddings.cpu().numpy()
-                            centroid = np.mean(original_embeddings_np, axis=0)
-                            
+                        # Compute centroids for all target words at this layer from original experiment
+                        all_centroids = {}
+                        for target in embeddings_by_target.keys():
+                            target_embeddings = embeddings_by_target.get(target, {}).get(layer_idx)
+                            if target_embeddings is not None and target_embeddings.numel() > 0:
+                                target_embeddings_np = target_embeddings.cpu().numpy()
+                                target_centroid = np.mean(target_embeddings_np, axis=0)
+                                all_centroids[target] = target_centroid
+                        
+                        # Apply perturbations using all three centroids
+                        for centroid_source, centroid in all_centroids.items():
                             # Normalize centroid to unit vector (direction only)
                             centroid_direction = centroid / (np.linalg.norm(centroid) + 1e-8)
                             
-                            # Use magnitude of first PC's eigenvalue
-                            first_pc_eigenvalue = pca_data['eigenvalues'][0] if len(pca_data['eigenvalues']) > 0 else 1.0
+                            # Use magnitude of the centroid position vector
+                            centroid_magnitude = np.linalg.norm(centroid)
                             
-                            results[target_word][layer_idx][case_type]['Centroid'] = {}
+                            results[target_word][layer_idx][case_type][f'Centroid_{centroid_source}'] = {}
                             
                             for factor in perturbation_factors:
                                 # Apply centroid perturbation to the test case embedding
-                                perturbation = first_pc_eigenvalue * factor * centroid_direction
+                                perturbation = centroid_magnitude * factor * centroid_direction
                                 embedding_np = embedding.cpu().numpy()
                                 perturbed_embedding_np = embedding_np + perturbation
                                 
@@ -815,11 +857,11 @@ class AdditionalTestCaseAnalyzer:
                                 # Analyze predictions using specified projection method
                                 predictions_data = self.lm_analyzer.get_top_predictions(perturbed_tensor, top_k=10,
                                                                                        projection_method=projection_method)
-                                results[target_word][layer_idx][case_type]['Centroid'][factor] = predictions_data
+                                results[target_word][layer_idx][case_type][f'Centroid_{centroid_source}'][factor] = predictions_data
                                 
                                 # Print top predictions for key factors
                                 if factor in [-1.0, 1.0]:  # Only print for key factors to avoid clutter
-                                    print(f"      Centroid, factor {factor} - Top 3 predictions:")
+                                    print(f"      {centroid_source} Centroid, factor {factor} - Top 3 predictions:")
                                     for i, (token, prob) in enumerate(predictions_data["predictions"][:3]):
                                         print(f"        {i+1}. '{token}': {prob:.6f}")
         
@@ -1001,7 +1043,7 @@ def run_representation_lensing_experiment(
     num_sentences: Optional[int] = None,
     layers: List[int] = [0, 5, 10, 15, 20, 25, 30, 31],
     output_dir: str = "../rep_lensing/lens_results",
-    projection_methods: List[str] = ["lm_head", "embedding_transpose"]
+    projection_methods: List[str] = ["lm_head", "embedding_transpose", "lm_head_with_norm"]
 ):
     """Run the complete representation lensing experiment."""
     
@@ -1055,12 +1097,11 @@ def run_representation_lensing_experiment(
     extractor = RepresentationLensingExtractor(model, tokenizer)
     embeddings_by_target = extractor.extract_pre_target_embeddings(sentences_by_target, layers)
     
-    # 4. Analyze baseline predictions using both projection methods
+    # 4. Analyze baseline predictions using specified projection methods
     print("\n4. Analyzing baseline next-token predictions...")
     lm_analyzer = LanguageModelingAnalyzer(model, tokenizer)
     
-    # Run analysis with both projection methods
-    projection_methods = ["lm_head", "embedding_transpose"]
+    # Run analysis with specified projection methods
     baseline_predictions = {}
     perturbation_results = {}
     test_case_results = {}
@@ -1187,9 +1228,9 @@ if __name__ == "__main__":
                        help="Layer indices to analyze")
     parser.add_argument("--output-dir", default="../rep_lensing/lens_results",
                        help="Output directory")
-    parser.add_argument("--projection-methods", nargs="+", default=["lm_head", "embedding_transpose"],
-                       choices=["lm_head", "embedding_transpose"],
-                       help="Projection methods to use: lm_head (standard) and/or embedding_transpose")
+    parser.add_argument("--projection-methods", nargs="+", default=["lm_head", "embedding_transpose", "lm_head_with_norm"],
+                       choices=["lm_head", "embedding_transpose", "lm_head_with_norm"],
+                       help="Projection methods to use: lm_head (standard), embedding_transpose, and/or lm_head_with_norm (with final RMSNorm)")
     
     args = parser.parse_args()
     
